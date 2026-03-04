@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { Droplets, BarChart3, Activity } from "lucide-react";
+import { Home, Droplets, Moon, Activity } from "lucide-react";
 
 const navItems = [
-  { to: "/", label: "Water", icon: Droplets },
-  { to: "/stats", label: "Stats", icon: BarChart3 },
+  { to: "/", label: "Dashboard", icon: Home },
+  { to: "/water-stats", label: "Water Stats", icon: Droplets },
+  { to: "/sleep-stats", label: "Sleep Stats", icon: Moon },
 ];
 
 export default function Sidebar() {

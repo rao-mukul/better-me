@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
-import AppShell from './components/layout/AppShell';
-import TodayPage from './pages/TodayPage';
-import StatsPage from './pages/StatsPage';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "react-hot-toast";
+import AppShell from "./components/layout/AppShell";
+import TodayPage from "./pages/TodayPage";
+import StatsPage from "./pages/StatsPage";
+import SleepStatsPage from "./pages/SleepStatsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,17 +23,18 @@ export default function App() {
           position="top-center"
           toastOptions={{
             style: {
-              background: '#1a2540',
-              color: '#f0f9ff',
-              border: '1px solid rgba(36, 51, 82, 0.5)',
-              borderRadius: '12px',
+              background: "#1a2540",
+              color: "#f0f9ff",
+              border: "1px solid rgba(36, 51, 82, 0.5)",
+              borderRadius: "12px",
             },
           }}
         />
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<TodayPage />} />
-            <Route path="/stats" element={<StatsPage />} />
+            <Route path="/water-stats" element={<StatsPage />} />
+            <Route path="/sleep-stats" element={<SleepStatsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

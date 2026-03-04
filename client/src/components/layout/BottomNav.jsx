@@ -1,9 +1,10 @@
-import { NavLink } from 'react-router-dom';
-import { Droplets, BarChart3 } from 'lucide-react';
+import { NavLink } from "react-router-dom";
+import { Home, Droplets, Moon } from "lucide-react";
 
 const navItems = [
-  { to: '/', label: 'Today', icon: Droplets },
-  { to: '/stats', label: 'Stats', icon: BarChart3 },
+  { to: "/", label: "Today", icon: Home },
+  { to: "/water-stats", label: "Water", icon: Droplets },
+  { to: "/sleep-stats", label: "Sleep", icon: Moon },
 ];
 
 export default function BottomNav() {
@@ -17,8 +18,8 @@ export default function BottomNav() {
             className={({ isActive }) =>
               `flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-colors ${
                 isActive
-                  ? 'text-primary'
-                  : 'text-text-secondary hover:text-text-primary'
+                  ? "text-primary"
+                  : "text-text-secondary hover:text-text-primary"
               }`
             }
           >
