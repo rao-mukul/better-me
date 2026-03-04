@@ -6,6 +6,7 @@ import TodayPage from "./pages/TodayPage";
 import StatsPage from "./pages/StatsPage";
 import SleepStatsPage from "./pages/SleepStatsPage";
 import GymStatsPage from "./pages/GymStatsPage";
+import DietStatsPage from "./pages/DietStatsPage";
 import CleanTimerPage from "./pages/CleanTimerPage";
 import CleanTimerStatsPage from "./pages/CleanTimerStatsPage";
 
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/water-stats" element={<StatsPage />} />
             <Route path="/sleep-stats" element={<SleepStatsPage />} />
             <Route path="/gym-stats" element={<GymStatsPage />} />
+            <Route path="/diet-stats" element={<DietStatsPage />} />
             <Route path="/clean-timer" element={<CleanTimerPage />} />
             <Route path="/clean-timer/:id" element={<CleanTimerStatsPage />} />
           </Route>

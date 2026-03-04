@@ -27,3 +27,9 @@ export const WORKOUT_INTENSITY = {
   moderate: 1.0,
   intense: 1.3,
 };
+
+// Diet tracking constants
+export const DEFAULT_CALORIE_GOAL = 2000;
+export const DEFAULT_PROTEIN_GOAL = 150; // grams
+export const DEFAULT_CARBS_GOAL = 200; // grams
+export const DEFAULT_FAT_GOAL = 65; // grams

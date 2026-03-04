@@ -49,4 +49,13 @@ export const cleanTimerApi = {
     api.get(`/clean-timer/stats/${id}`).then((r) => r.data),
 };
 
+export const dietApi = {
+  getToday: () => api.get("/diet/today").then((r) => r.data),
+  addLog: (data) => api.post("/diet/log", data).then((r) => r.data),
+  deleteLog: (id) => api.delete(`/diet/log/${id}`).then((r) => r.data),
+  getWeek: () => api.get("/diet/week").then((r) => r.data),
+  updateGoals: (goals) => api.put("/diet/goals", goals).then((r) => r.data),
+  getStreak: () => api.get("/diet/streak").then((r) => r.data),
+};
+
 export default api;

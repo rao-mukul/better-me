@@ -6,6 +6,7 @@ import waterRoutes from "./routes/water.js";
 import sleepRoutes from "./routes/sleep.js";
 import gymRoutes from "./routes/gym.js";
 import cleanTimerRoutes from "./routes/cleanTimer.js";
+import dietRoutes from "./routes/diet.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
@@ -40,6 +41,7 @@ app.use("/api/water", waterRoutes);
 app.use("/api/sleep", sleepRoutes);
 app.use("/api/gym", gymRoutes);
 app.use("/api/clean-timer", cleanTimerRoutes);
+app.use("/api/diet", dietRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });

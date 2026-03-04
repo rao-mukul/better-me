@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { Droplets, Moon, Dumbbell } from "lucide-react";
+import { Droplets, Moon, Dumbbell, Utensils, ChevronDown } from "lucide-react";
 import Card from "../components/ui/Card";
 import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
@@ -16,6 +16,10 @@ import SleepCard from "../components/sleep/SleepCard";
 import GymLogForm from "../components/gym/GymLogForm";
 import GymLogList from "../components/gym/GymLogList";
 import GymCard from "../components/gym/GymCard";
+import DietLogForm from "../components/diet/DietLogForm";
+import DietLogList from "../components/diet/DietLogList";
+import DietCard from "../components/diet/DietCard";
+import DietGoalSetter from "../components/diet/GoalSetter";
 import {
   useWaterToday,
   useAddWaterLog,
@@ -36,8 +40,34 @@ import {
   useCompleteWorkout,
   useDeleteWorkout,
 } from "../hooks/useGymData";
+import {
+  useDietToday,
+  useAddDietLog,
+  useDeleteDietLog,
+  useUpdateDietGoals,
+} from "../hooks/useDietData";
 
 export default function TodayPage() {
+  // Collapsible sections state - load from localStorage or default to all expanded
+  const [expandedSections, setExpandedSections] = useState(() => {
+    const saved = localStorage.getItem("todayPageExpanded");
+    return saved
+      ? JSON.parse(saved)
+      : { water: true, sleep: true, gym: true, diet: true };
+  });
+
+  // Save to localStorage whenever sections change
+  useEffect(() => {
+    localStorage.setItem("todayPageExpanded", JSON.stringify(expandedSections));
+  }, [expandedSections]);
+
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   // Water tracking
   const { data: waterData, isLoading: waterLoading } = useWaterToday();
   const addLog = useAddWaterLog();
@@ -87,6 +117,26 @@ export default function TodayPage() {
     muscleGroupsWorked: [],
     totalExercises: 0,
     averageIntensity: "none",
+  };
+
+  // Diet tracking
+  const { data: dietData, isLoading: dietLoading } = useDietToday();
+  const addDietLog = useAddDietLog();
+  const deleteDietLog = useDeleteDietLog();
+  const updateDietGoals = useUpdateDietGoals();
+
+  const dietLogs = dietData?.logs || [];
+  const dietStats = dietData?.stats || {
+    totalCalories: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalFat: 0,
+    calorieGoal: 2000,
+    proteinGoal: 150,
+    carbsGoal: 200,
+    fatGoal: 65,
+    goalMet: false,
+    entryCount: 0,
   };
 
   // Show celebration when water goal is first achieved
@@ -174,9 +224,34 @@ export default function TodayPage() {
     deleteWorkout.mutate(id);
   };
 
-  if (waterLoading && sleepLoading && gymLoading) {
+  const handleDietAdd = (data) => {
+    addDietLog.mutate(data, {
+      onSuccess: () => {
+        toast.success("Food entry logged! 🥗", {
+          duration: 2000,
+        });
+      },
+    });
+  };
+
+  const handleDietDelete = (id) => {
+    deleteDietLog.mutate(id);
+  };
+
+  const handleDietGoalsUpdate = (goals) => {
+    updateDietGoals.mutate(goals, {
+      onSuccess: () => {
+        toast.success("Nutrition goals updated! 🎯", {
+          duration: 2000,
+        });
+      },
+    });
+  };
+
+  if (waterLoading && sleepLoading && gymLoading && dietLoading) {
     return (
       <div className="flex flex-col gap-6 animate-pulse">
+        <div className="h-80 rounded-2xl bg-navy-800/60" />
         <div className="h-80 rounded-2xl bg-navy-800/60" />
         <div className="h-80 rounded-2xl bg-navy-800/60" />
         <div className="h-80 rounded-2xl bg-navy-800/60" />
@@ -195,106 +270,263 @@ export default function TodayPage() {
       >
         {/* Water Tracking Section */}
         <Card>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Droplets size={20} className="text-primary" />
+          <button
+            onClick={() => toggleSection("water")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/20">
+                <Droplets size={20} className="text-primary" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">
+                Water Tracking
+              </h2>
+              <span className="text-sm text-text-secondary">
+                {waterStats.totalMl}ml / {waterStats.goal}ml
+              </span>
             </div>
-            <h2 className="text-xl font-bold text-text-primary">
-              Water Tracking
-            </h2>
-          </div>
+            <motion.div
+              animate={{ rotate: expandedSections.water ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown
+                size={20}
+                className="text-text-secondary group-hover:text-text-primary transition-colors"
+              />
+            </motion.div>
+          </button>
 
-          <WaterRing totalMl={waterStats.totalMl} goal={waterStats.goal} />
+          <AnimatePresence initial={false}>
+            {expandedSections.water && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <WaterRing
+                  totalMl={waterStats.totalMl}
+                  goal={waterStats.goal}
+                />
 
-          <GoalSetter
-            goal={waterStats.goal}
-            onUpdate={handleGoalUpdate}
-            disabled={updateGoal.isPending}
-          />
+                <GoalSetter
+                  goal={waterStats.goal}
+                  onUpdate={handleGoalUpdate}
+                  disabled={updateGoal.isPending}
+                />
 
-          <div className="mt-6 mb-6">
-            <QuickAddBar onAdd={handleWaterAdd} disabled={addLog.isPending} />
-          </div>
+                <div className="mt-6 mb-6">
+                  <QuickAddBar
+                    onAdd={handleWaterAdd}
+                    disabled={addLog.isPending}
+                  />
+                </div>
 
-          <IntakeList logs={logs} onDelete={handleWaterDelete} />
+                <IntakeList logs={logs} onDelete={handleWaterDelete} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Card>
 
         {/* Sleep Tracking Section */}
         <Card>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <Moon size={20} className="text-purple-400" />
+          <button
+            onClick={() => toggleSection("sleep")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-purple-500/20">
+                <Moon size={20} className="text-purple-400" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">
+                Sleep Tracking
+              </h2>
+              <span className="text-sm text-text-secondary">
+                {(sleepStats.totalMinutes / 60).toFixed(1)}h /{" "}
+                {sleepStats.targetHours}h
+              </span>
             </div>
-            <h2 className="text-xl font-bold text-text-primary">
-              Sleep Tracking
-            </h2>
-          </div>
+            <motion.div
+              animate={{ rotate: expandedSections.sleep ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown
+                size={20}
+                className="text-text-secondary group-hover:text-text-primary transition-colors"
+              />
+            </motion.div>
+          </button>
 
-          <SleepRing
-            totalMinutes={sleepStats.totalMinutes}
-            targetHours={sleepStats.targetHours}
-          />
+          <AnimatePresence initial={false}>
+            {expandedSections.sleep && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <SleepRing
+                  totalMinutes={sleepStats.totalMinutes}
+                  targetHours={sleepStats.targetHours}
+                />
 
-          <TargetSetter
-            targetHours={sleepStats.targetHours}
-            onUpdate={handleTargetUpdate}
-            disabled={updateTarget.isPending}
-          />
+                <TargetSetter
+                  targetHours={sleepStats.targetHours}
+                  onUpdate={handleTargetUpdate}
+                  disabled={updateTarget.isPending}
+                />
 
-          <div className="mt-6 mb-6">
-            <SleepLogForm
-              activeSleepLog={activeSleepLog}
-              onStartSleep={handleStartSleep}
-              onCompleteSleep={handleCompleteSleep}
-              disabled={startSleep.isPending || completeSleep.isPending}
-            />
-          </div>
+                <div className="mt-6 mb-6">
+                  <SleepLogForm
+                    activeSleepLog={activeSleepLog}
+                    onStartSleep={handleStartSleep}
+                    onCompleteSleep={handleCompleteSleep}
+                    disabled={startSleep.isPending || completeSleep.isPending}
+                  />
+                </div>
 
-          {sleepStats.entryCount > 0 && (
-            <div className="mb-6">
-              <SleepCard stats={sleepStats} />
-            </div>
-          )}
+                {sleepStats.entryCount > 0 && (
+                  <div className="mb-6">
+                    <SleepCard stats={sleepStats} />
+                  </div>
+                )}
 
-          <SleepLogList logs={sleepLogs} onDelete={handleSleepDelete} />
+                <SleepLogList logs={sleepLogs} onDelete={handleSleepDelete} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Card>
 
         {/* Gym Tracking Section */}
         <Card>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 rounded-lg bg-orange-500/20">
-              <Dumbbell size={20} className="text-orange-400" />
+          <button
+            onClick={() => toggleSection("gym")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-orange-500/20">
+                <Dumbbell size={20} className="text-orange-400" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">
+                Gym Tracking
+              </h2>
+              <span className="text-sm text-text-secondary">
+                {gymStats.totalWorkouts} workout
+                {gymStats.totalWorkouts !== 1 ? "s" : ""}
+              </span>
             </div>
-            <h2 className="text-xl font-bold text-text-primary">
-              Gym Tracking
-            </h2>
-          </div>
+            <motion.div
+              animate={{ rotate: expandedSections.gym ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown
+                size={20}
+                className="text-text-secondary group-hover:text-text-primary transition-colors"
+              />
+            </motion.div>
+          </button>
 
-          <div className="mb-6">
-            <GymLogForm
-              activeWorkout={activeWorkout}
-              onStartWorkout={handleStartWorkout}
-              onUpdateWorkout={handleUpdateWorkout}
-              onCompleteWorkout={handleCompleteWorkout}
-              disabled={
-                startWorkout.isPending ||
-                updateWorkout.isPending ||
-                completeWorkout.isPending
-              }
-            />
-          </div>
+          <AnimatePresence initial={false}>
+            {expandedSections.gym && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <div className="mb-6">
+                  <GymLogForm
+                    activeWorkout={activeWorkout}
+                    onStartWorkout={handleStartWorkout}
+                    onUpdateWorkout={handleUpdateWorkout}
+                    onCompleteWorkout={handleCompleteWorkout}
+                    disabled={
+                      startWorkout.isPending ||
+                      updateWorkout.isPending ||
+                      completeWorkout.isPending
+                    }
+                  />
+                </div>
 
-          {gymStats.totalWorkouts > 0 && (
-            <div className="mb-6">
-              <GymCard stats={gymStats} />
+                {gymStats.totalWorkouts > 0 && (
+                  <div className="mb-6">
+                    <GymCard stats={gymStats} />
+                  </div>
+                )}
+
+                <GymLogList
+                  workouts={completedWorkouts}
+                  onDelete={handleWorkoutDelete}
+                  disabled={deleteWorkout.isPending}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+
+        {/* Diet Tracking Section */}
+        <Card>
+          <button
+            onClick={() => toggleSection("diet")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-green-500/20">
+                <Utensils size={20} className="text-green-400" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">
+                Diet Tracking
+              </h2>
+              <span className="text-sm text-text-secondary">
+                {dietStats.totalCalories}cal / {dietStats.calorieGoal}cal
+              </span>
             </div>
-          )}
+            <motion.div
+              animate={{ rotate: expandedSections.diet ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown
+                size={20}
+                className="text-text-secondary group-hover:text-text-primary transition-colors"
+              />
+            </motion.div>
+          </button>
 
-          <GymLogList
-            workouts={completedWorkouts}
-            onDelete={handleWorkoutDelete}
-            disabled={deleteWorkout.isPending}
-          />
+          <AnimatePresence initial={false}>
+            {expandedSections.diet && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <DietGoalSetter
+                  stats={dietStats}
+                  onUpdate={handleDietGoalsUpdate}
+                  disabled={updateDietGoals.isPending}
+                />
+
+                <div className="mb-6">
+                  <DietLogForm
+                    onAddLog={handleDietAdd}
+                    disabled={addDietLog.isPending}
+                  />
+                </div>
+
+                {dietStats.entryCount > 0 && (
+                  <div className="mb-6">
+                    <DietCard stats={dietStats} />
+                  </div>
+                )}
+
+                <DietLogList logs={dietLogs} onDelete={handleDietDelete} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Card>
       </motion.div>
     </>
