@@ -37,4 +37,16 @@ export const gymApi = {
   getStreak: () => api.get("/gym/streak").then((r) => r.data),
 };
 
+export const cleanTimerApi = {
+  getAllTimers: () => api.get("/clean-timer").then((r) => r.data),
+  createTimer: (data) => api.post("/clean-timer", data).then((r) => r.data),
+  resetTimer: (id, data) =>
+    api.post(`/clean-timer/reset/${id}`, data).then((r) => r.data),
+  updateTimer: (id, data) =>
+    api.put(`/clean-timer/${id}`, data).then((r) => r.data),
+  deleteTimer: (id) => api.delete(`/clean-timer/${id}`).then((r) => r.data),
+  getTimerStats: (id) =>
+    api.get(`/clean-timer/stats/${id}`).then((r) => r.data),
+};
+
 export default api;
