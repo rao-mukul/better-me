@@ -13,7 +13,7 @@ export default function AppShell() {
 
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-4 h-14 bg-navy-900/80 backdrop-blur-md border-b border-navy-700/30 z-30">
-        <span className="text-base font-bold text-text-primary">LifeTracker</span>
+        <span className="text-base font-bold text-text-primary">BetterMe</span>
         <button
           onClick={toggleSound}
           className="p-2 rounded-lg text-text-secondary hover:text-text-primary transition-colors cursor-pointer"

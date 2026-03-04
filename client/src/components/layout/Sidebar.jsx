@@ -14,7 +14,7 @@ export default function Sidebar() {
     <aside className="hidden md:flex flex-col w-56 h-screen fixed left-0 top-0 bg-navy-800/50 backdrop-blur-md border-r border-navy-700/50 z-30">
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-navy-700/50">
         <Activity size={22} className="text-primary" />
-        <span className="text-base font-bold text-text-primary">LifeTracker</span>
+        <span className="text-base font-bold text-text-primary">BetterMe</span>
       </div>
 
       <nav className="flex-1 flex flex-col gap-1 p-3 mt-2">
