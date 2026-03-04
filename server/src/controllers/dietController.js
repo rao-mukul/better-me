@@ -244,37 +244,47 @@ export const updateGoals = async (req, res, next) => {
 
 export const getStreak = async (req, res, next) => {
   try {
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
+    // Get last 90 days of stats to compute streaks
     const today = new Date();
+    const stats = await DietStats.find({
+      userId: DEFAULT_USER_ID,
+      goalMet: true,
+    })
+      .sort({ date: -1 })
+      .limit(90);
 
-    // Check last 365 days
-    for (let i = 0; i < 365; i++) {
-      const date = format(subDays(today, i), "yyyy-MM-dd");
-      const stats = await DietStats.findOne({
-        userId: DEFAULT_USER_ID,
-        date,
-      });
+    if (stats.length === 0) {
+      return res.json({ current: 0, longest: 0 });
+    }
 
-      if (stats && stats.goalMet) {
+    const metDates = new Set(stats.map((s) => s.date));
+
+    // Current streak: count consecutive days ending today (or yesterday)
+    let current = 0;
+    let checkDate = today;
+    // If today hasn't been met yet, start from yesterday
+    if (!metDates.has(format(checkDate, "yyyy-MM-dd"))) {
+      checkDate = subDays(today, 1);
+    }
+    while (metDates.has(format(checkDate, "yyyy-MM-dd"))) {
+      current++;
+      checkDate = subDays(checkDate, 1);
+    }
+
+    // Longest streak from available data
+    let longest = 0;
+    let tempStreak = 0;
+    for (let i = 89; i >= 0; i--) {
+      const d = format(subDays(today, i), "yyyy-MM-dd");
+      if (metDates.has(d)) {
         tempStreak++;
-        if (i === 0 || currentStreak > 0) {
-          currentStreak++;
-        }
-        longestStreak = Math.max(longestStreak, tempStreak);
+        longest = Math.max(longest, tempStreak);
       } else {
-        if (i === 0) {
-          currentStreak = 0;
-        }
-        if (tempStreak > longestStreak) {
-          longestStreak = tempStreak;
-        }
         tempStreak = 0;
       }
     }
 
-    res.json({ current: currentStreak, longest: longestStreak });
+    res.json({ current, longest });
   } catch (err) {
     next(err);
   }

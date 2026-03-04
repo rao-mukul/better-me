@@ -4,16 +4,29 @@ import DietWeeklyChart from "../components/diet/DietWeeklyChart";
 import MacroRings from "../components/diet/MacroRings";
 import StreakCard from "../components/stats/StreakCard";
 import InsightCard from "../components/stats/InsightCard";
-import { useDietWeek, useDietStreak, useDietToday } from "../hooks/useDietData";
+import { useDietWeek, useDietStreak } from "../hooks/useDietData";
 
 export default function DietStatsPage() {
   const { data: weekData, isLoading: weekLoading } = useDietWeek();
   const { data: streakData, isLoading: streakLoading } = useDietStreak();
-  const { data: todayData } = useDietToday();
 
   const week = weekData || [];
   const streak = streakData || { current: 0, longest: 0 };
-  const stats = todayData?.stats;
+
+  // Get today's stats from the week data (last item in array)
+  const todayStats = week.length > 0 ? week[week.length - 1] : null;
+  const stats = todayStats
+    ? {
+        totalCalories: todayStats.totalCalories,
+        totalProtein: todayStats.totalProtein,
+        totalCarbs: todayStats.totalCarbs,
+        totalFat: todayStats.totalFat,
+        calorieGoal: todayStats.calorieGoal,
+        proteinGoal: todayStats.proteinGoal,
+        carbsGoal: todayStats.carbsGoal,
+        fatGoal: todayStats.fatGoal,
+      }
+    : null;
 
   // Compute insights from week data
   const totalWeekCalories = week.reduce((sum, d) => sum + d.totalCalories, 0);
