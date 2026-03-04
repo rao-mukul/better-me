@@ -48,12 +48,12 @@ import {
 } from "../hooks/useDietData";
 
 export default function TodayPage() {
-  // Collapsible sections state - load from localStorage or default to all expanded
+  // Collapsible sections state - load from localStorage or default to all collapsed
   const [expandedSections, setExpandedSections] = useState(() => {
     const saved = localStorage.getItem("todayPageExpanded");
     return saved
       ? JSON.parse(saved)
-      : { water: true, sleep: true, gym: true, diet: true };
+      : { water: false, sleep: false, gym: false, diet: false };
   });
 
   // Save to localStorage whenever sections change

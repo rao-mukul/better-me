@@ -42,13 +42,27 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 export default function GymWeeklyChart({ data = [] }) {
+  // Don't render chart if no data to avoid dimension issues
+  if (!data || data.length === 0) {
+    return (
+      <Card>
+        <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
+          Last 7 Days Workouts
+        </h3>
+        <div className="h-48 flex items-center justify-center">
+          <p className="text-sm text-text-secondary">No data available yet</p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
         Last 7 Days Workouts
       </h3>
-      <div className="h-48">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-48 min-h-48">
+        <ResponsiveContainer width="100%" height="100%" minHeight={192}>
           <BarChart data={data} barCategoryGap="20%">
             <XAxis
               dataKey="dayLabel"
