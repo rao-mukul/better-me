@@ -1,28 +1,23 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GlassWater, CupSoda, Plus } from 'lucide-react';
-import { useSound } from '../../hooks/useSound';
 import CustomAmountModal from './CustomAmountModal';
 
 const presets = [
-  { type: 'glass', label: 'Glass', sublabel: '250 ml', amount: 250, icon: GlassWater, sound: 'drop' },
-  { type: 'bottle', label: 'Bottle', sublabel: '1 L', amount: 1000, icon: CupSoda, sound: 'splash' },
+  { type: 'glass', label: 'Glass', sublabel: '250 ml', amount: 250, icon: GlassWater },
+  { type: 'bottle', label: 'Bottle', sublabel: '1 L', amount: 1000, icon: CupSoda },
 ];
 
 export default function QuickAddBar({ onAdd, disabled }) {
   const [customOpen, setCustomOpen] = useState(false);
-  const { playDrop, playSplash } = useSound();
 
   const handlePreset = (preset) => {
     if (disabled) return;
     onAdd({ amount: preset.amount, type: preset.type, label: `${preset.label} (${preset.sublabel})` });
-    if (preset.sound === 'drop') playDrop();
-    else playSplash();
   };
 
   const handleCustom = (amount) => {
     onAdd({ amount, type: 'custom', label: `Custom (${amount}ml)` });
-    playDrop();
     setCustomOpen(false);
   };
 

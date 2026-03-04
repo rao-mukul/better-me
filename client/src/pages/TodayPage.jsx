@@ -1,38 +1,39 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import WaterRing from '../components/water/WaterRing';
 import QuickAddBar from '../components/water/QuickAddBar';
 import IntakeList from '../components/water/IntakeList';
 import GoalSetter from '../components/water/GoalSetter';
+import WaterAnimation from '../components/water/WaterAnimation';
 import { useWaterToday, useAddWaterLog, useDeleteWaterLog, useUpdateGoal } from '../hooks/useWaterData';
-import { useSound } from '../hooks/useSound';
 
 export default function TodayPage() {
   const { data, isLoading } = useWaterToday();
   const addLog = useAddWaterLog();
   const deleteLog = useDeleteWaterLog();
   const updateGoal = useUpdateGoal();
-  const { playChime } = useSound();
   const prevGoalMetRef = useRef(false);
+  const [showAnimation, setShowAnimation] = useState(false);
 
   const logs = data?.logs || [];
   const stats = data?.stats || { totalMl: 0, goal: 2500, goalMet: false, entryCount: 0 };
 
-  // Play chime when goal is first achieved
+  // Show celebration when goal is first achieved
   useEffect(() => {
     if (stats.goalMet && !prevGoalMetRef.current && stats.totalMl > 0) {
-      playChime();
       toast.success('Daily goal reached! Great job staying hydrated.', {
         icon: '🎉',
         duration: 3000,
       });
     }
     prevGoalMetRef.current = stats.goalMet;
-  }, [stats.goalMet, stats.totalMl, playChime]);
+  }, [stats.goalMet, stats.totalMl]);
 
   const handleAdd = (intake) => {
     addLog.mutate(intake);
+    setShowAnimation(true);
+    setTimeout(() => setShowAnimation(false), 1000);
   };
 
   const handleDelete = (id) => {
@@ -58,12 +59,14 @@ export default function TodayPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <WaterRing totalMl={stats.totalMl} goal={stats.goal} />
+    <>
+      <WaterAnimation show={showAnimation} />
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <WaterRing totalMl={stats.totalMl} goal={stats.goal} />
 
       <GoalSetter
         goal={stats.goal}
@@ -75,7 +78,8 @@ export default function TodayPage() {
         <QuickAddBar onAdd={handleAdd} disabled={addLog.isPending} />
       </div>
 
-      <IntakeList logs={logs} onDelete={handleDelete} />
-    </motion.div>
+        <IntakeList logs={logs} onDelete={handleDelete} />
+      </motion.div>
+    </>
   );
 }
