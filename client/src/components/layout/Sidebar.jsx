@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { Home, Droplets, Moon, Activity } from "lucide-react";
+import { Home, Droplets, Moon, Dumbbell, Activity } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/water-stats", label: "Water Stats", icon: Droplets },
   { to: "/sleep-stats", label: "Sleep Stats", icon: Moon },
+  { to: "/gym-stats", label: "Gym Stats", icon: Dumbbell },
 ];
 
 export default function Sidebar() {

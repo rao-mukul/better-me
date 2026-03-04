@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { Droplets, Moon } from "lucide-react";
+import { Droplets, Moon, Dumbbell } from "lucide-react";
 import Card from "../components/ui/Card";
 import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
@@ -13,6 +13,9 @@ import SleepLogForm from "../components/sleep/SleepLogForm";
 import SleepLogList from "../components/sleep/SleepLogList";
 import TargetSetter from "../components/sleep/TargetSetter";
 import SleepCard from "../components/sleep/SleepCard";
+import GymLogForm from "../components/gym/GymLogForm";
+import GymLogList from "../components/gym/GymLogList";
+import GymCard from "../components/gym/GymCard";
 import {
   useWaterToday,
   useAddWaterLog,
@@ -26,6 +29,13 @@ import {
   useDeleteSleepLog,
   useUpdateTarget,
 } from "../hooks/useSleepData";
+import {
+  useGymToday,
+  useStartWorkout,
+  useUpdateWorkout,
+  useCompleteWorkout,
+  useDeleteWorkout,
+} from "../hooks/useGymData";
 
 export default function TodayPage() {
   // Water tracking
@@ -60,6 +70,23 @@ export default function TodayPage() {
     entryCount: 0,
     averageQuality: "none",
     sleepScore: 0,
+  };
+
+  // Gym tracking
+  const { data: gymData, isLoading: gymLoading } = useGymToday();
+  const startWorkout = useStartWorkout();
+  const updateWorkout = useUpdateWorkout();
+  const completeWorkout = useCompleteWorkout();
+  const deleteWorkout = useDeleteWorkout();
+
+  const completedWorkouts = gymData?.completedWorkouts || [];
+  const activeWorkout = gymData?.activeWorkout || null;
+  const gymStats = gymData?.stats || {
+    totalWorkouts: 0,
+    totalMinutes: 0,
+    muscleGroupsWorked: [],
+    totalExercises: 0,
+    averageIntensity: "none",
   };
 
   // Show celebration when water goal is first achieved
@@ -119,9 +146,38 @@ export default function TodayPage() {
     updateTarget.mutate(targetHours);
   };
 
-  if (waterLoading && sleepLoading) {
+  const handleStartWorkout = (data) => {
+    startWorkout.mutate(data, {
+      onSuccess: () => {
+        toast.success("Workout started! Let's get it 💪", {
+          duration: 2000,
+        });
+      },
+    });
+  };
+
+  const handleUpdateWorkout = (payload) => {
+    updateWorkout.mutate(payload);
+  };
+
+  const handleCompleteWorkout = (payload) => {
+    completeWorkout.mutate(payload, {
+      onSuccess: () => {
+        toast.success("Workout completed! Great job 🔥", {
+          duration: 2000,
+        });
+      },
+    });
+  };
+
+  const handleWorkoutDelete = (id) => {
+    deleteWorkout.mutate(id);
+  };
+
+  if (waterLoading && sleepLoading && gymLoading) {
     return (
       <div className="flex flex-col gap-6 animate-pulse">
+        <div className="h-80 rounded-2xl bg-navy-800/60" />
         <div className="h-80 rounded-2xl bg-navy-800/60" />
         <div className="h-80 rounded-2xl bg-navy-800/60" />
       </div>
@@ -201,6 +257,44 @@ export default function TodayPage() {
           )}
 
           <SleepLogList logs={sleepLogs} onDelete={handleSleepDelete} />
+        </Card>
+
+        {/* Gym Tracking Section */}
+        <Card>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-2 rounded-lg bg-orange-500/20">
+              <Dumbbell size={20} className="text-orange-400" />
+            </div>
+            <h2 className="text-xl font-bold text-text-primary">
+              Gym Tracking
+            </h2>
+          </div>
+
+          <div className="mb-6">
+            <GymLogForm
+              activeWorkout={activeWorkout}
+              onStartWorkout={handleStartWorkout}
+              onUpdateWorkout={handleUpdateWorkout}
+              onCompleteWorkout={handleCompleteWorkout}
+              disabled={
+                startWorkout.isPending ||
+                updateWorkout.isPending ||
+                completeWorkout.isPending
+              }
+            />
+          </div>
+
+          {gymStats.totalWorkouts > 0 && (
+            <div className="mb-6">
+              <GymCard stats={gymStats} />
+            </div>
+          )}
+
+          <GymLogList
+            workouts={completedWorkouts}
+            onDelete={handleWorkoutDelete}
+            disabled={deleteWorkout.isPending}
+          />
         </Card>
       </motion.div>
     </>

@@ -25,4 +25,16 @@ export const sleepApi = {
     api.put("/sleep/target", { targetHours }).then((r) => r.data),
 };
 
+export const gymApi = {
+  getToday: () => api.get("/gym/today").then((r) => r.data),
+  startWorkout: (data) => api.post("/gym/start", data).then((r) => r.data),
+  updateWorkout: (id, data) =>
+    api.put(`/gym/update/${id}`, data).then((r) => r.data),
+  completeWorkout: (id, data) =>
+    api.put(`/gym/complete/${id}`, data).then((r) => r.data),
+  deleteWorkout: (id) => api.delete(`/gym/workout/${id}`).then((r) => r.data),
+  getWeek: () => api.get("/gym/week").then((r) => r.data),
+  getStreak: () => api.get("/gym/streak").then((r) => r.data),
+};
+
 export default api;

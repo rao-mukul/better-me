@@ -5,6 +5,7 @@ import AppShell from "./components/layout/AppShell";
 import TodayPage from "./pages/TodayPage";
 import StatsPage from "./pages/StatsPage";
 import SleepStatsPage from "./pages/SleepStatsPage";
+import GymStatsPage from "./pages/GymStatsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/" element={<TodayPage />} />
             <Route path="/water-stats" element={<StatsPage />} />
             <Route path="/sleep-stats" element={<SleepStatsPage />} />
+            <Route path="/gym-stats" element={<GymStatsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

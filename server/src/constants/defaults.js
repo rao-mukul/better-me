@@ -9,3 +9,21 @@ export const SLEEP_QUALITY_SCORES = {
   good: 1.0,
   excellent: 1.25,
 };
+
+// Gym tracking constants
+export const DEFAULT_WEEKLY_GYM_TARGET = 4; // workouts per week
+export const MUSCLE_GROUPS = [
+  "chest",
+  "back",
+  "shoulders",
+  "arms",
+  "legs",
+  "core",
+  "cardio",
+  "full-body",
+];
+export const WORKOUT_INTENSITY = {
+  light: 0.7,
+  moderate: 1.0,
+  intense: 1.3,
+};
