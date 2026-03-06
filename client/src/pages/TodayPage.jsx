@@ -267,7 +267,75 @@ export default function TodayPage() {
         transition={{ duration: 0.3 }}
         className="flex flex-col gap-8"
       >
-        {/* Water Tracking Section */}
+        {/* Diet Section */}
+        <Card>
+          <button
+            onClick={() => toggleSection("diet")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-green-500/20">
+                <Utensils size={20} className="text-green-400" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">Diet</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                <span className="text-sm font-bold text-green-400">
+                  {dietStats.totalCalories}
+                </span>
+                <span className="text-xs text-text-secondary mx-0.5">/</span>
+                <span className="text-xs text-text-secondary">
+                  {dietStats.calorieGoal}cal
+                </span>
+              </div>
+              <motion.div
+                animate={{ rotate: expandedSections.diet ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown
+                  size={20}
+                  className="text-text-secondary group-hover:text-text-primary transition-colors"
+                />
+              </motion.div>
+            </div>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expandedSections.diet && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <DietGoalSetter
+                  stats={dietStats}
+                  onUpdate={handleDietGoalsUpdate}
+                  disabled={updateDietGoals.isPending}
+                />
+
+                <div className="mb-6">
+                  <DietLogForm
+                    onAddLog={handleDietAdd}
+                    disabled={addDietLog.isPending}
+                  />
+                </div>
+
+                {dietStats.entryCount > 0 && (
+                  <div className="mb-6">
+                    <DietCard stats={dietStats} />
+                  </div>
+                )}
+
+                <DietLogList logs={dietLogs} onDelete={handleDietDelete} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+
+        {/* Water Section */}
         <Card>
           <button
             onClick={() => toggleSection("water")}
@@ -277,22 +345,28 @@ export default function TodayPage() {
               <div className="p-2 rounded-lg bg-primary/20">
                 <Droplets size={20} className="text-primary" />
               </div>
-              <h2 className="text-xl font-bold text-text-primary">
-                Water Tracking
-              </h2>
-              <span className="text-sm text-text-secondary">
-                {waterStats.totalMl}ml / {waterStats.goal}ml
-              </span>
+              <h2 className="text-xl font-bold text-text-primary">Water</h2>
             </div>
-            <motion.div
-              animate={{ rotate: expandedSections.water ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown
-                size={20}
-                className="text-text-secondary group-hover:text-text-primary transition-colors"
-              />
-            </motion.div>
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                <span className="text-sm font-bold text-primary">
+                  {waterStats.totalMl}
+                </span>
+                <span className="text-xs text-text-secondary mx-0.5">/</span>
+                <span className="text-xs text-text-secondary">
+                  {waterStats.goal}ml
+                </span>
+              </div>
+              <motion.div
+                animate={{ rotate: expandedSections.water ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown
+                  size={20}
+                  className="text-text-secondary group-hover:text-text-primary transition-colors"
+                />
+              </motion.div>
+            </div>
           </button>
 
           <AnimatePresence initial={false}>
@@ -328,77 +402,7 @@ export default function TodayPage() {
           </AnimatePresence>
         </Card>
 
-        {/* Sleep Tracking Section */}
-        <Card>
-          <button
-            onClick={() => toggleSection("sleep")}
-            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
-          >
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <Moon size={20} className="text-purple-400" />
-              </div>
-              <h2 className="text-xl font-bold text-text-primary">
-                Sleep Tracking
-              </h2>
-              <span className="text-sm text-text-secondary">
-                {(sleepStats.totalMinutes / 60).toFixed(1)}h /{" "}
-                {sleepStats.targetHours}h
-              </span>
-            </div>
-            <motion.div
-              animate={{ rotate: expandedSections.sleep ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown
-                size={20}
-                className="text-text-secondary group-hover:text-text-primary transition-colors"
-              />
-            </motion.div>
-          </button>
-
-          <AnimatePresence initial={false}>
-            {expandedSections.sleep && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                style={{ overflow: "hidden" }}
-              >
-                <SleepRing
-                  totalMinutes={sleepStats.totalMinutes}
-                  targetHours={sleepStats.targetHours}
-                />
-
-                <TargetSetter
-                  targetHours={sleepStats.targetHours}
-                  onUpdate={handleTargetUpdate}
-                  disabled={updateTarget.isPending}
-                />
-
-                <div className="mt-6 mb-6">
-                  <SleepLogForm
-                    activeSleepLog={activeSleepLog}
-                    onStartSleep={handleStartSleep}
-                    onCompleteSleep={handleCompleteSleep}
-                    disabled={startSleep.isPending || completeSleep.isPending}
-                  />
-                </div>
-
-                {sleepStats.entryCount > 0 && (
-                  <div className="mb-6">
-                    <SleepCard stats={sleepStats} />
-                  </div>
-                )}
-
-                <SleepLogList logs={sleepLogs} onDelete={handleSleepDelete} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Card>
-
-        {/* Gym Tracking Section */}
+        {/* Gym Section */}
         <Card>
           <button
             onClick={() => toggleSection("gym")}
@@ -408,23 +412,27 @@ export default function TodayPage() {
               <div className="p-2 rounded-lg bg-orange-500/20">
                 <Dumbbell size={20} className="text-orange-400" />
               </div>
-              <h2 className="text-xl font-bold text-text-primary">
-                Gym Tracking
-              </h2>
-              <span className="text-sm text-text-secondary">
-                {gymStats.totalWorkouts} workout
-                {gymStats.totalWorkouts !== 1 ? "s" : ""}
-              </span>
+              <h2 className="text-xl font-bold text-text-primary">Gym</h2>
             </div>
-            <motion.div
-              animate={{ rotate: expandedSections.gym ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown
-                size={20}
-                className="text-text-secondary group-hover:text-text-primary transition-colors"
-              />
-            </motion.div>
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                <span className="text-sm font-bold text-orange-400">
+                  {gymStats.totalWorkouts}
+                </span>
+                <span className="text-xs text-text-secondary ml-1">
+                  {gymStats.totalWorkouts === 1 ? "workout" : "workouts"}
+                </span>
+              </div>
+              <motion.div
+                animate={{ rotate: expandedSections.gym ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown
+                  size={20}
+                  className="text-text-secondary group-hover:text-text-primary transition-colors"
+                />
+              </motion.div>
+            </div>
           </button>
 
           <AnimatePresence initial={false}>
@@ -466,36 +474,42 @@ export default function TodayPage() {
           </AnimatePresence>
         </Card>
 
-        {/* Diet Tracking Section */}
+        {/* Sleep Section */}
         <Card>
           <button
-            onClick={() => toggleSection("diet")}
+            onClick={() => toggleSection("sleep")}
             className="w-full flex items-center justify-between mb-6 cursor-pointer group"
           >
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-green-500/20">
-                <Utensils size={20} className="text-green-400" />
+              <div className="p-2 rounded-lg bg-purple-500/20">
+                <Moon size={20} className="text-purple-400" />
               </div>
-              <h2 className="text-xl font-bold text-text-primary">
-                Diet Tracking
-              </h2>
-              <span className="text-sm text-text-secondary">
-                {dietStats.totalCalories}cal / {dietStats.calorieGoal}cal
-              </span>
+              <h2 className="text-xl font-bold text-text-primary">Sleep</h2>
             </div>
-            <motion.div
-              animate={{ rotate: expandedSections.diet ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown
-                size={20}
-                className="text-text-secondary group-hover:text-text-primary transition-colors"
-              />
-            </motion.div>
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                <span className="text-sm font-bold text-purple-400">
+                  {(sleepStats.totalMinutes / 60).toFixed(1)}
+                </span>
+                <span className="text-xs text-text-secondary mx-0.5">/</span>
+                <span className="text-xs text-text-secondary">
+                  {sleepStats.targetHours}h
+                </span>
+              </div>
+              <motion.div
+                animate={{ rotate: expandedSections.sleep ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown
+                  size={20}
+                  className="text-text-secondary group-hover:text-text-primary transition-colors"
+                />
+              </motion.div>
+            </div>
           </button>
 
           <AnimatePresence initial={false}>
-            {expandedSections.diet && (
+            {expandedSections.sleep && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -503,26 +517,33 @@ export default function TodayPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
-                <DietGoalSetter
-                  stats={dietStats}
-                  onUpdate={handleDietGoalsUpdate}
-                  disabled={updateDietGoals.isPending}
+                <SleepRing
+                  totalMinutes={sleepStats.totalMinutes}
+                  targetHours={sleepStats.targetHours}
                 />
 
-                <div className="mb-6">
-                  <DietLogForm
-                    onAddLog={handleDietAdd}
-                    disabled={addDietLog.isPending}
+                <TargetSetter
+                  targetHours={sleepStats.targetHours}
+                  onUpdate={handleTargetUpdate}
+                  disabled={updateTarget.isPending}
+                />
+
+                <div className="mt-6 mb-6">
+                  <SleepLogForm
+                    activeSleepLog={activeSleepLog}
+                    onStartSleep={handleStartSleep}
+                    onCompleteSleep={handleCompleteSleep}
+                    disabled={startSleep.isPending || completeSleep.isPending}
                   />
                 </div>
 
-                {dietStats.entryCount > 0 && (
+                {sleepStats.entryCount > 0 && (
                   <div className="mb-6">
-                    <DietCard stats={dietStats} />
+                    <SleepCard stats={sleepStats} />
                   </div>
                 )}
 
-                <DietLogList logs={dietLogs} onDelete={handleDietDelete} />
+                <SleepLogList logs={sleepLogs} onDelete={handleSleepDelete} />
               </motion.div>
             )}
           </AnimatePresence>
