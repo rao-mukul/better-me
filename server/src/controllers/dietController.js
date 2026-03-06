@@ -9,11 +9,14 @@ import {
   DEFAULT_FAT_GOAL,
 } from "../constants/defaults.js";
 
-const getToday = () => format(new Date(), "yyyy-MM-dd");
+const getToday = (req) => {
+  // Accept date from client to handle timezone correctly
+  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+};
 
 export const getTodayData = async (req, res, next) => {
   try {
-    const date = getToday();
+    const date = getToday(req);
 
     const logs = await DietLog.find({
       userId: DEFAULT_USER_ID,
@@ -203,7 +206,7 @@ export const updateGoals = async (req, res, next) => {
       return res.status(400).json({ error: "Goals cannot be negative" });
     }
 
-    const date = getToday();
+    const date = getToday(req);
 
     const stats = await DietStats.findOneAndUpdate(
       { userId: DEFAULT_USER_ID, date },

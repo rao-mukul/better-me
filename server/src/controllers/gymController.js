@@ -5,7 +5,10 @@ import GymProgram from "../models/GymProgram.js";
 import GymStats from "../models/GymStats.js";
 import { DEFAULT_USER_ID } from "../constants/defaults.js";
 
-const getToday = () => format(new Date(), "yyyy-MM-dd");
+const getToday = (req) => {
+  // Accept date from client to handle timezone correctly
+  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+};
 
 // Get all exercises for a user (including defaults and custom)
 export const getExercises = async (req, res, next) => {
@@ -386,7 +389,7 @@ export const logWorkout = async (req, res, next) => {
       notes,
     } = req.body;
 
-    const date = getToday();
+    const date = getToday(req);
 
     // Check if workout already logged today
     const existingLog = await GymLog.findOne({
@@ -425,7 +428,7 @@ export const logWorkout = async (req, res, next) => {
 // Get today's workout log
 export const getTodayLog = async (req, res, next) => {
   try {
-    const date = getToday();
+    const date = getToday(req);
 
     const log = await GymLog.findOne({
       userId: DEFAULT_USER_ID,

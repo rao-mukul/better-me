@@ -11,11 +11,15 @@ import IntakeLog from "../models/IntakeLog.js";
 import DailyStats from "../models/DailyStats.js";
 import { DEFAULT_USER_ID, DEFAULT_GOAL } from "../constants/defaults.js";
 
-const getToday = () => format(new Date(), "yyyy-MM-dd");
+const getToday = (req) => {
+  // Accept date from client to handle timezone correctly
+  // Client sends date in their local timezone to avoid UTC midnight issues
+  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+};
 
 export const getTodayData = async (req, res, next) => {
   try {
-    const date = getToday();
+    const date = getToday(req);
     const [logs, stats] = await Promise.all([
       IntakeLog.find({ userId: DEFAULT_USER_ID, date }).sort({ loggedAt: -1 }),
       DailyStats.findOne({ userId: DEFAULT_USER_ID, date }),
@@ -50,7 +54,7 @@ export const addLog = async (req, res, next) => {
         .json({ error: "Type must be glass, bottle, or custom" });
     }
 
-    const date = getToday();
+    const date = getToday(req);
 
     const log = await IntakeLog.create({
       userId: DEFAULT_USER_ID,
@@ -274,7 +278,7 @@ export const updateGoal = async (req, res, next) => {
         .json({ error: "Goal must be between 500 and 10000 ml" });
     }
 
-    const date = getToday();
+    const date = getToday(req);
 
     const stats = await DailyStats.findOneAndUpdate(
       { userId: DEFAULT_USER_ID, date },

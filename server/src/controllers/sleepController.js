@@ -14,7 +14,10 @@ import {
   SLEEP_QUALITY_SCORES,
 } from "../constants/defaults.js";
 
-const getToday = () => format(new Date(), "yyyy-MM-dd");
+const getToday = (req) => {
+  // Accept date from client to handle timezone correctly
+  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+};
 
 // Helper to determine the date for a sleep log (use wake-up date)
 const getSleepDate = (wokeUpAt) => format(new Date(wokeUpAt), "yyyy-MM-dd");
@@ -77,7 +80,7 @@ const calculateTimeMetrics = (times) => {
 
 export const getTodayData = async (req, res, next) => {
   try {
-    const date = getToday();
+    const date = getToday(req);
 
     // Get completed logs for today
     const completedLogs = await SleepLog.find({
@@ -544,7 +547,7 @@ export const updateTarget = async (req, res, next) => {
         .json({ error: "Target must be between 1 and 24 hours" });
     }
 
-    const date = getToday();
+    const date = getToday(req);
 
     const stats = await SleepStats.findOneAndUpdate(
       { userId: DEFAULT_USER_ID, date },

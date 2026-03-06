@@ -4,18 +4,40 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
 });
 
+// Helper to get today's date in user's local timezone (yyyy-MM-dd format)
+// This fixes the midnight reset issue on deployment where server is in UTC
+const getTodayDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export const waterApi = {
-  getToday: () => api.get("/water/today").then((r) => r.data),
-  addLog: (data) => api.post("/water/log", data).then((r) => r.data),
+  getToday: () =>
+    api
+      .get("/water/today", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
+  addLog: (data) =>
+    api
+      .post("/water/log", data, { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   deleteLog: (id) => api.delete(`/water/log/${id}`).then((r) => r.data),
   getWeek: () => api.get("/water/week").then((r) => r.data),
   getMonth: (year, month) =>
     api.get("/water/month", { params: { year, month } }).then((r) => r.data),
-  updateGoal: (goal) => api.put("/water/goal", { goal }).then((r) => r.data),
+  updateGoal: (goal) =>
+    api
+      .put("/water/goal", { goal }, { params: { date: getTodayDate() } })
+      .then((r) => r.data),
 };
 
 export const sleepApi = {
-  getToday: () => api.get("/sleep/today").then((r) => r.data),
+  getToday: () =>
+    api
+      .get("/sleep/today", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   startSleep: (data) => api.post("/sleep/start", data).then((r) => r.data),
   completeSleep: (id, data) =>
     api.put(`/sleep/complete/${id}`, data).then((r) => r.data),
@@ -24,12 +46,24 @@ export const sleepApi = {
   getMonth: (year, month) =>
     api.get("/sleep/month", { params: { year, month } }).then((r) => r.data),
   updateTarget: (targetHours) =>
-    api.put("/sleep/target", { targetHours }).then((r) => r.data),
+    api
+      .put(
+        "/sleep/target",
+        { targetHours },
+        { params: { date: getTodayDate() } },
+      )
+      .then((r) => r.data),
 };
 
 export const gymApi = {
-  getTodayLog: () => api.get("/gym/today").then((r) => r.data),
-  logWorkout: (data) => api.post("/gym/log", data).then((r) => r.data),
+  getTodayLog: () =>
+    api
+      .get("/gym/today", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
+  logWorkout: (data) =>
+    api
+      .post("/gym/log", data, { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   deleteWorkout: (id) => api.delete(`/gym/workout/${id}`).then((r) => r.data),
   getExercises: () => api.get("/gym/exercises").then((r) => r.data),
   addExercise: (data) => api.post("/gym/exercises", data).then((r) => r.data),
@@ -59,11 +93,17 @@ export const cleanTimerApi = {
 };
 
 export const dietApi = {
-  getToday: () => api.get("/diet/today").then((r) => r.data),
+  getToday: () =>
+    api
+      .get("/diet/today", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   addLog: (data) => api.post("/diet/log", data).then((r) => r.data),
   deleteLog: (id) => api.delete(`/diet/log/${id}`).then((r) => r.data),
   getWeek: () => api.get("/diet/week").then((r) => r.data),
-  updateGoals: (goals) => api.put("/diet/goals", goals).then((r) => r.data),
+  updateGoals: (goals) =>
+    api
+      .put("/diet/goals", goals, { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   getStreak: () => api.get("/diet/streak").then((r) => r.data),
 };
 
