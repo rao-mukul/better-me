@@ -48,24 +48,57 @@ import {
 } from "../hooks/useDietData";
 
 export default function TodayPage() {
-  // Collapsible sections state - load from localStorage or default to all collapsed
-  const [expandedSections, setExpandedSections] = useState(() => {
+  // Refs for each section card to enable scrolling
+  const dietRef = useRef(null);
+  const waterRef = useRef(null);
+  const gymRef = useRef(null);
+  const sleepRef = useRef(null);
+
+  // Track which section is expanded (only one at a time) - default to diet
+  const [expandedSection, setExpandedSection] = useState(() => {
     const saved = localStorage.getItem("todayPageExpanded");
-    return saved
-      ? JSON.parse(saved)
-      : { water: false, sleep: false, gym: false, diet: false };
+    return saved ? saved : "diet";
   });
 
-  // Save to localStorage whenever sections change
+  // Save to localStorage whenever section changes
   useEffect(() => {
-    localStorage.setItem("todayPageExpanded", JSON.stringify(expandedSections));
-  }, [expandedSections]);
+    localStorage.setItem("todayPageExpanded", expandedSection);
+  }, [expandedSection]);
 
   const toggleSection = (section) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
+    // If clicking the currently expanded section, collapse it
+    if (expandedSection === section) {
+      setExpandedSection(null);
+      return;
+    }
+
+    // Expand the new section
+    setExpandedSection(section);
+
+    // Scroll to the section after allowing the DOM to update
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const refs = {
+          diet: dietRef,
+          water: waterRef,
+          gym: gymRef,
+          sleep: sleepRef,
+        };
+
+        const targetRef = refs[section];
+        if (targetRef?.current) {
+          const headerOffset = 20; // Add some padding from the top
+          const elementPosition = targetRef.current.getBoundingClientRect().top;
+          const offsetPosition =
+            elementPosition + window.pageYOffset - headerOffset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+        }
+      }, 300); // Increased delay to allow animation to complete
+    });
   };
 
   // Water tracking
@@ -268,7 +301,7 @@ export default function TodayPage() {
         className="flex flex-col gap-8"
       >
         {/* Diet Section */}
-        <Card>
+        <Card ref={dietRef}>
           <button
             onClick={() => toggleSection("diet")}
             className="w-full flex items-center justify-between mb-6 cursor-pointer group"
@@ -290,7 +323,7 @@ export default function TodayPage() {
                 </span>
               </div>
               <motion.div
-                animate={{ rotate: expandedSections.diet ? 180 : 0 }}
+                animate={{ rotate: expandedSection === "diet" ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
                 <ChevronDown
@@ -302,7 +335,7 @@ export default function TodayPage() {
           </button>
 
           <AnimatePresence initial={false}>
-            {expandedSections.diet && (
+            {expandedSection === "diet" && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -336,7 +369,7 @@ export default function TodayPage() {
         </Card>
 
         {/* Water Section */}
-        <Card>
+        <Card ref={waterRef}>
           <button
             onClick={() => toggleSection("water")}
             className="w-full flex items-center justify-between mb-6 cursor-pointer group"
@@ -358,7 +391,7 @@ export default function TodayPage() {
                 </span>
               </div>
               <motion.div
-                animate={{ rotate: expandedSections.water ? 180 : 0 }}
+                animate={{ rotate: expandedSection === "water" ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
                 <ChevronDown
@@ -370,7 +403,7 @@ export default function TodayPage() {
           </button>
 
           <AnimatePresence initial={false}>
-            {expandedSections.water && (
+            {expandedSection === "water" && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -403,7 +436,7 @@ export default function TodayPage() {
         </Card>
 
         {/* Gym Section */}
-        <Card>
+        <Card ref={gymRef}>
           <button
             onClick={() => toggleSection("gym")}
             className="w-full flex items-center justify-between mb-6 cursor-pointer group"
@@ -424,7 +457,7 @@ export default function TodayPage() {
                 </span>
               </div>
               <motion.div
-                animate={{ rotate: expandedSections.gym ? 180 : 0 }}
+                animate={{ rotate: expandedSection === "gym" ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
                 <ChevronDown
@@ -436,7 +469,7 @@ export default function TodayPage() {
           </button>
 
           <AnimatePresence initial={false}>
-            {expandedSections.gym && (
+            {expandedSection === "gym" && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -475,7 +508,7 @@ export default function TodayPage() {
         </Card>
 
         {/* Sleep Section */}
-        <Card>
+        <Card ref={sleepRef}>
           <button
             onClick={() => toggleSection("sleep")}
             className="w-full flex items-center justify-between mb-6 cursor-pointer group"
@@ -497,7 +530,7 @@ export default function TodayPage() {
                 </span>
               </div>
               <motion.div
-                animate={{ rotate: expandedSections.sleep ? 180 : 0 }}
+                animate={{ rotate: expandedSection === "sleep" ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
                 <ChevronDown
@@ -509,7 +542,7 @@ export default function TodayPage() {
           </button>
 
           <AnimatePresence initial={false}>
-            {expandedSections.sleep && (
+            {expandedSection === "sleep" && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
