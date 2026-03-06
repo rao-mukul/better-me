@@ -7,6 +7,7 @@ import {
   Utensils,
   Timer,
   Activity,
+  Calendar,
 } from "lucide-react";
 
 const navItems = [
@@ -14,6 +15,7 @@ const navItems = [
   { to: "/water-stats", label: "Water Stats", icon: Droplets },
   { to: "/sleep-stats", label: "Sleep Stats", icon: Moon },
   { to: "/gym-stats", label: "Gym Stats", icon: Dumbbell },
+  { to: "/gym-program", label: "Gym Program", icon: Calendar },
   { to: "/diet-stats", label: "Diet Stats", icon: Utensils },
   { to: "/clean-timer", label: "Clean Since", icon: Timer },
 ];

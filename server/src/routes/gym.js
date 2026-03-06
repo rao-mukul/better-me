@@ -1,22 +1,41 @@
 import { Router } from "express";
 import {
-  getTodayData,
-  startWorkout,
-  updateWorkout,
-  completeWorkout,
+  getTodayLog,
+  logWorkout,
   deleteWorkout,
+  getExercises,
+  addExercise,
+  getProgram,
+  updateProgram,
+  getWeekHistory,
   getWeekData,
   getStreak,
-} from "../controllers/gymController.js";
+  seedDefaultExercises,
+} from "../controllers/newGymController.js";
 
 const router = Router();
 
-router.get("/today", getTodayData);
-router.post("/start", startWorkout);
-router.put("/update/:id", updateWorkout);
-router.put("/complete/:id", completeWorkout);
+// Workout logging
+router.get("/today", getTodayLog);
+router.post("/log", logWorkout);
 router.delete("/workout/:id", deleteWorkout);
+
+// Exercise library
+router.get("/exercises", getExercises);
+router.post("/exercises", addExercise);
+
+// Training program
+router.get("/program", getProgram);
+router.put("/program", updateProgram);
+
+// Week history for smart defaults
+router.get("/week-history", getWeekHistory);
+
+// Stats
 router.get("/week", getWeekData);
 router.get("/streak", getStreak);
+
+// Seed default exercises (one-time setup)
+router.post("/seed-exercises", seedDefaultExercises);
 
 export default router;

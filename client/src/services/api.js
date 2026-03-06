@@ -28,15 +28,17 @@ export const sleepApi = {
 };
 
 export const gymApi = {
-  getToday: () => api.get("/gym/today").then((r) => r.data),
-  startWorkout: (data) => api.post("/gym/start", data).then((r) => r.data),
-  updateWorkout: (id, data) =>
-    api.put(`/gym/update/${id}`, data).then((r) => r.data),
-  completeWorkout: (id, data) =>
-    api.put(`/gym/complete/${id}`, data).then((r) => r.data),
+  getTodayLog: () => api.get("/gym/today").then((r) => r.data),
+  logWorkout: (data) => api.post("/gym/log", data).then((r) => r.data),
   deleteWorkout: (id) => api.delete(`/gym/workout/${id}`).then((r) => r.data),
+  getExercises: () => api.get("/gym/exercises").then((r) => r.data),
+  addExercise: (data) => api.post("/gym/exercises", data).then((r) => r.data),
+  getProgram: () => api.get("/gym/program").then((r) => r.data),
+  updateProgram: (data) => api.put("/gym/program", data).then((r) => r.data),
+  getWeekHistory: () => api.get("/gym/week-history").then((r) => r.data),
   getWeek: () => api.get("/gym/week").then((r) => r.data),
   getStreak: () => api.get("/gym/streak").then((r) => r.data),
+  seedExercises: () => api.post("/gym/seed-exercises").then((r) => r.data),
 };
 
 export const cleanTimerApi = {

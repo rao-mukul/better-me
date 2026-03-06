@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { Droplets, Moon, Dumbbell, Utensils, ChevronDown } from "lucide-react";
+import {
+  Droplets,
+  Moon,
+  Dumbbell,
+  Utensils,
+  ChevronDown,
+  Settings,
+} from "lucide-react";
 import Card from "../components/ui/Card";
 import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
@@ -13,7 +21,7 @@ import SleepLogForm from "../components/sleep/SleepLogForm";
 import SleepLogList from "../components/sleep/SleepLogList";
 import TargetSetter from "../components/sleep/TargetSetter";
 import SleepCard from "../components/sleep/SleepCard";
-import GymLogForm from "../components/gym/GymLogForm";
+import NewGymLogForm from "../components/gym/NewGymLogForm";
 import GymLogList from "../components/gym/GymLogList";
 import GymCard from "../components/gym/GymCard";
 import DietLogForm from "../components/diet/DietLogForm";
@@ -35,10 +43,12 @@ import {
 } from "../hooks/useSleepData";
 import {
   useGymToday,
-  useStartWorkout,
-  useUpdateWorkout,
-  useCompleteWorkout,
+  useAddGymLog,
   useDeleteWorkout,
+  useGymExercises,
+  useAddExercise,
+  useGymProgram,
+  useGymWeekHistory,
 } from "../hooks/useGymData";
 import {
   useDietToday,
@@ -48,6 +58,7 @@ import {
 } from "../hooks/useDietData";
 
 export default function TodayPage() {
+  const navigate = useNavigate();
   // Refs for each section card to enable scrolling
   const dietRef = useRef(null);
   const waterRef = useRef(null);
@@ -136,13 +147,14 @@ export default function TodayPage() {
 
   // Gym tracking
   const { data: gymData, isLoading: gymLoading } = useGymToday();
-  const startWorkout = useStartWorkout();
-  const updateWorkout = useUpdateWorkout();
-  const completeWorkout = useCompleteWorkout();
+  const addGymLog = useAddGymLog();
   const deleteWorkout = useDeleteWorkout();
+  const { data: gymExercises } = useGymExercises();
+  const addExercise = useAddExercise();
+  const { data: gymProgram } = useGymProgram();
+  const { data: gymWeekHistory } = useGymWeekHistory();
 
-  const completedWorkouts = gymData?.completedWorkouts || [];
-  const activeWorkout = gymData?.activeWorkout || null;
+  const todayLog = gymData?.log || null;
   const gymStats = gymData?.stats || {
     totalWorkouts: 0,
     totalMinutes: 0,
@@ -228,28 +240,18 @@ export default function TodayPage() {
     updateTarget.mutate(targetHours);
   };
 
-  const handleStartWorkout = (data) => {
-    startWorkout.mutate(data, {
+  const handleGymLogSubmit = (data) => {
+    addGymLog.mutate(data, {
       onSuccess: () => {
-        toast.success("Workout started! Let's get it 💪", {
+        toast.success("Workout logged! Great job 🔥", {
           duration: 2000,
         });
       },
     });
   };
 
-  const handleUpdateWorkout = (payload) => {
-    updateWorkout.mutate(payload);
-  };
-
-  const handleCompleteWorkout = (payload) => {
-    completeWorkout.mutate(payload, {
-      onSuccess: () => {
-        toast.success("Workout completed! Great job 🔥", {
-          duration: 2000,
-        });
-      },
-    });
+  const handleAddExercise = (data) => {
+    return addExercise.mutateAsync(data);
   };
 
   const handleWorkoutDelete = (id) => {
@@ -477,31 +479,99 @@ export default function TodayPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
-                <div className="mb-6">
-                  <GymLogForm
-                    activeWorkout={activeWorkout}
-                    onStartWorkout={handleStartWorkout}
-                    onUpdateWorkout={handleUpdateWorkout}
-                    onCompleteWorkout={handleCompleteWorkout}
-                    disabled={
-                      startWorkout.isPending ||
-                      updateWorkout.isPending ||
-                      completeWorkout.isPending
-                    }
-                  />
+                <div className="mb-4">
+                  <button
+                    onClick={() => navigate("/gym-program")}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-800/40 hover:bg-navy-800/60 border border-navy-700/30 hover:border-primary/30 rounded-lg text-sm text-text-secondary hover:text-primary transition-all"
+                  >
+                    <Settings size={16} />
+                    Customize Training Program
+                  </button>
                 </div>
 
-                {gymStats.totalWorkouts > 0 && (
+                {!todayLog ? (
                   <div className="mb-6">
-                    <GymCard stats={gymStats} />
+                    <NewGymLogForm
+                      onSubmit={handleGymLogSubmit}
+                      disabled={addGymLog.isPending}
+                      allExercises={gymExercises || []}
+                      userProgram={gymProgram?.workoutTypes || {}}
+                      weekHistory={gymWeekHistory || []}
+                      onAddExercise={handleAddExercise}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-text-primary capitalize">
+                            {todayLog.workoutType.replace("Focus", " Focus")}
+                          </h3>
+                          <p className="text-sm text-text-secondary">
+                            {todayLog.primaryMuscle} +{" "}
+                            {todayLog.secondaryMuscle}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleWorkoutDelete(todayLog._id)}
+                          disabled={deleteWorkout.isPending}
+                          className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-sm font-medium text-text-secondary mb-1">
+                            Primary ({todayLog.primaryMuscle})
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {todayLog.primaryExercises.map((ex, i) => (
+                              <span
+                                key={i}
+                                className="px-3 py-1 text-xs bg-primary/20 text-primary rounded-full"
+                              >
+                                {ex}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-medium text-text-secondary mb-1">
+                            Secondary ({todayLog.secondaryMuscle})
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {todayLog.secondaryExercises.map((ex, i) => (
+                              <span
+                                key={i}
+                                className="px-3 py-1 text-xs bg-purple-500/20 text-purple-400 rounded-full"
+                              >
+                                {ex}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {todayLog.duration && (
+                          <div className="text-sm text-text-secondary">
+                            Duration: {todayLog.duration} minutes
+                          </div>
+                        )}
+
+                        {todayLog.notes && (
+                          <div className="text-sm text-text-secondary">
+                            Notes: {todayLog.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {gymStats.totalWorkouts > 0 && <GymCard stats={gymStats} />}
                   </div>
                 )}
-
-                <GymLogList
-                  workouts={completedWorkouts}
-                  onDelete={handleWorkoutDelete}
-                  disabled={deleteWorkout.isPending}
-                />
               </motion.div>
             )}
           </AnimatePresence>
