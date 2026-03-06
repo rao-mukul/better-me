@@ -8,30 +8,30 @@ const gymProgramSchema = new mongoose.Schema({
     index: true,
   },
   workoutTypes: {
-    // 6 different workout variations
-    chestFocus: {
-      primary: [String], // Chest exercises
-      secondary: [String], // Triceps exercises
+    // 6 workout configurations
+    chestTriceps: {
+      primary: [String], // Exercises (chest + triceps) - chest focus
+      secondary: [String], // Not used
     },
-    tricepsFocus: {
-      primary: [String], // Triceps exercises
-      secondary: [String], // Chest exercises
+    tricepsChest: {
+      primary: [String], // Exercises (triceps + chest) - triceps focus
+      secondary: [String], // Not used
     },
-    backFocus: {
-      primary: [String], // Back exercises
-      secondary: [String], // Biceps exercises
+    backBiceps: {
+      primary: [String], // Exercises (back + biceps) - back focus
+      secondary: [String], // Not used
     },
-    bicepsFocus: {
-      primary: [String], // Biceps exercises
-      secondary: [String], // Back exercises
+    bicepsBack: {
+      primary: [String], // Exercises (biceps + back) - biceps focus
+      secondary: [String], // Not used
     },
-    legsFocus: {
-      primary: [String], // Legs exercises
-      secondary: [String], // Shoulder exercises
+    legsShoulders: {
+      primary: [String], // Exercises (legs + shoulders) - legs focus
+      secondary: [String], // Not used
     },
-    shoulderFocus: {
-      primary: [String], // Shoulder exercises
-      secondary: [String], // Legs exercises
+    shouldersLegs: {
+      primary: [String], // Exercises (shoulders + legs) - shoulders focus
+      secondary: [String], // Not used
     },
   },
   createdAt: {

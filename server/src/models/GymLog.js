@@ -14,12 +14,9 @@ const gymLogSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      "chestFocus", // Chest & Triceps (Chest priority)
-      "tricepsFocus", // Chest & Triceps (Triceps priority)
-      "backFocus", // Back & Biceps (Back priority)
-      "bicepsFocus", // Back & Biceps (Biceps priority)
-      "legsFocus", // Legs & Shoulders (Legs priority)
-      "shoulderFocus", // Legs & Shoulders (Shoulders priority)
+      "chestTriceps", // Chest & Triceps
+      "backBiceps", // Back & Biceps
+      "legsShoulders", // Legs & Shoulders
     ],
   },
   primaryMuscle: {

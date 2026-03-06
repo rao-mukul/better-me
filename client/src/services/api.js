@@ -39,7 +39,10 @@ export const gymApi = {
   updateProgram: (data) => api.put("/gym/program", data).then((r) => r.data),
   getWeekHistory: () => api.get("/gym/week-history").then((r) => r.data),
   getWeek: () => api.get("/gym/week").then((r) => r.data),
+  getMonth: (year, month) =>
+    api.get("/gym/month", { params: { year, month } }).then((r) => r.data),
   getStreak: () => api.get("/gym/streak").then((r) => r.data),
+  getInsights: () => api.get("/gym/insights").then((r) => r.data),
   seedExercises: () => api.post("/gym/seed-exercises").then((r) => r.data),
 };
 

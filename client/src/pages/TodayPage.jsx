@@ -502,11 +502,30 @@ export default function TodayPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-4">
+                    <div
+                      className={`bg-navy-800/40 border-l-4 ${
+                        todayLog.workoutType === "chestTriceps"
+                          ? "border-l-orange-500 border-r border-t border-b border-orange-500/30"
+                          : todayLog.workoutType === "backBiceps"
+                            ? "border-l-blue-500 border-r border-t border-b border-blue-500/30"
+                            : "border-l-purple-500 border-r border-t border-b border-purple-500/30"
+                      } rounded-xl p-4`}
+                    >
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-text-primary capitalize">
-                            {todayLog.workoutType.replace("Focus", " Focus")}
+                          <h3
+                            className={`text-lg font-semibold capitalize ${
+                              todayLog.workoutType === "chestTriceps"
+                                ? "text-orange-400"
+                                : todayLog.workoutType === "backBiceps"
+                                  ? "text-blue-400"
+                                  : "text-purple-400"
+                            }`}
+                          >
+                            {todayLog.workoutType
+                              .replace("chestTriceps", "Chest & Triceps")
+                              .replace("backBiceps", "Back & Biceps")
+                              .replace("legsShoulders", "Legs & Shoulders")}
                           </h3>
                           <p className="text-sm text-text-secondary">
                             {todayLog.primaryMuscle} +{" "}

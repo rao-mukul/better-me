@@ -11,6 +11,8 @@ import {
   getWeekHistory,
   getWeekData,
   getStreak,
+  getInsights,
+  getMonthData,
   seedDefaultExercises,
 } from "../controllers/gymController.js";
 
@@ -35,7 +37,9 @@ router.get("/week-history", getWeekHistory);
 
 // Stats
 router.get("/week", getWeekData);
+router.get("/month", getMonthData);
 router.get("/streak", getStreak);
+router.get("/insights", getInsights);
 
 // Seed default exercises (one-time setup)
 router.post("/seed-exercises", seedDefaultExercises);

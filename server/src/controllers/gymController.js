@@ -70,12 +70,12 @@ export const getProgram = async (req, res, next) => {
       program = await GymProgram.create({
         userId: DEFAULT_USER_ID,
         workoutTypes: {
-          chestFocus: { primary: [], secondary: [] },
-          tricepsFocus: { primary: [], secondary: [] },
-          backFocus: { primary: [], secondary: [] },
-          bicepsFocus: { primary: [], secondary: [] },
-          legsFocus: { primary: [], secondary: [] },
-          shoulderFocus: { primary: [], secondary: [] },
+          chestTriceps: { primary: [], secondary: [] },
+          tricepsChest: { primary: [], secondary: [] },
+          backBiceps: { primary: [], secondary: [] },
+          bicepsBack: { primary: [], secondary: [] },
+          legsShoulders: { primary: [], secondary: [] },
+          shouldersLegs: { primary: [], secondary: [] },
         },
       });
     }
@@ -230,6 +230,143 @@ export const getStreak = async (req, res, next) => {
       current: currentStreak,
       longest: longestStreak,
       thisWeek: thisWeekLogs.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get comprehensive insights for growth tracking
+export const getInsights = async (req, res, next) => {
+  try {
+    const today = new Date();
+    const thisMonday = startOfWeek(today, { weekStartsOn: 1 });
+    const lastMonday = addDays(thisMonday, -7);
+
+    // Get last 4 weeks of data
+    const fourWeeksAgo = addDays(thisMonday, -28);
+    const allLogs = await GymLog.find({
+      userId: DEFAULT_USER_ID,
+      date: { $gte: format(fourWeeksAgo, "yyyy-MM-dd") },
+    }).sort({ date: -1 });
+
+    // This week's logs
+    const thisWeekDates = Array.from({ length: 7 }, (_, i) =>
+      format(addDays(thisMonday, i), "yyyy-MM-dd"),
+    );
+    const thisWeekLogs = allLogs.filter((log) =>
+      thisWeekDates.includes(log.date),
+    );
+
+    // Last week's logs
+    const lastWeekDates = Array.from({ length: 7 }, (_, i) =>
+      format(addDays(lastMonday, i), "yyyy-MM-dd"),
+    );
+    const lastWeekLogs = allLogs.filter((log) =>
+      lastWeekDates.includes(log.date),
+    );
+
+    // Muscle group balance (this week)
+    const muscleGroupCount = {};
+    thisWeekLogs.forEach((log) => {
+      muscleGroupCount[log.primaryMuscle] =
+        (muscleGroupCount[log.primaryMuscle] || 0) + 1;
+      muscleGroupCount[log.secondaryMuscle] =
+        (muscleGroupCount[log.secondaryMuscle] || 0) + 1;
+    });
+
+    // Workout type distribution (last 4 weeks)
+    const workoutTypeCount = {};
+    allLogs.forEach((log) => {
+      workoutTypeCount[log.workoutType] =
+        (workoutTypeCount[log.workoutType] || 0) + 1;
+    });
+
+    // Exercise variety (unique exercises used this week)
+    const uniqueExercises = new Set();
+    thisWeekLogs.forEach((log) => {
+      log.primaryExercises.forEach((ex) => uniqueExercises.add(ex));
+      log.secondaryExercises.forEach((ex) => uniqueExercises.add(ex));
+    });
+
+    // Average exercises per workout
+    const totalExercises = thisWeekLogs.reduce(
+      (sum, log) =>
+        sum + log.primaryExercises.length + log.secondaryExercises.length,
+      0,
+    );
+    const avgExercisesPerWorkout =
+      thisWeekLogs.length > 0
+        ? Math.round((totalExercises / thisWeekLogs.length) * 10) / 10
+        : 0;
+
+    // Weekly comparison
+    const weekOverWeekChange =
+      lastWeekLogs.length > 0
+        ? Math.round(
+            ((thisWeekLogs.length - lastWeekLogs.length) /
+              lastWeekLogs.length) *
+              100,
+          )
+        : thisWeekLogs.length > 0
+          ? 100
+          : 0;
+
+    // Most trained muscle group
+    const muscleGroupEntries = Object.entries(muscleGroupCount);
+    const mostTrainedMuscle =
+      muscleGroupEntries.length > 0
+        ? muscleGroupEntries.reduce((max, entry) =>
+            entry[1] > max[1] ? entry : max,
+          )[0]
+        : null;
+
+    // Least trained muscle group (find muscle group with lowest count or 0)
+    const allMuscles = [
+      "chest",
+      "triceps",
+      "back",
+      "biceps",
+      "legs",
+      "shoulders",
+    ];
+    const leastTrainedMuscle = allMuscles.reduce((min, muscle) => {
+      const count = muscleGroupCount[muscle] || 0;
+      const minCount = muscleGroupCount[min] || 0;
+      return count < minCount ? muscle : min;
+    });
+
+    // Last 5 workouts summary
+    const recentWorkouts = allLogs.slice(0, 5).map((log) => ({
+      date: log.date,
+      workoutType: log.workoutType,
+      totalExercises:
+        log.primaryExercises.length + log.secondaryExercises.length,
+      primaryMuscle: log.primaryMuscle,
+      secondaryMuscle: log.secondaryMuscle,
+    }));
+
+    res.json({
+      thisWeek: {
+        totalWorkouts: thisWeekLogs.length,
+        totalExercises,
+        uniqueExercises: uniqueExercises.size,
+        avgExercisesPerWorkout,
+        muscleGroupBalance: muscleGroupCount,
+        mostTrainedMuscle,
+        leastTrainedMuscle,
+      },
+      lastWeek: {
+        totalWorkouts: lastWeekLogs.length,
+      },
+      comparison: {
+        weekOverWeekChange,
+      },
+      last4Weeks: {
+        totalWorkouts: allLogs.length,
+        workoutTypeDistribution: workoutTypeCount,
+      },
+      recentWorkouts,
     });
   } catch (err) {
     next(err);
@@ -473,6 +610,72 @@ export const seedDefaultExercises = async (req, res, next) => {
     res.json({
       message: "Default exercises seeded successfully",
       count: exercises.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get month data for calendar view
+export const getMonthData = async (req, res, next) => {
+  try {
+    const { year, month } = req.query;
+
+    let targetDate;
+    if (year && month) {
+      targetDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    } else {
+      targetDate = new Date();
+    }
+
+    const startOfMonth = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      1,
+    );
+    const endOfMonth = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth() + 1,
+      0,
+    );
+
+    const startDate = format(startOfMonth, "yyyy-MM-dd");
+    const endDate = format(endOfMonth, "yyyy-MM-dd");
+
+    const logs = await GymLog.find({
+      userId: DEFAULT_USER_ID,
+      date: { $gte: startDate, $lte: endDate },
+    }).sort({ date: 1 });
+
+    // Create map of all days in month
+    const daysInMonth = endOfMonth.getDate();
+    const logsMap = new Map(logs.map((log) => [log.date, log]));
+
+    const monthData = Array.from({ length: daysInMonth }, (_, i) => {
+      const date = format(
+        new Date(targetDate.getFullYear(), targetDate.getMonth(), i + 1),
+        "yyyy-MM-dd",
+      );
+      const existing = logsMap.get(date);
+
+      return {
+        date,
+        day: i + 1,
+        workoutType: existing?.workoutType || null,
+        primaryMuscle: existing?.primaryMuscle || null,
+        secondaryMuscle: existing?.secondaryMuscle || null,
+        exerciseCount: existing
+          ? (existing.primaryExercises?.length || 0) +
+            (existing.secondaryExercises?.length || 0)
+          : 0,
+      };
+    });
+
+    res.json({
+      year: targetDate.getFullYear(),
+      month: targetDate.getMonth() + 1,
+      monthName: format(targetDate, "MMMM yyyy"),
+      data: monthData,
     });
   } catch (err) {
     next(err);

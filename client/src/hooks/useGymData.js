@@ -100,3 +100,19 @@ export function useGymStreak() {
     queryFn: gymApi.getStreak,
   });
 }
+
+export function useGymInsights() {
+  return useQuery({
+    queryKey: ["gym", "insights"],
+    queryFn: gymApi.getInsights,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useGymMonth(year, month) {
+  return useQuery({
+    queryKey: ["gym", "month", year, month],
+    queryFn: () => gymApi.getMonth(year, month),
+    enabled: !!year && !!month,
+  });
+}

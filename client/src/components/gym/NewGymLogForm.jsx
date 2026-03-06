@@ -11,70 +11,40 @@ import {
 
 const workoutTypes = [
   {
-    id: "chestFocus",
+    id: "chestTriceps",
     label: "Chest & Triceps",
     primary: "Chest",
     secondary: "Triceps",
     primaryMuscle: "chest",
     secondaryMuscle: "triceps",
-    color: "from-red-500 to-orange-500",
-    bgColor: "bg-red-500/10",
-    borderColor: "border-red-500/30",
-  },
-  {
-    id: "tricepsFocus",
-    label: "Triceps & Chest",
-    primary: "Triceps",
-    secondary: "Chest",
-    primaryMuscle: "triceps",
-    secondaryMuscle: "chest",
-    color: "from-orange-500 to-red-500",
+    color: "from-orange-500 to-orange-600",
     bgColor: "bg-orange-500/10",
     borderColor: "border-orange-500/30",
+    solidColor: "bg-orange-500",
   },
   {
-    id: "backFocus",
+    id: "backBiceps",
     label: "Back & Biceps",
     primary: "Back",
     secondary: "Biceps",
     primaryMuscle: "back",
     secondaryMuscle: "biceps",
-    color: "from-blue-500 to-cyan-500",
+    color: "from-blue-500 to-blue-600",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/30",
+    solidColor: "bg-blue-500",
   },
   {
-    id: "bicepsFocus",
-    label: "Biceps & Back",
-    primary: "Biceps",
-    secondary: "Back",
-    primaryMuscle: "biceps",
-    secondaryMuscle: "back",
-    color: "from-cyan-500 to-blue-500",
-    bgColor: "bg-cyan-500/10",
-    borderColor: "border-cyan-500/30",
-  },
-  {
-    id: "legsFocus",
+    id: "legsShoulders",
     label: "Legs & Shoulders",
     primary: "Legs",
     secondary: "Shoulders",
     primaryMuscle: "legs",
     secondaryMuscle: "shoulders",
-    color: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-500/10",
-    borderColor: "border-green-500/30",
-  },
-  {
-    id: "shoulderFocus",
-    label: "Shoulders & Legs",
-    primary: "Shoulders",
-    secondary: "Legs",
-    primaryMuscle: "shoulders",
-    secondaryMuscle: "legs",
-    color: "from-emerald-500 to-green-500",
-    bgColor: "bg-emerald-500/10",
-    borderColor: "border-emerald-500/30",
+    color: "from-purple-500 to-purple-600",
+    bgColor: "bg-purple-500/10",
+    borderColor: "border-purple-500/30",
+    solidColor: "bg-purple-500",
   },
 ];
 
@@ -94,49 +64,53 @@ export default function NewGymLogForm({
   const [newExerciseName, setNewExerciseName] = useState("");
   const [addingForMuscle, setAddingForMuscle] = useState(null);
 
-  // Smart suggestion logic: Suggest next workout based on week history
-  const getSuggestedWorkout = () => {
-    if (!weekHistory || weekHistory.length === 0) {
-      // No history, suggest chest focus as default
-      return "chestFocus";
-    }
-
-    // Get workout types done this week
-    const doneWorkouts = weekHistory.map((log) => log.workoutType);
-
-    // Ideal rotation order
-    const rotationOrder = [
-      "chestFocus",
-      "backFocus",
-      "legsFocus",
-      "tricepsFocus",
-      "bicepsFocus",
-      "shoulderFocus",
-    ];
-
-    // Find first workout in rotation that hasn't been done
-    for (const workoutType of rotationOrder) {
-      if (!doneWorkouts.includes(workoutType)) {
-        return workoutType;
-      }
-    }
-
-    // All workouts done, suggest the one done least recently
-    const lastWorkout = doneWorkouts[doneWorkouts.length - 1];
-    const lastIndex = rotationOrder.indexOf(lastWorkout);
-    const nextIndex = (lastIndex + 1) % rotationOrder.length;
-    return rotationOrder[nextIndex];
-  };
-
-  const suggestedWorkout = getSuggestedWorkout();
-
   const handleWorkoutSelect = (workout) => {
     setSelectedWorkout(workout);
 
-    // Auto-select exercises from user's program if available
-    if (userProgram && userProgram[workout.id]) {
-      setPrimaryExercises(userProgram[workout.id].primary || []);
-      setSecondaryExercises(userProgram[workout.id].secondary || []);
+    // Check if this workout type was done this week
+    const timesThisWeek = weekHistory.filter(
+      (log) => log.workoutType === workout.id,
+    ).length;
+
+    // Smart exercise pre-selection: map to correct workout configuration
+    if (userProgram) {
+      // Mapping: 3 workout types to 6 configurations
+      const configMapping = {
+        chestTriceps: {
+          first: "chestTriceps",
+          second: "tricepsChest",
+        },
+        backBiceps: {
+          first: "backBiceps",
+          second: "bicepsBack",
+        },
+        legsShoulders: {
+          first: "legsShoulders",
+          second: "shouldersLegs",
+        },
+      };
+
+      const mapping = configMapping[workout.id];
+      const configKey = timesThisWeek === 0 ? mapping.first : mapping.second;
+      const exerciseSet = userProgram[configKey]?.primary || [];
+
+      // Split exercises by muscle group
+      const primaryMuscleExercises = [];
+      const secondaryMuscleExercises = [];
+
+      exerciseSet.forEach((exerciseName) => {
+        const exercise = allExercises.find((ex) => ex.name === exerciseName);
+        if (exercise) {
+          if (exercise.muscleGroup === workout.primaryMuscle) {
+            primaryMuscleExercises.push(exerciseName);
+          } else if (exercise.muscleGroup === workout.secondaryMuscle) {
+            secondaryMuscleExercises.push(exerciseName);
+          }
+        }
+      });
+
+      setPrimaryExercises(primaryMuscleExercises);
+      setSecondaryExercises(secondaryMuscleExercises);
     }
 
     setStep(2);
@@ -249,7 +223,6 @@ export default function NewGymLogForm({
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {workoutTypes.map((workout) => {
-                const isSuggested = workout.id === suggestedWorkout;
                 return (
                   <motion.button
                     key={workout.id}
@@ -257,18 +230,11 @@ export default function NewGymLogForm({
                     disabled={disabled}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`relative overflow-hidden ${workout.bgColor} border ${isSuggested ? "border-primary" : workout.borderColor} rounded-xl p-4 text-left transition-all hover:shadow-lg disabled:opacity-50 ${isSuggested ? "ring-2 ring-primary/30" : ""}`}
+                    className={`relative overflow-hidden ${workout.bgColor} border ${workout.borderColor} rounded-xl p-4 text-left transition-all hover:shadow-lg disabled:opacity-50`}
                   >
                     <div
                       className={`absolute top-0 left-0 w-1 h-full bg-linear-to-b ${workout.color}`}
                     />
-                    {isSuggested && (
-                      <div className="absolute top-2 right-2">
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-primary text-white rounded-full">
-                          SUGGESTED
-                        </span>
-                      </div>
-                    )}
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-base font-bold text-text-primary">
