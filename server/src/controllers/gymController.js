@@ -1,45 +1,285 @@
-import {
-  format,
-  subDays,
-  parseISO,
-  differenceInMinutes,
-  startOfWeek,
-  addDays,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
+import { format, startOfWeek, addDays } from "date-fns";
 import GymLog from "../models/GymLog.js";
+import GymExercise from "../models/GymExercise.js";
+import GymProgram from "../models/GymProgram.js";
 import GymStats from "../models/GymStats.js";
-import {
-  DEFAULT_USER_ID,
-  DEFAULT_WEEKLY_GYM_TARGET,
-  WORKOUT_INTENSITY,
-} from "../constants/defaults.js";
+import { DEFAULT_USER_ID } from "../constants/defaults.js";
 
 const getToday = () => format(new Date(), "yyyy-MM-dd");
 
-export const getTodayData = async (req, res, next) => {
+// Get all exercises for a user (including defaults and custom)
+export const getExercises = async (req, res, next) => {
+  try {
+    const exercises = await GymExercise.find({
+      $or: [{ userId: DEFAULT_USER_ID }, { userId: "default" }],
+    }).sort({ muscleGroup: 1, name: 1 });
+
+    res.json(exercises);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Add a new custom exercise
+export const addExercise = async (req, res, next) => {
+  try {
+    const { name, muscleGroup } = req.body;
+
+    const exercise = await GymExercise.create({
+      userId: DEFAULT_USER_ID,
+      name,
+      muscleGroup,
+      isCustom: true,
+    });
+
+    res.status(201).json(exercise);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get user's training program
+export const getProgram = async (req, res, next) => {
+  try {
+    let program = await GymProgram.findOne({ userId: DEFAULT_USER_ID });
+
+    if (!program) {
+      // Create default empty program
+      program = await GymProgram.create({
+        userId: DEFAULT_USER_ID,
+        workoutTypes: {
+          chestFocus: { primary: [], secondary: [] },
+          tricepsFocus: { primary: [], secondary: [] },
+          backFocus: { primary: [], secondary: [] },
+          bicepsFocus: { primary: [], secondary: [] },
+          legsFocus: { primary: [], secondary: [] },
+          shoulderFocus: { primary: [], secondary: [] },
+        },
+      });
+    }
+
+    res.json(program);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Update user's training program
+export const updateProgram = async (req, res, next) => {
+  try {
+    const { workoutTypes } = req.body;
+
+    let program = await GymProgram.findOne({ userId: DEFAULT_USER_ID });
+
+    if (!program) {
+      program = await GymProgram.create({
+        userId: DEFAULT_USER_ID,
+        workoutTypes,
+      });
+    } else {
+      program.workoutTypes = workoutTypes;
+      await program.save();
+    }
+
+    res.json(program);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get this week's workout history (for smart defaults)
+export const getWeekHistory = async (req, res, next) => {
+  try {
+    const today = new Date();
+    const monday = startOfWeek(today, { weekStartsOn: 1 });
+    const dates = Array.from({ length: 7 }, (_, i) =>
+      format(addDays(monday, i), "yyyy-MM-dd"),
+    );
+
+    const logs = await GymLog.find({
+      userId: DEFAULT_USER_ID,
+      date: { $in: dates },
+    }).sort({ date: 1 });
+
+    res.json(logs);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get week data for stats page
+export const getWeekData = async (req, res, next) => {
+  try {
+    const today = new Date();
+    const monday = startOfWeek(today, { weekStartsOn: 1 });
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(monday, i);
+      return {
+        date: format(date, "yyyy-MM-dd"),
+        dayLabel: format(date, "EEE"),
+      };
+    });
+
+    const stats = await GymStats.find({
+      userId: DEFAULT_USER_ID,
+      date: { $in: dates.map((d) => d.date) },
+    });
+
+    const weekData = dates.map((dateInfo) => {
+      const stat = stats.find((s) => s.date === dateInfo.date) || null;
+      return {
+        date: dateInfo.date,
+        dayLabel: dateInfo.dayLabel,
+        totalWorkouts: stat?.totalWorkouts || 0,
+        totalMinutes: stat?.totalMinutes || 0,
+        muscleGroupsWorked: stat?.muscleGroupsWorked || [],
+        totalExercises: stat?.totalExercises || 0,
+      };
+    });
+
+    res.json(weekData);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get streak data
+export const getStreak = async (req, res, next) => {
+  try {
+    const today = new Date();
+    const monday = startOfWeek(today, { weekStartsOn: 1 });
+
+    // Get this week's workouts
+    const weekDates = Array.from({ length: 7 }, (_, i) =>
+      format(addDays(monday, i), "yyyy-MM-dd"),
+    );
+
+    const thisWeekLogs = await GymLog.find({
+      userId: DEFAULT_USER_ID,
+      date: { $in: weekDates },
+    });
+
+    // Get all logs to calculate streaks
+    const allLogs = await GymLog.find({
+      userId: DEFAULT_USER_ID,
+    }).sort({ date: -1 });
+
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+
+    // Calculate streaks (consecutive weeks with at least 1 workout)
+    const weeklyWorkouts = {};
+    allLogs.forEach((log) => {
+      const logDate = new Date(log.date);
+      const weekStart = format(
+        startOfWeek(logDate, { weekStartsOn: 1 }),
+        "yyyy-MM-dd",
+      );
+      weeklyWorkouts[weekStart] = (weeklyWorkouts[weekStart] || 0) + 1;
+    });
+
+    const weeks = Object.keys(weeklyWorkouts).sort().reverse();
+    const currentWeekStart = format(monday, "yyyy-MM-dd");
+
+    // Calculate current streak
+    let checkDate = new Date(currentWeekStart);
+    while (true) {
+      const weekKey = format(checkDate, "yyyy-MM-dd");
+      if (weeklyWorkouts[weekKey] && weeklyWorkouts[weekKey] > 0) {
+        currentStreak++;
+        checkDate = addDays(checkDate, -7);
+      } else {
+        break;
+      }
+    }
+
+    // Calculate longest streak
+    for (let i = 0; i < weeks.length; i++) {
+      if (weeklyWorkouts[weeks[i]] > 0) {
+        tempStreak++;
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 0;
+      }
+    }
+
+    res.json({
+      current: currentStreak,
+      longest: longestStreak,
+      thisWeek: thisWeekLogs.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Log a new workout
+export const logWorkout = async (req, res, next) => {
+  try {
+    const {
+      workoutType,
+      primaryMuscle,
+      secondaryMuscle,
+      primaryExercises,
+      secondaryExercises,
+      duration,
+      notes,
+    } = req.body;
+
+    const date = getToday();
+
+    // Check if workout already logged today
+    const existingLog = await GymLog.findOne({
+      userId: DEFAULT_USER_ID,
+      date,
+    });
+
+    if (existingLog) {
+      return res.status(400).json({
+        error:
+          "Workout already logged for today. Delete it first to log a new one.",
+      });
+    }
+
+    const log = await GymLog.create({
+      userId: DEFAULT_USER_ID,
+      date,
+      workoutType,
+      primaryMuscle,
+      secondaryMuscle,
+      primaryExercises,
+      secondaryExercises,
+      duration,
+      notes,
+    });
+
+    // Update stats
+    await updateGymStats(date);
+
+    res.status(201).json(log);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get today's workout log
+export const getTodayLog = async (req, res, next) => {
   try {
     const date = getToday();
 
-    // Get completed workouts for today
-    const completedWorkouts = await GymLog.find({
+    const log = await GymLog.findOne({
       userId: DEFAULT_USER_ID,
       date,
-      isComplete: true,
-    }).sort({ startedAt: -1 });
+    });
 
-    // Check for active (incomplete) workout
-    const activeWorkout = await GymLog.findOne({
+    const stats = await GymStats.findOne({
       userId: DEFAULT_USER_ID,
-      isComplete: false,
-    }).sort({ startedAt: -1 });
-
-    const stats = await GymStats.findOne({ userId: DEFAULT_USER_ID, date });
+      date,
+    });
 
     res.json({
-      completedWorkouts: completedWorkouts,
-      activeWorkout: activeWorkout || null,
+      log: log || null,
       stats: stats || {
         totalWorkouts: 0,
         totalMinutes: 0,
@@ -53,350 +293,165 @@ export const getTodayData = async (req, res, next) => {
   }
 };
 
-export const startWorkout = async (req, res, next) => {
-  try {
-    const { startedAt, notes } = req.body;
-
-    if (!startedAt) {
-      return res.status(400).json({ error: "Start time is required" });
-    }
-
-    // Check if there's already an active workout
-    const existingActiveWorkout = await GymLog.findOne({
-      userId: DEFAULT_USER_ID,
-      isComplete: false,
-    });
-
-    if (existingActiveWorkout) {
-      return res.status(400).json({
-        error: "You already have an active workout. Complete it first.",
-      });
-    }
-
-    const startedAtDate = new Date(startedAt);
-    const date = format(startedAtDate, "yyyy-MM-dd");
-
-    const workout = await GymLog.create({
-      userId: DEFAULT_USER_ID,
-      startedAt: startedAtDate,
-      muscleGroups: [], // Will be filled when completing workout
-      notes: notes || "",
-      date,
-      isComplete: false,
-    });
-
-    res.status(201).json({ workout });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const updateWorkout = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { exercises, muscleGroups, intensity, notes } = req.body;
-
-    const workout = await GymLog.findById(id);
-
-    if (!workout) {
-      return res.status(404).json({ error: "Workout not found" });
-    }
-
-    if (workout.isComplete) {
-      return res.status(400).json({ error: "Cannot update completed workout" });
-    }
-
-    // Update fields if provided
-    if (exercises !== undefined) workout.exercises = exercises;
-    if (muscleGroups !== undefined) workout.muscleGroups = muscleGroups;
-    if (intensity !== undefined) workout.intensity = intensity;
-    if (notes !== undefined) workout.notes = notes;
-
-    await workout.save();
-
-    res.json({ workout });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const completeWorkout = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { endedAt, muscleGroups, exercises, intensity, notes } = req.body;
-
-    if (!endedAt) {
-      return res.status(400).json({ error: "End time is required" });
-    }
-
-    if (!muscleGroups || muscleGroups.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "At least one muscle group is required" });
-    }
-
-    const workout = await GymLog.findById(id);
-
-    if (!workout) {
-      return res.status(404).json({ error: "Workout not found" });
-    }
-
-    if (workout.isComplete) {
-      return res.status(400).json({ error: "Workout already completed" });
-    }
-
-    const endedAtDate = new Date(endedAt);
-
-    if (endedAtDate <= workout.startedAt) {
-      return res
-        .status(400)
-        .json({ error: "End time must be after start time" });
-    }
-
-    const duration = differenceInMinutes(endedAtDate, workout.startedAt);
-
-    if (duration < 1 || duration > 480) {
-      // Max 8 hours
-      return res.status(400).json({
-        error: "Workout duration must be between 1 minute and 8 hours",
-      });
-    }
-
-    // Update workout with completion data
-    const date = format(endedAtDate, "yyyy-MM-dd");
-    workout.endedAt = endedAtDate;
-    workout.duration = duration;
-    workout.date = date; // Update to end date
-    workout.isComplete = true;
-    workout.muscleGroups = muscleGroups;
-    if (exercises !== undefined) workout.exercises = exercises;
-    if (intensity !== undefined) workout.intensity = intensity;
-    if (notes !== undefined) workout.notes = notes;
-    await workout.save();
-
-    // Fetch current stats
-    let stats = await GymStats.findOne({ userId: DEFAULT_USER_ID, date });
-
-    const newTotalWorkouts = (stats?.totalWorkouts || 0) + 1;
-    const newTotalMinutes = (stats?.totalMinutes || 0) + duration;
-    const totalExercises = workout.exercises.length;
-
-    // Combine muscle groups from all workouts
-    const allCompletedWorkouts = await GymLog.find({
-      userId: DEFAULT_USER_ID,
-      date,
-      isComplete: true,
-    });
-
-    const allMuscleGroups = new Set();
-    let totalIntensityScore = 0;
-
-    allCompletedWorkouts.forEach((w) => {
-      w.muscleGroups.forEach((mg) => allMuscleGroups.add(mg));
-      totalIntensityScore += WORKOUT_INTENSITY[w.intensity] || 1.0;
-    });
-
-    const avgIntensityScore = totalIntensityScore / allCompletedWorkouts.length;
-    let averageIntensity = "moderate";
-    if (avgIntensityScore <= 0.8) averageIntensity = "light";
-    else if (avgIntensityScore >= 1.2) averageIntensity = "intense";
-
-    // Update stats
-    stats = await GymStats.findOneAndUpdate(
-      { userId: DEFAULT_USER_ID, date },
-      {
-        $set: {
-          totalWorkouts: newTotalWorkouts,
-          totalMinutes: newTotalMinutes,
-          muscleGroupsWorked: Array.from(allMuscleGroups),
-          totalExercises: allCompletedWorkouts.reduce(
-            (sum, w) => sum + w.exercises.length,
-            0,
-          ),
-          averageIntensity,
-          updatedAt: new Date(),
-        },
-      },
-      { upsert: true, new: true },
-    );
-
-    res.status(200).json({ workout, stats });
-  } catch (err) {
-    next(err);
-  }
-};
-
+// Delete a workout log
 export const deleteWorkout = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const workout = await GymLog.findById(id);
 
-    if (!workout) {
+    const log = await GymLog.findOneAndDelete({
+      _id: id,
+      userId: DEFAULT_USER_ID,
+    });
+
+    if (!log) {
       return res.status(404).json({ error: "Workout not found" });
     }
 
-    // If workout is not complete, just delete it (no stats to update)
-    if (!workout.isComplete) {
-      await GymLog.deleteOne({ _id: id });
-      return res.json({ message: "Incomplete workout deleted" });
-    }
+    // Update stats
+    await updateGymStats(log.date);
 
-    await GymLog.deleteOne({ _id: id });
-
-    // Recalculate stats for completed workouts only
-    const remainingWorkouts = await GymLog.find({
-      userId: DEFAULT_USER_ID,
-      date: workout.date,
-      isComplete: true,
-    });
-
-    if (remainingWorkouts.length === 0) {
-      // No workouts left, reset stats
-      const stats = await GymStats.findOneAndUpdate(
-        { userId: DEFAULT_USER_ID, date: workout.date },
-        {
-          $set: {
-            totalWorkouts: 0,
-            totalMinutes: 0,
-            muscleGroupsWorked: [],
-            totalExercises: 0,
-            averageIntensity: "none",
-            updatedAt: new Date(),
-          },
-        },
-        { new: true },
-      );
-
-      return res.json({ stats });
-    }
-
-    // Recalculate from remaining workouts
-    const totalMinutes = remainingWorkouts.reduce(
-      (sum, w) => sum + w.duration,
-      0,
-    );
-    const allMuscleGroups = new Set();
-    let totalIntensityScore = 0;
-
-    remainingWorkouts.forEach((w) => {
-      w.muscleGroups.forEach((mg) => allMuscleGroups.add(mg));
-      totalIntensityScore += WORKOUT_INTENSITY[w.intensity] || 1.0;
-    });
-
-    const avgIntensityScore = totalIntensityScore / remainingWorkouts.length;
-    let averageIntensity = "moderate";
-    if (avgIntensityScore <= 0.8) averageIntensity = "light";
-    else if (avgIntensityScore >= 1.2) averageIntensity = "intense";
-
-    const updatedStats = await GymStats.findOneAndUpdate(
-      { userId: DEFAULT_USER_ID, date: workout.date },
-      {
-        $set: {
-          totalWorkouts: remainingWorkouts.length,
-          totalMinutes,
-          muscleGroupsWorked: Array.from(allMuscleGroups),
-          totalExercises: remainingWorkouts.reduce(
-            (sum, w) => sum + w.exercises.length,
-            0,
-          ),
-          averageIntensity,
-          updatedAt: new Date(),
-        },
-      },
-      { new: true },
-    );
-
-    res.json({ stats: updatedStats });
+    res.json({ message: "Workout deleted successfully" });
   } catch (err) {
     next(err);
   }
 };
 
-export const getWeekData = async (req, res, next) => {
-  try {
-    const today = new Date();
-    const monday = startOfWeek(today, { weekStartsOn: 1 });
-    const dates = Array.from({ length: 7 }, (_, i) =>
-      format(addDays(monday, i), "yyyy-MM-dd"),
-    );
+// Helper function to update stats
+async function updateGymStats(date) {
+  const log = await GymLog.findOne({
+    userId: DEFAULT_USER_ID,
+    date,
+  });
 
-    const stats = await GymStats.find({
+  if (!log) {
+    // No workout logged, delete stats if exist
+    await GymStats.deleteOne({
       userId: DEFAULT_USER_ID,
-      date: { $in: dates },
-    }).sort({ date: 1 });
-
-    // Fill in missing days with zeros
-    const statsMap = new Map(stats.map((s) => [s.date, s]));
-    const weekData = dates.map((date) => {
-      const existing = statsMap.get(date);
-      return {
-        date,
-        dayLabel: format(parseISO(date), "EEE"),
-        totalWorkouts: existing?.totalWorkouts || 0,
-        totalMinutes: existing?.totalMinutes || 0,
-        muscleGroupsWorked: existing?.muscleGroupsWorked || [],
-        totalExercises: existing?.totalExercises || 0,
-        averageIntensity: existing?.averageIntensity || "none",
-      };
+      date,
     });
-
-    res.json(weekData);
-  } catch (err) {
-    next(err);
+    return;
   }
-};
 
-export const getStreak = async (req, res, next) => {
-  try {
-    // Get last 90 days of stats where workouts were logged
-    const today = new Date();
-    const stats = await GymStats.find({
+  const muscleGroupsWorked = [log.primaryMuscle, log.secondaryMuscle].filter(
+    Boolean,
+  );
+  const totalExercises =
+    log.primaryExercises.length + log.secondaryExercises.length;
+
+  await GymStats.findOneAndUpdate(
+    {
       userId: DEFAULT_USER_ID,
-      totalWorkouts: { $gt: 0 },
-    })
-      .sort({ date: -1 })
-      .limit(90);
+      date,
+    },
+    {
+      totalWorkouts: 1,
+      totalMinutes: log.duration || 0,
+      muscleGroupsWorked,
+      totalExercises,
+      averageIntensity: "moderate", // Can be enhanced later
+    },
+    { upsert: true, new: true },
+  );
+}
 
-    if (stats.length === 0) {
-      return res.json({ current: 0, longest: 0, thisWeek: 0 });
+// Seed default exercises
+export const seedDefaultExercises = async (req, res, next) => {
+  try {
+    // Check if already seeded
+    const existingCount = await GymExercise.countDocuments({
+      userId: "default",
+    });
+    if (existingCount > 0) {
+      return res.json({ message: "Default exercises already seeded" });
     }
 
-    const workoutDates = new Set(stats.map((s) => s.date));
+    const defaultExercises = [
+      // Chest exercises
+      { name: "Barbell Bench Press", muscleGroup: "chest" },
+      { name: "Dumbbell Bench Press", muscleGroup: "chest" },
+      { name: "Incline Barbell Bench Press", muscleGroup: "chest" },
+      { name: "Incline Dumbbell Press", muscleGroup: "chest" },
+      { name: "Decline Bench Press", muscleGroup: "chest" },
+      { name: "Chest Dips", muscleGroup: "chest" },
+      { name: "Cable Flyes", muscleGroup: "chest" },
+      { name: "Dumbbell Flyes", muscleGroup: "chest" },
+      { name: "Push-ups", muscleGroup: "chest" },
+      { name: "Machine Chest Press", muscleGroup: "chest" },
+      { name: "Pec Deck", muscleGroup: "chest" },
 
-    // Current streak: consecutive days with workouts ending today (or yesterday)
-    let current = 0;
-    let checkDate = today;
-    if (!workoutDates.has(format(checkDate, "yyyy-MM-dd"))) {
-      checkDate = subDays(today, 1);
-    }
-    while (workoutDates.has(format(checkDate, "yyyy-MM-dd"))) {
-      current++;
-      checkDate = subDays(checkDate, 1);
-    }
+      // Triceps exercises
+      { name: "Tricep Dips", muscleGroup: "triceps" },
+      { name: "Close-Grip Bench Press", muscleGroup: "triceps" },
+      { name: "Tricep Pushdown", muscleGroup: "triceps" },
+      { name: "Overhead Tricep Extension", muscleGroup: "triceps" },
+      { name: "Skull Crushers", muscleGroup: "triceps" },
+      { name: "Dumbbell Kickbacks", muscleGroup: "triceps" },
+      { name: "Diamond Push-ups", muscleGroup: "triceps" },
+      { name: "Cable Overhead Extension", muscleGroup: "triceps" },
 
-    // Longest streak from available data
-    let longest = 0;
-    let tempStreak = 0;
-    for (let i = 89; i >= 0; i--) {
-      const d = format(subDays(today, i), "yyyy-MM-dd");
-      if (workoutDates.has(d)) {
-        tempStreak++;
-        longest = Math.max(longest, tempStreak);
-      } else {
-        tempStreak = 0;
-      }
-    }
+      // Back exercises
+      { name: "Deadlift", muscleGroup: "back" },
+      { name: "Pull-ups", muscleGroup: "back" },
+      { name: "Chin-ups", muscleGroup: "back" },
+      { name: "Barbell Row", muscleGroup: "back" },
+      { name: "Dumbbell Row", muscleGroup: "back" },
+      { name: "T-Bar Row", muscleGroup: "back" },
+      { name: "Lat Pulldown", muscleGroup: "back" },
+      { name: "Seated Cable Row", muscleGroup: "back" },
+      { name: "Face Pulls", muscleGroup: "back" },
+      { name: "Hyperextensions", muscleGroup: "back" },
+      { name: "Single-Arm Dumbbell Row", muscleGroup: "back" },
 
-    // This week's workouts (last 7 days)
-    const thisWeekStart = subDays(today, 6);
-    const thisWeek = stats
-      .filter((s) => {
-        const statDate = parseISO(s.date);
-        return statDate >= thisWeekStart && statDate <= today;
-      })
-      .reduce((sum, s) => sum + s.totalWorkouts, 0);
+      // Biceps exercises
+      { name: "Barbell Curl", muscleGroup: "biceps" },
+      { name: "Dumbbell Curl", muscleGroup: "biceps" },
+      { name: "Hammer Curl", muscleGroup: "biceps" },
+      { name: "Preacher Curl", muscleGroup: "biceps" },
+      { name: "Cable Curl", muscleGroup: "biceps" },
+      { name: "Concentration Curl", muscleGroup: "biceps" },
+      { name: "Incline Dumbbell Curl", muscleGroup: "biceps" },
+      { name: "EZ-Bar Curl", muscleGroup: "biceps" },
+      { name: "Spider Curl", muscleGroup: "biceps" },
 
-    res.json({ current, longest, thisWeek });
+      // Legs exercises
+      { name: "Barbell Squat", muscleGroup: "legs" },
+      { name: "Front Squat", muscleGroup: "legs" },
+      { name: "Leg Press", muscleGroup: "legs" },
+      { name: "Romanian Deadlift", muscleGroup: "legs" },
+      { name: "Leg Extension", muscleGroup: "legs" },
+      { name: "Leg Curl", muscleGroup: "legs" },
+      { name: "Lunges", muscleGroup: "legs" },
+      { name: "Bulgarian Split Squat", muscleGroup: "legs" },
+      { name: "Hack Squat", muscleGroup: "legs" },
+      { name: "Calf Raises", muscleGroup: "legs" },
+      { name: "Seated Calf Raise", muscleGroup: "legs" },
+      { name: "Goblet Squat", muscleGroup: "legs" },
+
+      // Shoulders exercises
+      { name: "Overhead Press", muscleGroup: "shoulders" },
+      { name: "Dumbbell Shoulder Press", muscleGroup: "shoulders" },
+      { name: "Arnold Press", muscleGroup: "shoulders" },
+      { name: "Lateral Raises", muscleGroup: "shoulders" },
+      { name: "Front Raises", muscleGroup: "shoulders" },
+      { name: "Rear Delt Flyes", muscleGroup: "shoulders" },
+      { name: "Upright Row", muscleGroup: "shoulders" },
+      { name: "Shrugs", muscleGroup: "shoulders" },
+      { name: "Face Pulls", muscleGroup: "shoulders" },
+      { name: "Cable Lateral Raises", muscleGroup: "shoulders" },
+    ];
+
+    const exercises = defaultExercises.map((ex) => ({
+      ...ex,
+      userId: "default",
+      isCustom: false,
+    }));
+
+    await GymExercise.insertMany(exercises);
+
+    res.json({
+      message: "Default exercises seeded successfully",
+      count: exercises.length,
+    });
   } catch (err) {
     next(err);
   }

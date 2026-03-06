@@ -11,7 +11,7 @@ import {
   getWeekData,
   getStreak,
   seedDefaultExercises,
-} from "../controllers/newGymController.js";
+} from "../controllers/gymController.js";
 
 const router = Router();
 
