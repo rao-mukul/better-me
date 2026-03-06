@@ -33,6 +33,8 @@ export const gymApi = {
   deleteWorkout: (id) => api.delete(`/gym/workout/${id}`).then((r) => r.data),
   getExercises: () => api.get("/gym/exercises").then((r) => r.data),
   addExercise: (data) => api.post("/gym/exercises", data).then((r) => r.data),
+  deleteExercise: (id) =>
+    api.delete(`/gym/exercises/${id}`).then((r) => r.data),
   getProgram: () => api.get("/gym/program").then((r) => r.data),
   updateProgram: (data) => api.put("/gym/program", data).then((r) => r.data),
   getWeekHistory: () => api.get("/gym/week-history").then((r) => r.data),

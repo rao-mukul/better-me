@@ -51,6 +51,17 @@ export function useAddExercise() {
   });
 }
 
+export function useDeleteExercise() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: gymApi.deleteExercise,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gym", "exercises"] });
+    },
+  });
+}
+
 export function useGymProgram() {
   return useQuery({
     queryKey: ["gym", "program"],

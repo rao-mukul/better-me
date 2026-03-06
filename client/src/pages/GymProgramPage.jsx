@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader,
+  Edit3,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -15,6 +16,7 @@ import {
   useGymProgram,
   useUpdateProgram,
   useAddExercise,
+  useDeleteExercise,
 } from "../hooks/useGymData";
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
@@ -76,12 +78,14 @@ export default function GymProgramPage() {
   const { data: programData, isLoading: programLoading } = useGymProgram();
   const updateProgram = useUpdateProgram();
   const addExercise = useAddExercise();
+  const deleteExercise = useDeleteExercise();
 
   const [expandedWorkout, setExpandedWorkout] = useState(null);
   const [programState, setProgramState] = useState({});
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
   const [newExercise, setNewExercise] = useState({ name: "", muscleGroup: "" });
   const [currentMuscleGroup, setCurrentMuscleGroup] = useState("");
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Initialize program state when data loads
   useEffect(() => {
@@ -156,6 +160,19 @@ export default function GymProgramPage() {
     setShowAddExerciseModal(true);
   };
 
+  const handleDeleteExercise = async (exerciseId, exerciseName) => {
+    if (!confirm(`Are you sure you want to delete "${exerciseName}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteExercise.mutateAsync(exerciseId);
+      toast.success("Exercise deleted successfully!");
+    } catch (error) {
+      toast.error("Failed to delete exercise");
+    }
+  };
+
   if (exercisesLoading || programLoading) {
     return (
       <div className="min-h-screen bg-navy-900 flex items-center justify-center">
@@ -177,18 +194,28 @@ export default function GymProgramPage() {
               Customize your 6-day double split workout program
             </p>
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={updateProgram.isPending}
-            className="flex items-center gap-2"
-          >
-            {updateProgram.isPending ? (
-              <Loader className="animate-spin" size={18} />
-            ) : (
-              <Save size={18} />
-            )}
-            Save Program
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setIsEditMode(!isEditMode)}
+              variant={isEditMode ? "primary" : "secondary"}
+              className="flex items-center gap-2"
+            >
+              <Edit3 size={18} />
+              {isEditMode ? "Done" : "Edit"}
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={updateProgram.isPending}
+              className="flex items-center gap-2"
+            >
+              {updateProgram.isPending ? (
+                <Loader className="animate-spin" size={18} />
+              ) : (
+                <Save size={18} />
+              )}
+              Save
+            </Button>
+          </div>
         </div>
 
         {/* Workout Types */}
@@ -272,20 +299,42 @@ export default function GymProgramPage() {
                           </p>
                         ) : (
                           primaryExercises.map((exercise) => (
-                            <motion.button
-                              key={exercise._id}
-                              onClick={() =>
-                                toggleExercise(workout.id, exercise.name, true)
-                              }
-                              whileTap={{ scale: 0.95 }}
-                              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                workoutProgram.primary.includes(exercise.name)
-                                  ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
-                                  : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
-                              }`}
-                            >
-                              {exercise.name}
-                            </motion.button>
+                            <div key={exercise._id} className="relative group">
+                              <motion.button
+                                onClick={() =>
+                                  toggleExercise(
+                                    workout.id,
+                                    exercise.name,
+                                    true,
+                                  )
+                                }
+                                whileTap={{ scale: 0.95 }}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                  workoutProgram.primary.includes(exercise.name)
+                                    ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
+                                    : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
+                                }`}
+                              >
+                                {exercise.name}
+                              </motion.button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteExercise(
+                                    exercise._id,
+                                    exercise.name,
+                                  );
+                                }}
+                                className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
+                                  isEditMode
+                                    ? "opacity-100"
+                                    : "opacity-0 pointer-events-none"
+                                }`}
+                                title="Delete exercise"
+                              >
+                                <X size={12} className="text-white" />
+                              </button>
+                            </div>
                           ))
                         )}
                       </div>
@@ -314,20 +363,44 @@ export default function GymProgramPage() {
                           </p>
                         ) : (
                           secondaryExercises.map((exercise) => (
-                            <motion.button
-                              key={exercise._id}
-                              onClick={() =>
-                                toggleExercise(workout.id, exercise.name, false)
-                              }
-                              whileTap={{ scale: 0.95 }}
-                              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                workoutProgram.secondary.includes(exercise.name)
-                                  ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
-                                  : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
-                              }`}
-                            >
-                              {exercise.name}
-                            </motion.button>
+                            <div key={exercise._id} className="relative group">
+                              <motion.button
+                                onClick={() =>
+                                  toggleExercise(
+                                    workout.id,
+                                    exercise.name,
+                                    false,
+                                  )
+                                }
+                                whileTap={{ scale: 0.95 }}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                  workoutProgram.secondary.includes(
+                                    exercise.name,
+                                  )
+                                    ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
+                                    : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
+                                }`}
+                              >
+                                {exercise.name}
+                              </motion.button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteExercise(
+                                    exercise._id,
+                                    exercise.name,
+                                  );
+                                }}
+                                className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
+                                  isEditMode
+                                    ? "opacity-100"
+                                    : "opacity-0 pointer-events-none"
+                                }`}
+                                title="Delete exercise"
+                              >
+                                <X size={12} className="text-white" />
+                              </button>
+                            </div>
                           ))
                         )}
                       </div>

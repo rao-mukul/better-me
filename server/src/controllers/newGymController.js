@@ -38,6 +38,28 @@ export const addExercise = async (req, res, next) => {
   }
 };
 
+// Delete a custom exercise
+export const deleteExercise = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const exercise = await GymExercise.findOne({
+      _id: id,
+      userId: DEFAULT_USER_ID,
+    });
+
+    if (!exercise) {
+      return res.status(404).json({ error: "Exercise not found" });
+    }
+
+    await GymExercise.deleteOne({ _id: id });
+
+    res.json({ message: "Exercise deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Get user's training program
 export const getProgram = async (req, res, next) => {
   try {

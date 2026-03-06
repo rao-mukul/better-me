@@ -5,6 +5,7 @@ import {
   deleteWorkout,
   getExercises,
   addExercise,
+  deleteExercise,
   getProgram,
   updateProgram,
   getWeekHistory,
@@ -23,6 +24,7 @@ router.delete("/workout/:id", deleteWorkout);
 // Exercise library
 router.get("/exercises", getExercises);
 router.post("/exercises", addExercise);
+router.delete("/exercises/:id", deleteExercise);
 
 // Training program
 router.get("/program", getProgram);
