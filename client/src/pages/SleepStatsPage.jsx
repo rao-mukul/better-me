@@ -1,49 +1,24 @@
 import { motion } from "framer-motion";
-import { Trophy, TrendingUp, Moon, Clock } from "lucide-react";
+import { useState } from "react";
+import { BarChart3, Calendar } from "lucide-react";
 import SleepWeeklyChart from "../components/sleep/SleepWeeklyChart";
-import StreakCard from "../components/stats/StreakCard";
-import InsightCard from "../components/stats/InsightCard";
-import { useSleepWeek, useSleepStreak } from "../hooks/useSleepData";
+import SleepTimeInsights from "../components/sleep/SleepTimeInsights";
+import SleepCalendar from "../components/sleep/SleepCalendar";
+import { useSleepWeek } from "../hooks/useSleepData";
 
 export default function SleepStatsPage() {
+  const [view, setView] = useState("week"); // "week" or "month"
   const { data: weekData, isLoading: weekLoading } = useSleepWeek();
-  const { data: streakData, isLoading: streakLoading } = useSleepStreak();
 
   const week = weekData || [];
-  const streak = streakData || { current: 0, longest: 0 };
-
-  // Compute insights from week data
-  const totalMinutes = week.reduce((sum, d) => sum + d.totalMinutes, 0);
-  const daysWithData = week.filter((d) => d.totalMinutes > 0);
-  const avgDaily =
-    daysWithData.length > 0
-      ? (totalMinutes / daysWithData.length / 60).toFixed(1)
-      : 0;
-  const bestDay = week.reduce(
-    (best, d) => (d.totalMinutes > best.totalMinutes ? d : best),
-    { totalMinutes: 0, dayLabel: "-" },
-  );
   const currentTarget = week.length > 0 ? week[week.length - 1].targetHours : 8;
 
-  // Calculate average sleep score
-  const avgScore =
-    daysWithData.length > 0
-      ? Math.round(
-          daysWithData.reduce((sum, d) => sum + d.sleepScore, 0) /
-            daysWithData.length,
-        )
-      : 0;
-
-  if (weekLoading || streakLoading) {
+  if (weekLoading && view === "week") {
     return (
       <div className="flex flex-col gap-4 animate-pulse">
-        <div className="h-16 rounded-2xl bg-navy-800/60" />
+        <div className="h-12 rounded-2xl bg-navy-800/60 w-64" />
         <div className="h-56 rounded-2xl bg-navy-800/60" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 rounded-2xl bg-navy-800/60" />
-          ))}
-        </div>
+        <div className="h-56 rounded-2xl bg-navy-800/60" />
       </div>
     );
   }
@@ -55,44 +30,43 @@ export default function SleepStatsPage() {
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-4"
     >
-      <StreakCard
-        current={streak.current}
-        longest={streak.longest}
-        icon={Moon}
-        label="sleep target"
-      />
-
-      <SleepWeeklyChart data={week} targetHours={currentTarget} />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <InsightCard
-          icon={Trophy}
-          label="Best Day"
-          value={bestDay.totalMinutes > 0 ? bestDay.dayLabel : "-"}
-          color="text-yellow-400"
-        />
-        <InsightCard
-          icon={TrendingUp}
-          label="Avg Sleep"
-          value={avgDaily}
-          unit="h"
-          color="text-purple-400"
-        />
-        <InsightCard
-          icon={Moon}
-          label="This Week"
-          value={(totalMinutes / 60).toFixed(1)}
-          unit="h"
-          color="text-primary"
-        />
-        <InsightCard
-          icon={Clock}
-          label="Avg Score"
-          value={avgScore}
-          unit="/100"
-          color="text-accent"
-        />
+      {/* View Toggle */}
+      <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setView("week")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            view === "week"
+              ? "bg-purple-500 text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <BarChart3 size={18} />
+          Last 7 Days
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setView("month")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            view === "month"
+              ? "bg-purple-500 text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <Calendar size={18} />
+          This Month
+        </motion.button>
       </div>
+
+      {/* Content */}
+      {view === "week" ? (
+        <>
+          <SleepWeeklyChart data={week} targetHours={currentTarget} />
+          <SleepTimeInsights weekData={week} />
+        </>
+      ) : (
+        <SleepCalendar />
+      )}
     </motion.div>
   );
 }

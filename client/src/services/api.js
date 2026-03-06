@@ -9,7 +9,8 @@ export const waterApi = {
   addLog: (data) => api.post("/water/log", data).then((r) => r.data),
   deleteLog: (id) => api.delete(`/water/log/${id}`).then((r) => r.data),
   getWeek: () => api.get("/water/week").then((r) => r.data),
-  getStreak: () => api.get("/water/streak").then((r) => r.data),
+  getMonth: (year, month) =>
+    api.get("/water/month", { params: { year, month } }).then((r) => r.data),
   updateGoal: (goal) => api.put("/water/goal", { goal }).then((r) => r.data),
 };
 
@@ -20,7 +21,8 @@ export const sleepApi = {
     api.put(`/sleep/complete/${id}`, data).then((r) => r.data),
   deleteSleepLog: (id) => api.delete(`/sleep/log/${id}`).then((r) => r.data),
   getWeek: () => api.get("/sleep/week").then((r) => r.data),
-  getStreak: () => api.get("/sleep/streak").then((r) => r.data),
+  getMonth: (year, month) =>
+    api.get("/sleep/month", { params: { year, month } }).then((r) => r.data),
   updateTarget: (targetHours) =>
     api.put("/sleep/target", { targetHours }).then((r) => r.data),
 };

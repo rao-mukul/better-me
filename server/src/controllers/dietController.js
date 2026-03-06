@@ -1,4 +1,4 @@
-import { format, subDays } from "date-fns";
+import { format, subDays, startOfWeek, addDays } from "date-fns";
 import DietLog from "../models/DietLog.js";
 import DietStats from "../models/DietStats.js";
 import {
@@ -159,13 +159,11 @@ export const deleteLog = async (req, res, next) => {
 
 export const getWeekData = async (req, res, next) => {
   try {
-    const endDate = new Date();
-    const dates = [];
-
-    for (let i = 6; i >= 0; i--) {
-      const date = format(subDays(endDate, i), "yyyy-MM-dd");
-      dates.push(date);
-    }
+    const today = new Date();
+    const monday = startOfWeek(today, { weekStartsOn: 1 });
+    const dates = Array.from({ length: 7 }, (_, i) =>
+      format(addDays(monday, i), "yyyy-MM-dd"),
+    );
 
     const statsPromises = dates.map(async (date) => {
       const stats = await DietStats.findOne({

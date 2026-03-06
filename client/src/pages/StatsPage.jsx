@@ -1,34 +1,22 @@
-import { motion } from 'framer-motion';
-import { Trophy, TrendingUp, Droplets } from 'lucide-react';
-import WeeklyBarChart from '../components/stats/WeeklyBarChart';
-import StreakCard from '../components/stats/StreakCard';
-import InsightCard from '../components/stats/InsightCard';
-import { useWaterWeek, useWaterStreak } from '../hooks/useWaterData';
+import { motion } from "framer-motion";
+import { useState } from "react";
+import { BarChart3, Calendar } from "lucide-react";
+import WeeklyBarChart from "../components/stats/WeeklyBarChart";
+import WaterCalendar from "../components/water/WaterCalendar";
+import { useWaterWeek } from "../hooks/useWaterData";
 
 export default function StatsPage() {
+  const [view, setView] = useState("week"); // "week" or "month"
   const { data: weekData, isLoading: weekLoading } = useWaterWeek();
-  const { data: streakData, isLoading: streakLoading } = useWaterStreak();
 
   const week = weekData || [];
-  const streak = streakData || { current: 0, longest: 0 };
-
-  // Compute insights from week data
-  const totalWeek = week.reduce((sum, d) => sum + d.totalMl, 0);
-  const daysWithData = week.filter((d) => d.totalMl > 0);
-  const avgDaily = daysWithData.length > 0 ? Math.round(totalWeek / daysWithData.length) : 0;
-  const bestDay = week.reduce((best, d) => (d.totalMl > best.totalMl ? d : best), { totalMl: 0, dayLabel: '-' });
   const currentGoal = week.length > 0 ? week[week.length - 1].goal : 2500;
 
-  if (weekLoading || streakLoading) {
+  if (weekLoading && view === "week") {
     return (
       <div className="flex flex-col gap-4 animate-pulse">
-        <div className="h-16 rounded-2xl bg-navy-800/60" />
+        <div className="h-12 rounded-2xl bg-navy-800/60 w-64" />
         <div className="h-56 rounded-2xl bg-navy-800/60" />
-        <div className="grid grid-cols-3 gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-2xl bg-navy-800/60" />
-          ))}
-        </div>
       </div>
     );
   }
@@ -40,32 +28,40 @@ export default function StatsPage() {
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-4"
     >
-      <StreakCard current={streak.current} longest={streak.longest} />
-
-      <WeeklyBarChart data={week} goal={currentGoal} />
-
-      <div className="grid grid-cols-3 gap-3">
-        <InsightCard
-          icon={Trophy}
-          label="Best Day"
-          value={bestDay.totalMl > 0 ? bestDay.dayLabel : '-'}
-          color="text-yellow-400"
-        />
-        <InsightCard
-          icon={TrendingUp}
-          label="Daily Avg"
-          value={avgDaily}
-          unit="ml"
-          color="text-accent"
-        />
-        <InsightCard
-          icon={Droplets}
-          label="This Week"
-          value={(totalWeek / 1000).toFixed(1)}
-          unit="L"
-          color="text-primary"
-        />
+      {/* View Toggle */}
+      <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setView("week")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            view === "week"
+              ? "bg-primary text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <BarChart3 size={18} />
+          Last 7 Days
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setView("month")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            view === "month"
+              ? "bg-primary text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <Calendar size={18} />
+          This Month
+        </motion.button>
       </div>
+
+      {/* Content */}
+      {view === "week" ? (
+        <WeeklyBarChart data={week} goal={currentGoal} />
+      ) : (
+        <WaterCalendar />
+      )}
     </motion.div>
   );
 }

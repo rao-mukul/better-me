@@ -49,10 +49,11 @@ export function useSleepWeek() {
   });
 }
 
-export function useSleepStreak() {
+export function useSleepMonth(year, month) {
   return useQuery({
-    queryKey: ["sleep", "streak"],
-    queryFn: sleepApi.getStreak,
+    queryKey: ["sleep", "month", year, month],
+    queryFn: () => sleepApi.getMonth(year, month),
+    enabled: !!year && !!month,
   });
 }
 

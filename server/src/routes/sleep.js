@@ -5,6 +5,7 @@ import {
   completeSleep,
   deleteSleepLog,
   getWeekData,
+  getMonthData,
   getStreak,
   updateTarget,
 } from "../controllers/sleepController.js";
@@ -16,6 +17,7 @@ router.post("/start", startSleep);
 router.put("/complete/:id", completeSleep);
 router.delete("/log/:id", deleteSleepLog);
 router.get("/week", getWeekData);
+router.get("/month", getMonthData);
 router.get("/streak", getStreak);
 router.put("/target", updateTarget);
 

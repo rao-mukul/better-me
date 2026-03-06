@@ -1,4 +1,13 @@
-import { format, subDays, parseISO, differenceInMinutes } from "date-fns";
+import {
+  format,
+  subDays,
+  parseISO,
+  differenceInMinutes,
+  startOfWeek,
+  addDays,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 import GymLog from "../models/GymLog.js";
 import GymStats from "../models/GymStats.js";
 import {
@@ -306,8 +315,9 @@ export const deleteWorkout = async (req, res, next) => {
 export const getWeekData = async (req, res, next) => {
   try {
     const today = new Date();
+    const monday = startOfWeek(today, { weekStartsOn: 1 });
     const dates = Array.from({ length: 7 }, (_, i) =>
-      format(subDays(today, 6 - i), "yyyy-MM-dd"),
+      format(addDays(monday, i), "yyyy-MM-dd"),
     );
 
     const stats = await GymStats.find({

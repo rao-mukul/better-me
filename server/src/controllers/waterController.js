@@ -1,9 +1,17 @@
-import { format, subDays, parseISO } from 'date-fns';
-import IntakeLog from '../models/IntakeLog.js';
-import DailyStats from '../models/DailyStats.js';
-import { DEFAULT_USER_ID, DEFAULT_GOAL } from '../constants/defaults.js';
+import {
+  format,
+  subDays,
+  parseISO,
+  startOfWeek,
+  addDays,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
+import IntakeLog from "../models/IntakeLog.js";
+import DailyStats from "../models/DailyStats.js";
+import { DEFAULT_USER_ID, DEFAULT_GOAL } from "../constants/defaults.js";
 
-const getToday = () => format(new Date(), 'yyyy-MM-dd');
+const getToday = () => format(new Date(), "yyyy-MM-dd");
 
 export const getTodayData = async (req, res, next) => {
   try {
@@ -15,7 +23,12 @@ export const getTodayData = async (req, res, next) => {
 
     res.json({
       logs,
-      stats: stats || { totalMl: 0, goal: DEFAULT_GOAL, goalMet: false, entryCount: 0 },
+      stats: stats || {
+        totalMl: 0,
+        goal: DEFAULT_GOAL,
+        goalMet: false,
+        entryCount: 0,
+      },
     });
   } catch (err) {
     next(err);
@@ -27,10 +40,14 @@ export const addLog = async (req, res, next) => {
     const { amount, type, label } = req.body;
 
     if (!amount || amount < 1 || amount > 5000) {
-      return res.status(400).json({ error: 'Amount must be between 1 and 5000 ml' });
+      return res
+        .status(400)
+        .json({ error: "Amount must be between 1 and 5000 ml" });
     }
-    if (!['glass', 'bottle', 'custom'].includes(type)) {
-      return res.status(400).json({ error: 'Type must be glass, bottle, or custom' });
+    if (!["glass", "bottle", "custom"].includes(type)) {
+      return res
+        .status(400)
+        .json({ error: "Type must be glass, bottle, or custom" });
     }
 
     const date = getToday();
@@ -51,7 +68,7 @@ export const addLog = async (req, res, next) => {
         $set: { updatedAt: new Date() },
         $setOnInsert: { goal: DEFAULT_GOAL },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     // Update goalMet based on new total
@@ -72,7 +89,7 @@ export const deleteLog = async (req, res, next) => {
     const log = await IntakeLog.findById(id);
 
     if (!log) {
-      return res.status(404).json({ error: 'Log not found' });
+      return res.status(404).json({ error: "Log not found" });
     }
 
     await IntakeLog.deleteOne({ _id: id });
@@ -83,7 +100,7 @@ export const deleteLog = async (req, res, next) => {
         $inc: { totalMl: -log.amount, entryCount: -1 },
         $set: { updatedAt: new Date() },
       },
-      { new: true }
+      { new: true },
     );
 
     // Recalculate goalMet
@@ -92,7 +109,14 @@ export const deleteLog = async (req, res, next) => {
       await stats.save();
     }
 
-    res.json({ stats: stats || { totalMl: 0, goal: DEFAULT_GOAL, goalMet: false, entryCount: 0 } });
+    res.json({
+      stats: stats || {
+        totalMl: 0,
+        goal: DEFAULT_GOAL,
+        goalMet: false,
+        entryCount: 0,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -101,8 +125,9 @@ export const deleteLog = async (req, res, next) => {
 export const getWeekData = async (req, res, next) => {
   try {
     const today = new Date();
+    const monday = startOfWeek(today, { weekStartsOn: 1 });
     const dates = Array.from({ length: 7 }, (_, i) =>
-      format(subDays(today, 6 - i), 'yyyy-MM-dd')
+      format(addDays(monday, i), "yyyy-MM-dd"),
     );
 
     const stats = await DailyStats.find({
@@ -116,7 +141,7 @@ export const getWeekData = async (req, res, next) => {
       const existing = statsMap.get(date);
       return {
         date,
-        dayLabel: format(parseISO(date), 'EEE'),
+        dayLabel: format(parseISO(date), "EEE"),
         totalMl: existing?.totalMl || 0,
         goal: existing?.goal || DEFAULT_GOAL,
         goalMet: existing?.goalMet || false,
@@ -125,6 +150,67 @@ export const getWeekData = async (req, res, next) => {
     });
 
     res.json(weekData);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMonthData = async (req, res, next) => {
+  try {
+    const { year, month } = req.query;
+
+    let targetDate;
+    if (year && month) {
+      targetDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    } else {
+      targetDate = new Date();
+    }
+
+    const startOfMonth = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      1,
+    );
+    const endOfMonth = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth() + 1,
+      0,
+    );
+
+    const startDate = format(startOfMonth, "yyyy-MM-dd");
+    const endDate = format(endOfMonth, "yyyy-MM-dd");
+
+    const stats = await DailyStats.find({
+      userId: DEFAULT_USER_ID,
+      date: { $gte: startDate, $lte: endDate },
+    }).sort({ date: 1 });
+
+    // Create map of all days in month
+    const daysInMonth = endOfMonth.getDate();
+    const statsMap = new Map(stats.map((s) => [s.date, s]));
+
+    const monthData = Array.from({ length: daysInMonth }, (_, i) => {
+      const date = format(
+        new Date(targetDate.getFullYear(), targetDate.getMonth(), i + 1),
+        "yyyy-MM-dd",
+      );
+      const existing = statsMap.get(date);
+      return {
+        date,
+        day: i + 1,
+        totalMl: existing?.totalMl || 0,
+        goal: existing?.goal || DEFAULT_GOAL,
+        goalMet: existing?.goalMet || false,
+        entryCount: existing?.entryCount || 0,
+      };
+    });
+
+    res.json({
+      year: targetDate.getFullYear(),
+      month: targetDate.getMonth() + 1,
+      monthName: format(targetDate, "MMMM yyyy"),
+      data: monthData,
+    });
   } catch (err) {
     next(err);
   }
@@ -151,10 +237,10 @@ export const getStreak = async (req, res, next) => {
     let current = 0;
     let checkDate = today;
     // If today hasn't been met yet, start from yesterday
-    if (!metDates.has(format(checkDate, 'yyyy-MM-dd'))) {
+    if (!metDates.has(format(checkDate, "yyyy-MM-dd"))) {
       checkDate = subDays(today, 1);
     }
-    while (metDates.has(format(checkDate, 'yyyy-MM-dd'))) {
+    while (metDates.has(format(checkDate, "yyyy-MM-dd"))) {
       current++;
       checkDate = subDays(checkDate, 1);
     }
@@ -163,7 +249,7 @@ export const getStreak = async (req, res, next) => {
     let longest = 0;
     let tempStreak = 0;
     for (let i = 89; i >= 0; i--) {
-      const d = format(subDays(today, i), 'yyyy-MM-dd');
+      const d = format(subDays(today, i), "yyyy-MM-dd");
       if (metDates.has(d)) {
         tempStreak++;
         longest = Math.max(longest, tempStreak);
@@ -183,7 +269,9 @@ export const updateGoal = async (req, res, next) => {
     const { goal } = req.body;
 
     if (!goal || goal < 500 || goal > 10000) {
-      return res.status(400).json({ error: 'Goal must be between 500 and 10000 ml' });
+      return res
+        .status(400)
+        .json({ error: "Goal must be between 500 and 10000 ml" });
     }
 
     const date = getToday();
@@ -194,7 +282,7 @@ export const updateGoal = async (req, res, next) => {
         $set: { goal, updatedAt: new Date() },
         $setOnInsert: { totalMl: 0, entryCount: 0 },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     stats.goalMet = stats.totalMl >= stats.goal;

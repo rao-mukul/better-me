@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { waterApi } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { waterApi } from "../services/api";
 
 export function useWaterToday() {
   return useQuery({
-    queryKey: ['water', 'today'],
+    queryKey: ["water", "today"],
     queryFn: waterApi.getToday,
     refetchOnWindowFocus: true,
   });
@@ -15,7 +15,7 @@ export function useAddWaterLog() {
   return useMutation({
     mutationFn: waterApi.addLog,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['water'] });
+      queryClient.invalidateQueries({ queryKey: ["water"] });
     },
   });
 }
@@ -26,22 +26,23 @@ export function useDeleteWaterLog() {
   return useMutation({
     mutationFn: waterApi.deleteLog,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['water'] });
+      queryClient.invalidateQueries({ queryKey: ["water"] });
     },
   });
 }
 
 export function useWaterWeek() {
   return useQuery({
-    queryKey: ['water', 'week'],
+    queryKey: ["water", "week"],
     queryFn: waterApi.getWeek,
   });
 }
 
-export function useWaterStreak() {
+export function useWaterMonth(year, month) {
   return useQuery({
-    queryKey: ['water', 'streak'],
-    queryFn: waterApi.getStreak,
+    queryKey: ["water", "month", year, month],
+    queryFn: () => waterApi.getMonth(year, month),
+    enabled: !!year && !!month,
   });
 }
 
@@ -51,7 +52,7 @@ export function useUpdateGoal() {
   return useMutation({
     mutationFn: waterApi.updateGoal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['water'] });
+      queryClient.invalidateQueries({ queryKey: ["water"] });
     },
   });
 }

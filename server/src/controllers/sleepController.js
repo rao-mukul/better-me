@@ -1,4 +1,11 @@
-import { format, subDays, parseISO, differenceInMinutes } from "date-fns";
+import {
+  format,
+  subDays,
+  parseISO,
+  differenceInMinutes,
+  startOfWeek,
+  addDays,
+} from "date-fns";
 import SleepLog from "../models/SleepLog.js";
 import SleepStats from "../models/SleepStats.js";
 import {
@@ -9,16 +16,64 @@ import {
 
 const getToday = () => format(new Date(), "yyyy-MM-dd");
 
-// Calculate sleep score (0-100) based on duration and quality
-const calculateSleepScore = (minutes, targetHours, quality) => {
-  const targetMinutes = targetHours * 60;
-  const durationScore = Math.min((minutes / targetMinutes) * 70, 70); // Max 70 points for duration
-  const qualityScore = SLEEP_QUALITY_SCORES[quality] * 30; // Max ~37 points for quality
-  return Math.round(Math.min(durationScore + qualityScore, 100));
-};
-
 // Helper to determine the date for a sleep log (use wake-up date)
 const getSleepDate = (wokeUpAt) => format(new Date(wokeUpAt), "yyyy-MM-dd");
+
+// Helper to format time as HH:mm
+const formatTime = (date) => {
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
+// Helper to convert time string (HH:mm) to minutes since midnight
+const timeToMinutes = (timeStr) => {
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+// Helper to calculate average time and consistency
+const calculateTimeMetrics = (times) => {
+  if (times.length === 0)
+    return { average: null, consistency: 0, earliest: null, latest: null };
+
+  // Convert times to minutes since midnight for averaging
+  const minutesArray = times.map(timeToMinutes);
+
+  // Calculate average
+  const avgMinutes = Math.round(
+    minutesArray.reduce((a, b) => a + b, 0) / minutesArray.length,
+  );
+  const avgHours = Math.floor(avgMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const avgMins = (avgMinutes % 60).toString().padStart(2, "0");
+  const average = `${avgHours}:${avgMins}`;
+
+  // Calculate consistency (0-100) based on standard deviation
+  // Lower deviation = higher consistency
+  const mean = minutesArray.reduce((a, b) => a + b, 0) / minutesArray.length;
+  const squareDiffs = minutesArray.map((value) => Math.pow(value - mean, 2));
+  const avgSquareDiff =
+    squareDiffs.reduce((a, b) => a + b, 0) / minutesArray.length;
+  const stdDev = Math.sqrt(avgSquareDiff);
+
+  // Convert std dev to consistency score (0-100)
+  // 0 minutes deviation = 100, 120 minutes (2 hours) = 0
+  const consistency = Math.max(
+    0,
+    Math.min(100, Math.round(100 - (stdDev / 120) * 100)),
+  );
+
+  // Find earliest and latest
+  const sortedTimes = [...times].sort(
+    (a, b) => timeToMinutes(a) - timeToMinutes(b),
+  );
+  const earliest = sortedTimes[0];
+  const latest = sortedTimes[sortedTimes.length - 1];
+
+  return { average, consistency, earliest, latest };
+};
 
 export const getTodayData = async (req, res, next) => {
   try {
@@ -48,7 +103,6 @@ export const getTodayData = async (req, res, next) => {
         targetMet: false,
         entryCount: 0,
         averageQuality: "none",
-        sleepScore: 0,
       },
     });
   } catch (err) {
@@ -170,12 +224,16 @@ export const completeSleep = async (req, res, next) => {
     else if (avgQualityScore >= 0.625) averageQuality = "fair";
     else averageQuality = "poor";
 
-    const sleepScore = calculateSleepScore(
-      newTotalMinutes,
-      targetHours,
-      averageQuality,
-    );
     const targetMet = newTotalMinutes / 60 >= targetHours;
+
+    // Calculate time metrics from all completed logs for this date
+    const bedTimes = completedLogs.map((l) => formatTime(new Date(l.sleptAt)));
+    const wakeTimes = completedLogs.map((l) =>
+      formatTime(new Date(l.wokeUpAt)),
+    );
+
+    const bedTimeMetrics = calculateTimeMetrics(bedTimes);
+    const wakeTimeMetrics = calculateTimeMetrics(wakeTimes);
 
     // Atomic upsert
     stats = await SleepStats.findOneAndUpdate(
@@ -185,8 +243,15 @@ export const completeSleep = async (req, res, next) => {
           totalMinutes: newTotalMinutes,
           entryCount: newEntryCount,
           averageQuality,
-          sleepScore,
           targetMet,
+          averageBedTime: bedTimeMetrics.average,
+          bedtimeConsistency: bedTimeMetrics.consistency,
+          earliestBedTime: bedTimeMetrics.earliest,
+          latestBedTime: bedTimeMetrics.latest,
+          averageWakeTime: wakeTimeMetrics.average,
+          wakeTimeConsistency: wakeTimeMetrics.consistency,
+          earliestWakeTime: wakeTimeMetrics.earliest,
+          latestWakeTime: wakeTimeMetrics.latest,
           updatedAt: new Date(),
         },
         $setOnInsert: { targetHours: DEFAULT_SLEEP_TARGET },
@@ -233,8 +298,15 @@ export const deleteSleepLog = async (req, res, next) => {
             totalMinutes: 0,
             entryCount: 0,
             averageQuality: "none",
-            sleepScore: 0,
             targetMet: false,
+            averageBedTime: null,
+            bedtimeConsistency: 0,
+            earliestBedTime: null,
+            latestBedTime: null,
+            averageWakeTime: null,
+            wakeTimeConsistency: 0,
+            earliestWakeTime: null,
+            latestWakeTime: null,
             updatedAt: new Date(),
           },
         },
@@ -248,7 +320,6 @@ export const deleteSleepLog = async (req, res, next) => {
           targetMet: false,
           entryCount: 0,
           averageQuality: "none",
-          sleepScore: 0,
         },
       });
     }
@@ -272,12 +343,16 @@ export const deleteSleepLog = async (req, res, next) => {
       date: log.date,
     });
     const targetHours = stats?.targetHours || DEFAULT_SLEEP_TARGET;
-    const sleepScore = calculateSleepScore(
-      totalMinutes,
-      targetHours,
-      averageQuality,
-    );
     const targetMet = totalMinutes / 60 >= targetHours;
+
+    // Calculate time metrics from remaining logs
+    const bedTimes = remainingLogs.map((l) => formatTime(new Date(l.sleptAt)));
+    const wakeTimes = remainingLogs.map((l) =>
+      formatTime(new Date(l.wokeUpAt)),
+    );
+
+    const bedTimeMetrics = calculateTimeMetrics(bedTimes);
+    const wakeTimeMetrics = calculateTimeMetrics(wakeTimes);
 
     const updatedStats = await SleepStats.findOneAndUpdate(
       { userId: DEFAULT_USER_ID, date: log.date },
@@ -286,8 +361,15 @@ export const deleteSleepLog = async (req, res, next) => {
           totalMinutes,
           entryCount: remainingLogs.length,
           averageQuality,
-          sleepScore,
           targetMet,
+          averageBedTime: bedTimeMetrics.average,
+          bedtimeConsistency: bedTimeMetrics.consistency,
+          earliestBedTime: bedTimeMetrics.earliest,
+          latestBedTime: bedTimeMetrics.latest,
+          averageWakeTime: wakeTimeMetrics.average,
+          wakeTimeConsistency: wakeTimeMetrics.consistency,
+          earliestWakeTime: wakeTimeMetrics.earliest,
+          latestWakeTime: wakeTimeMetrics.latest,
           updatedAt: new Date(),
         },
       },
@@ -303,8 +385,9 @@ export const deleteSleepLog = async (req, res, next) => {
 export const getWeekData = async (req, res, next) => {
   try {
     const today = new Date();
+    const monday = startOfWeek(today, { weekStartsOn: 1 });
     const dates = Array.from({ length: 7 }, (_, i) =>
-      format(subDays(today, 6 - i), "yyyy-MM-dd"),
+      format(addDays(monday, i), "yyyy-MM-dd"),
     );
 
     const stats = await SleepStats.find({
@@ -324,12 +407,80 @@ export const getWeekData = async (req, res, next) => {
         targetHours: existing?.targetHours || DEFAULT_SLEEP_TARGET,
         targetMet: existing?.targetMet || false,
         averageQuality: existing?.averageQuality || "none",
-        sleepScore: existing?.sleepScore || 0,
         entryCount: existing?.entryCount || 0,
+        averageBedTime: existing?.averageBedTime || null,
+        averageWakeTime: existing?.averageWakeTime || null,
+        bedtimeConsistency: existing?.bedtimeConsistency || 0,
+        wakeTimeConsistency: existing?.wakeTimeConsistency || 0,
       };
     });
 
     res.json(weekData);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMonthData = async (req, res, next) => {
+  try {
+    const { year, month } = req.query;
+
+    let targetDate;
+    if (year && month) {
+      targetDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    } else {
+      targetDate = new Date();
+    }
+
+    const startOfMonth = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      1,
+    );
+    const endOfMonth = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth() + 1,
+      0,
+    );
+
+    const startDate = format(startOfMonth, "yyyy-MM-dd");
+    const endDate = format(endOfMonth, "yyyy-MM-dd");
+
+    const stats = await SleepStats.find({
+      userId: DEFAULT_USER_ID,
+      date: { $gte: startDate, $lte: endDate },
+    }).sort({ date: 1 });
+
+    // Create map of all days in month
+    const daysInMonth = endOfMonth.getDate();
+    const statsMap = new Map(stats.map((s) => [s.date, s]));
+
+    const monthData = Array.from({ length: daysInMonth }, (_, i) => {
+      const date = format(
+        new Date(targetDate.getFullYear(), targetDate.getMonth(), i + 1),
+        "yyyy-MM-dd",
+      );
+      const existing = statsMap.get(date);
+      return {
+        date,
+        day: i + 1,
+        totalMinutes: existing?.totalMinutes || 0,
+        totalHours: existing ? (existing.totalMinutes / 60).toFixed(1) : 0,
+        targetHours: existing?.targetHours || DEFAULT_SLEEP_TARGET,
+        targetMet: existing?.targetMet || false,
+        averageQuality: existing?.averageQuality || "none",
+        entryCount: existing?.entryCount || 0,
+        averageBedTime: existing?.averageBedTime || null,
+        averageWakeTime: existing?.averageWakeTime || null,
+      };
+    });
+
+    res.json({
+      year: targetDate.getFullYear(),
+      month: targetDate.getMonth() + 1,
+      monthName: format(targetDate, "MMMM yyyy"),
+      data: monthData,
+    });
   } catch (err) {
     next(err);
   }
@@ -403,22 +554,12 @@ export const updateTarget = async (req, res, next) => {
           totalMinutes: 0,
           entryCount: 0,
           averageQuality: "none",
-          sleepScore: 0,
         },
       },
       { upsert: true, new: true },
     );
 
     stats.targetMet = stats.totalMinutes / 60 >= stats.targetHours;
-
-    // Recalculate sleep score with new target
-    if (stats.entryCount > 0) {
-      stats.sleepScore = calculateSleepScore(
-        stats.totalMinutes,
-        targetHours,
-        stats.averageQuality,
-      );
-    }
 
     await stats.save();
 

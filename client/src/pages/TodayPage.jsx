@@ -99,7 +99,6 @@ export default function TodayPage() {
     targetMet: false,
     entryCount: 0,
     averageQuality: "none",
-    sleepScore: 0,
   };
 
   // Gym tracking

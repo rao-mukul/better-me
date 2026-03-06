@@ -21,8 +21,8 @@ export default function CalendarView({ timer, stats }) {
   // Get current month view
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
-  const calendarStart = startOfWeek(monthStart);
-  const calendarEnd = endOfWeek(monthEnd);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
@@ -112,7 +112,7 @@ export default function CalendarView({ timer, stats }) {
     }
   };
 
-  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
     <div className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-5">
