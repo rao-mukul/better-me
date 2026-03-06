@@ -87,7 +87,7 @@ export default function TodayPage() {
 
         const targetRef = refs[section];
         if (targetRef?.current) {
-          const headerOffset = 20; // Add some padding from the top
+          const headerOffset = 100; // Offset for top nav bar + padding
           const elementPosition = targetRef.current.getBoundingClientRect().top;
           const offsetPosition =
             elementPosition + window.pageYOffset - headerOffset;
