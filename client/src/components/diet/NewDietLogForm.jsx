@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import {
   useSearchMeals,
-  usePopularMeals,
   useAnalyzeMealImage,
   useGetMealNutrition,
   useSaveMeal,
@@ -60,7 +59,6 @@ export default function NewDietLogForm({ onSuccess }) {
   const { data: searchResults, isLoading: isSearching } = useSearchMeals(
     searchQuery.length >= 2 ? searchQuery : "",
   );
-  const { data: popularMeals } = usePopularMeals();
   const analyzeMeal = useAnalyzeMealImage();
   const getNutrition = useGetMealNutrition();
   const saveMeal = useSaveMeal();
@@ -328,22 +326,6 @@ export default function NewDietLogForm({ onSuccess }) {
                     <p className="text-xs mt-1">Try taking a photo instead</p>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Popular/Recent Meals */}
-            {searchQuery.length < 2 && popularMeals?.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-text-secondary px-1">
-                  Recent & Popular
-                </p>
-                {popularMeals.slice(0, 5).map((meal) => (
-                  <MealResultCard
-                    key={meal._id}
-                    meal={meal}
-                    onClick={() => handleSelectMeal(meal)}
-                  />
-                ))}
               </div>
             )}
           </motion.div>

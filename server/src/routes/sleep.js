@@ -3,6 +3,7 @@ import {
   getTodayData,
   startSleep,
   completeSleep,
+  logCompleteSleep,
   deleteSleepLog,
   getWeekData,
   getMonthData,
@@ -15,6 +16,7 @@ const router = Router();
 router.get("/today", getTodayData);
 router.post("/start", startSleep);
 router.put("/complete/:id", completeSleep);
+router.post("/log", logCompleteSleep);
 router.delete("/log/:id", deleteSleepLog);
 router.get("/week", getWeekData);
 router.get("/month", getMonthData);

@@ -35,11 +35,49 @@ export default function SleepWeeklyChart({ data = [], targetHours = 8 }) {
     return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
   };
 
-  // Timeline goes from 6 PM (18:00) to 2 PM next day (14:00)
-  // This gives us a 20-hour window that covers typical sleep patterns
-  const timelineStart = 18 * 60; // 6 PM in minutes
-  const timelineEnd = (24 + 14) * 60; // 2 PM next day in minutes
-  const timelineRange = timelineEnd - timelineStart; // 20 hours
+  // Calculate dynamic timeline range based on actual data
+  const calculateTimelineRange = () => {
+    let earliestBed = Infinity;
+    let latestWake = -Infinity;
+
+    data.forEach((day) => {
+      if (day.averageBedTime && day.averageWakeTime) {
+        let bedMinutes = timeToMinutes(day.averageBedTime);
+        let wakeMinutes = timeToMinutes(day.averageWakeTime);
+
+        // Normalize bedtime (assume >12:00 PM is evening/night)
+        if (bedMinutes < 12 * 60) {
+          bedMinutes += 24 * 60; // Early morning bedtime (past midnight)
+        }
+
+        // Normalize wake time (always next day if before bedtime)
+        if (wakeMinutes < bedMinutes && wakeMinutes < 18 * 60) {
+          wakeMinutes += 24 * 60;
+        }
+
+        earliestBed = Math.min(earliestBed, bedMinutes);
+        latestWake = Math.max(latestWake, wakeMinutes);
+      }
+    });
+
+    // If no valid data, use default range
+    if (earliestBed === Infinity || latestWake === -Infinity) {
+      return {
+        start: 18 * 60, // 6 PM
+        end: (24 + 14) * 60, // 2 PM next day
+      };
+    }
+
+    // Add 1 hour padding on each side
+    const paddingMinutes = 60;
+    const start = Math.max(12 * 60, earliestBed - paddingMinutes); // Don't go before noon
+    const end = latestWake + paddingMinutes;
+
+    return { start, end };
+  };
+
+  const { start: timelineStart, end: timelineEnd } = calculateTimelineRange();
+  const timelineRange = timelineEnd - timelineStart;
 
   const getPositionAndWidth = (bedTime, wakeTime) => {
     if (!bedTime || !wakeTime) return null;
@@ -47,13 +85,12 @@ export default function SleepWeeklyChart({ data = [], targetHours = 8 }) {
     let bedMinutes = timeToMinutes(bedTime);
     let wakeMinutes = timeToMinutes(wakeTime);
 
-    // If bedtime is after 6 PM, it's same day
-    // If bedtime is before 6 PM, assume it's very late (past midnight)
-    if (bedMinutes < timelineStart && bedMinutes < 12 * 60) {
-      bedMinutes += 24 * 60; // Add 24 hours for next day
+    // Normalize bedtime
+    if (bedMinutes < 12 * 60) {
+      bedMinutes += 24 * 60;
     }
 
-    // Wake time is typically morning, so if it's less than bedtime, add 24 hours
+    // Normalize wake time
     if (wakeMinutes < bedMinutes && wakeMinutes < 18 * 60) {
       wakeMinutes += 24 * 60;
     }
@@ -68,20 +105,49 @@ export default function SleepWeeklyChart({ data = [], targetHours = 8 }) {
     };
   };
 
-  // Generate time markers (every 3 hours)
-  const timeMarkers = [];
-  for (let hour = 18; hour <= 38; hour += 3) {
-    const displayHour = hour % 24;
-    const period = hour >= 24 ? "AM" : displayHour >= 12 ? "PM" : "AM";
-    const display12Hour =
-      displayHour === 0
-        ? 12
-        : displayHour > 12
-          ? displayHour - 12
-          : displayHour;
-    const position = ((hour * 60 - timelineStart) / timelineRange) * 100;
-    timeMarkers.push({ position, label: `${display12Hour}${period}` });
-  }
+  // Generate time markers dynamically based on range
+  const generateTimeMarkers = () => {
+    const markers = [];
+    const rangeHours = timelineRange / 60;
+    const step = rangeHours <= 12 ? 2 : 3; // 2-hour intervals for smaller ranges, 3-hour for larger
+
+    const startHour = Math.floor(timelineStart / 60);
+    const endHour = Math.ceil(timelineEnd / 60);
+
+    for (let hour = startHour; hour <= endHour; hour += step) {
+      const displayHour = hour % 24;
+      const period = hour >= 24 ? "AM" : displayHour >= 12 ? "PM" : "AM";
+      const display12Hour =
+        displayHour === 0
+          ? 12
+          : displayHour > 12
+            ? displayHour - 12
+            : displayHour;
+      const position = ((hour * 60 - timelineStart) / timelineRange) * 100;
+
+      if (position >= 0 && position <= 100) {
+        markers.push({ position, label: `${display12Hour}${period}` });
+      }
+    }
+
+    return markers;
+  };
+
+  const timeMarkers = generateTimeMarkers();
+
+  // Format timeline range for display
+  const formatTimelineRange = () => {
+    const startHour = Math.floor(timelineStart / 60) % 24;
+    const endHour = Math.floor(timelineEnd / 60) % 24;
+
+    const formatHour = (h) => {
+      const period = h >= 12 ? "PM" : "AM";
+      const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return `${display} ${period}`;
+    };
+
+    return `${formatHour(startHour)} - ${formatHour(endHour)}`;
+  };
 
   return (
     <Card>
@@ -91,7 +157,7 @@ export default function SleepWeeklyChart({ data = [], targetHours = 8 }) {
         </h3>
         <div className="flex items-center gap-2 text-xs text-text-secondary">
           <Clock size={14} />
-          <span>6 PM - 2 PM</span>
+          <span>{formatTimelineRange()}</span>
         </div>
       </div>
 
@@ -142,7 +208,7 @@ export default function SleepWeeklyChart({ data = [], targetHours = 8 }) {
 
               {/* Timeline grid */}
               <div className="absolute left-14 right-0 top-0 bottom-0">
-                {/* Grid lines every 3 hours */}
+                {/* Grid lines */}
                 {timeMarkers.map((marker, idx) => (
                   <div
                     key={idx}

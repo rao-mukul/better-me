@@ -17,14 +17,11 @@ import GoalSetter from "../components/water/GoalSetter";
 import WaterAnimation from "../components/water/WaterAnimation";
 import SleepRing from "../components/sleep/SleepRing";
 import SleepLogForm from "../components/sleep/SleepLogForm";
-import SleepLogList from "../components/sleep/SleepLogList";
 import TargetSetter from "../components/sleep/TargetSetter";
-import SleepCard from "../components/sleep/SleepCard";
 import NewGymLogForm from "../components/gym/NewGymLogForm";
 import GymLogList from "../components/gym/GymLogList";
 import GymCard from "../components/gym/GymCard";
 import NewDietLogForm from "../components/diet/NewDietLogForm";
-import DietLogList from "../components/diet/DietLogList";
 import {
   useWaterToday,
   useAddWaterLog,
@@ -35,7 +32,7 @@ import {
   useSleepToday,
   useStartSleep,
   useCompleteSleep,
-  useDeleteSleepLog,
+  useLogCompleteSleep,
   useUpdateTarget,
 } from "../hooks/useSleepData";
 import {
@@ -47,7 +44,7 @@ import {
   useGymProgram,
   useGymWeekHistory,
 } from "../hooks/useGymData";
-import { useDietToday, useDeleteDietLog } from "../hooks/useDietData";
+import { useDietToday } from "../hooks/useDietData";
 
 export default function TodayPage() {
   const navigate = useNavigate();
@@ -124,10 +121,8 @@ export default function TodayPage() {
   const { data: sleepData, isLoading: sleepLoading } = useSleepToday();
   const startSleep = useStartSleep();
   const completeSleep = useCompleteSleep();
-  const deleteSleepLog = useDeleteSleepLog();
+  const logCompleteSleep = useLogCompleteSleep();
   const updateTarget = useUpdateTarget();
-
-  const sleepLogs = sleepData?.logs || [];
   const activeSleepLog = sleepData?.activeSleepLog || null;
   const sleepStats = sleepData?.stats || {
     totalMinutes: 0,
@@ -157,9 +152,6 @@ export default function TodayPage() {
 
   // Diet tracking
   const { data: dietData, isLoading: dietLoading } = useDietToday();
-  const deleteDietLog = useDeleteDietLog();
-
-  const dietLogs = dietData?.logs || [];
   const dietTotals = dietData?.totals || {
     calories: 0,
     protein: 0,
@@ -217,8 +209,14 @@ export default function TodayPage() {
     });
   };
 
-  const handleSleepDelete = (id) => {
-    deleteSleepLog.mutate(id);
+  const handleLogCompleteSleep = (data) => {
+    logCompleteSleep.mutate(data, {
+      onSuccess: () => {
+        toast.success("Past sleep logged successfully! 😴", {
+          duration: 2000,
+        });
+      },
+    });
   };
 
   const handleTargetUpdate = (targetHours) => {
@@ -241,10 +239,6 @@ export default function TodayPage() {
 
   const handleWorkoutDelete = (id) => {
     deleteWorkout.mutate(id);
-  };
-
-  const handleDietDelete = (id) => {
-    deleteDietLog.mutate(id);
   };
 
   const handleDietSuccess = () => {
@@ -313,11 +307,7 @@ export default function TodayPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
-                <div className="mb-6">
-                  <NewDietLogForm onSuccess={handleDietSuccess} />
-                </div>
-
-                <DietLogList logs={dietLogs} onDelete={handleDietDelete} />
+                <NewDietLogForm onSuccess={handleDietSuccess} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -601,22 +591,19 @@ export default function TodayPage() {
                   disabled={updateTarget.isPending}
                 />
 
-                <div className="mt-6 mb-6">
+                <div className="mt-6">
                   <SleepLogForm
                     activeSleepLog={activeSleepLog}
                     onStartSleep={handleStartSleep}
                     onCompleteSleep={handleCompleteSleep}
-                    disabled={startSleep.isPending || completeSleep.isPending}
+                    onLogComplete={handleLogCompleteSleep}
+                    disabled={
+                      startSleep.isPending ||
+                      completeSleep.isPending ||
+                      logCompleteSleep.isPending
+                    }
                   />
                 </div>
-
-                {sleepStats.entryCount > 0 && (
-                  <div className="mb-6">
-                    <SleepCard stats={sleepStats} />
-                  </div>
-                )}
-
-                <SleepLogList logs={sleepLogs} onDelete={handleSleepDelete} />
               </motion.div>
             )}
           </AnimatePresence>

@@ -16,16 +16,30 @@ import {
 
 const getToday = (req) => {
   // Accept date from client to handle timezone correctly
-  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+  if (req?.query?.date) return req.query.date;
+
+  // Fallback: use UTC to avoid timezone issues
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 // Helper to determine the date for a sleep log (use wake-up date)
-const getSleepDate = (wokeUpAt) => format(new Date(wokeUpAt), "yyyy-MM-dd");
+// Use UTC to avoid timezone issues
+const getSleepDate = (wokeUpAt) => {
+  const date = new Date(wokeUpAt);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
-// Helper to format time as HH:mm
+// Helper to format time as HH:mm using UTC
 const formatTime = (date) => {
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const hours = date.getUTCHours().toString().padStart(2, "0");
+  const minutes = date.getUTCMinutes().toString().padStart(2, "0");
   return `${hours}:${minutes}`;
 };
 
@@ -139,7 +153,7 @@ export const startSleep = async (req, res, next) => {
       userId: DEFAULT_USER_ID,
       sleptAt: sleptAtDate,
       notes: notes || "",
-      date: format(sleptAtDate, "yyyy-MM-dd"), // Temporary date, will update when completing
+      date: getSleepDate(sleptAt), // Use UTC-based date calculation
       isComplete: false,
     });
 
@@ -268,6 +282,115 @@ export const completeSleep = async (req, res, next) => {
   }
 };
 
+// New endpoint to log complete sleep (both start and end times)
+export const logCompleteSleep = async (req, res, next) => {
+  try {
+    const { sleptAt, wokeUpAt, quality, notes } = req.body;
+
+    if (!sleptAt || !wokeUpAt) {
+      return res
+        .status(400)
+        .json({ error: "Both sleep time and wake time are required" });
+    }
+
+    if (!["poor", "fair", "good", "excellent"].includes(quality)) {
+      return res
+        .status(400)
+        .json({ error: "Quality must be poor, fair, good, or excellent" });
+    }
+
+    const sleptAtDate = new Date(sleptAt);
+    const wokeUpAtDate = new Date(wokeUpAt);
+
+    if (wokeUpAtDate <= sleptAtDate) {
+      return res
+        .status(400)
+        .json({ error: "Wake time must be after sleep time" });
+    }
+
+    const duration = differenceInMinutes(wokeUpAtDate, sleptAtDate);
+    const date = getSleepDate(wokeUpAt); // Use wake-up date
+
+    // Create completed log directly
+    const log = await SleepLog.create({
+      userId: DEFAULT_USER_ID,
+      sleptAt: sleptAtDate,
+      wokeUpAt: wokeUpAtDate,
+      duration,
+      quality,
+      notes: notes || "",
+      date,
+      isComplete: true,
+    });
+
+    // Get all completed logs for this date to recalculate stats
+    const completedLogs = await SleepLog.find({
+      userId: DEFAULT_USER_ID,
+      date,
+      isComplete: true,
+    });
+
+    // Calculate aggregate stats
+    const totalMinutes = completedLogs.reduce((sum, l) => sum + l.duration, 0);
+    const qualityScoreSum = completedLogs.reduce(
+      (sum, l) => sum + SLEEP_QUALITY_SCORES[l.quality],
+      0,
+    );
+    const avgQualityScore = qualityScoreSum / completedLogs.length;
+
+    let averageQuality = "fair";
+    if (avgQualityScore >= 1.125) averageQuality = "excellent";
+    else if (avgQualityScore >= 0.875) averageQuality = "good";
+    else if (avgQualityScore >= 0.625) averageQuality = "fair";
+    else averageQuality = "poor";
+
+    // Calculate time metrics
+    const bedTimes = completedLogs.map((l) => formatTime(new Date(l.sleptAt)));
+    const wakeTimes = completedLogs.map((l) =>
+      formatTime(new Date(l.wokeUpAt)),
+    );
+
+    const bedTimeMetrics = calculateTimeMetrics(bedTimes);
+    const wakeTimeMetrics = calculateTimeMetrics(wakeTimes);
+
+    // Get or create stats for this date
+    const existingStats = await SleepStats.findOne({
+      userId: DEFAULT_USER_ID,
+      date,
+    });
+    const targetHours = existingStats?.targetHours || DEFAULT_SLEEP_TARGET;
+    const targetMet = totalMinutes / 60 >= targetHours;
+
+    // Update stats
+    const stats = await SleepStats.findOneAndUpdate(
+      { userId: DEFAULT_USER_ID, date },
+      {
+        $set: {
+          totalMinutes,
+          entryCount: completedLogs.length,
+          averageQuality,
+          targetMet,
+          averageBedTime: bedTimeMetrics.average,
+          bedtimeConsistency: bedTimeMetrics.consistency,
+          earliestBedTime: bedTimeMetrics.earliest,
+          latestBedTime: bedTimeMetrics.latest,
+          averageWakeTime: wakeTimeMetrics.average,
+          wakeTimeConsistency: wakeTimeMetrics.consistency,
+          earliestWakeTime: wakeTimeMetrics.earliest,
+          latestWakeTime: wakeTimeMetrics.latest,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: { targetHours: DEFAULT_SLEEP_TARGET },
+      },
+      { upsert: true, new: true },
+    );
+
+    res.status(201).json({ log, stats });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const deleteSleepLog = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -387,11 +510,20 @@ export const deleteSleepLog = async (req, res, next) => {
 
 export const getWeekData = async (req, res, next) => {
   try {
-    const today = new Date();
+    // Use client's date if provided, otherwise use server's date
+    const clientDate = req.query.date;
+    // Parse client date explicitly as UTC to avoid timezone issues
+    const today = clientDate ? parseISO(`${clientDate}T00:00:00Z`) : new Date();
     const monday = startOfWeek(today, { weekStartsOn: 1 });
-    const dates = Array.from({ length: 7 }, (_, i) =>
-      format(addDays(monday, i), "yyyy-MM-dd"),
-    );
+
+    // Use UTC to format dates to avoid timezone issues
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(monday, i);
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(date.getUTCDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    });
 
     const stats = await SleepStats.find({
       userId: DEFAULT_USER_ID,
@@ -404,7 +536,7 @@ export const getWeekData = async (req, res, next) => {
       const existing = statsMap.get(date);
       return {
         date,
-        dayLabel: format(parseISO(date), "EEE"),
+        dayLabel: format(parseISO(`${date}T00:00:00Z`), "EEE"),
         totalMinutes: existing?.totalMinutes || 0,
         totalHours: existing ? (existing.totalMinutes / 60).toFixed(1) : 0,
         targetHours: existing?.targetHours || DEFAULT_SLEEP_TARGET,
@@ -446,8 +578,16 @@ export const getMonthData = async (req, res, next) => {
       0,
     );
 
-    const startDate = format(startOfMonth, "yyyy-MM-dd");
-    const endDate = format(endOfMonth, "yyyy-MM-dd");
+    // Use UTC to construct dates to avoid timezone issues
+    const startYear = startOfMonth.getFullYear();
+    const startMonth = String(startOfMonth.getMonth() + 1).padStart(2, "0");
+    const startDay = String(startOfMonth.getDate()).padStart(2, "0");
+    const startDate = `${startYear}-${startMonth}-${startDay}`;
+
+    const endYear = endOfMonth.getFullYear();
+    const endMonth = String(endOfMonth.getMonth() + 1).padStart(2, "0");
+    const endDay = String(endOfMonth.getDate()).padStart(2, "0");
+    const endDate = `${endYear}-${endMonth}-${endDay}`;
 
     const stats = await SleepStats.find({
       userId: DEFAULT_USER_ID,
@@ -459,10 +599,11 @@ export const getMonthData = async (req, res, next) => {
     const statsMap = new Map(stats.map((s) => [s.date, s]));
 
     const monthData = Array.from({ length: daysInMonth }, (_, i) => {
-      const date = format(
-        new Date(targetDate.getFullYear(), targetDate.getMonth(), i + 1),
-        "yyyy-MM-dd",
-      );
+      // Use UTC date construction to avoid timezone issues
+      const year = targetDate.getFullYear();
+      const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+      const day = String(i + 1).padStart(2, "0");
+      const date = `${year}-${month}-${day}`;
       const existing = statsMap.get(date);
       return {
         date,
@@ -509,11 +650,19 @@ export const getStreak = async (req, res, next) => {
     // Current streak: count consecutive days ending today (or yesterday)
     let current = 0;
     let checkDate = today;
+    // Helper to format date as yyyy-MM-dd using UTC
+    const formatDateUTC = (d) => {
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(d.getUTCDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
     // If today hasn't been met yet, start from yesterday
-    if (!metDates.has(format(checkDate, "yyyy-MM-dd"))) {
+    if (!metDates.has(formatDateUTC(checkDate))) {
       checkDate = subDays(today, 1);
     }
-    while (metDates.has(format(checkDate, "yyyy-MM-dd"))) {
+    while (metDates.has(formatDateUTC(checkDate))) {
       current++;
       checkDate = subDays(checkDate, 1);
     }
@@ -522,7 +671,7 @@ export const getStreak = async (req, res, next) => {
     let longest = 0;
     let tempStreak = 0;
     for (let i = 89; i >= 0; i--) {
-      const d = format(subDays(today, i), "yyyy-MM-dd");
+      const d = formatDateUTC(subDays(today, i));
       if (metDates.has(d)) {
         tempStreak++;
         longest = Math.max(longest, tempStreak);

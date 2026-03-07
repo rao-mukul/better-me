@@ -31,6 +31,17 @@ export function useCompleteSleep() {
   });
 }
 
+export function useLogCompleteSleep() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: sleepApi.logCompleteSleep,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sleep"] });
+    },
+  });
+}
+
 export function useDeleteSleepLog() {
   const queryClient = useQueryClient();
 
