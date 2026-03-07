@@ -110,6 +110,12 @@ export const analyzeMealImage = async (req, res, next) => {
       return res.status(400).json({ error: "No image file provided" });
     }
 
+    console.log("Analyzing image:", {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+    });
+
     // Convert buffer to base64
     const imageBase64 = req.file.buffer.toString("base64");
 
@@ -119,8 +125,8 @@ export const analyzeMealImage = async (req, res, next) => {
       req.file.originalname,
     );
 
-    // Analyze with Gemini
-    const analysis = await analyzeFoodImage(imageBase64);
+    // Analyze with Gemini - pass the correct MIME type
+    const analysis = await analyzeFoodImage(imageBase64, req.file.mimetype);
 
     res.json({
       analysis,
@@ -128,6 +134,10 @@ export const analyzeMealImage = async (req, res, next) => {
     });
   } catch (err) {
     console.error("Meal analysis error:", err);
+    console.error("Error details:", {
+      message: err.message,
+      stack: err.stack,
+    });
     next(err);
   }
 };

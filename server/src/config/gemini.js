@@ -9,8 +9,16 @@ export const geminiModel = genAI.getGenerativeModel({
 });
 
 // Helper function to analyze food image
-export async function analyzeFoodImage(imageBase64) {
+export async function analyzeFoodImage(imageBase64, mimeType = "image/jpeg") {
   try {
+    // Normalize mime type for Gemini compatibility
+    let geminiMimeType = mimeType;
+    if (mimeType === "image/jpg") {
+      geminiMimeType = "image/jpeg";
+    } else if (!mimeType.startsWith("image/")) {
+      geminiMimeType = "image/jpeg"; // fallback
+    }
+
     const prompt = `Analyze this food image and provide a detailed description of the meal. Include:
 1. Name of the dish/food
 2. Main ingredients you can identify
@@ -32,7 +40,7 @@ Format your response as a JSON object with these fields:
       {
         inlineData: {
           data: imageBase64,
-          mimeType: "image/jpeg",
+          mimeType: geminiMimeType,
         },
       },
       prompt,

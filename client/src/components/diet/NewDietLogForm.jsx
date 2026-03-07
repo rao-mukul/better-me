@@ -105,10 +105,21 @@ export default function NewDietLogForm({ onSuccess }) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log("Image selected:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+
     setCapturedImage(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
+      console.log("Image preview created");
+    };
+    reader.onerror = (error) => {
+      console.error("FileReader error:", error);
+      alert("Failed to read image file. Please try again.");
     };
     reader.readAsDataURL(file);
     setStep("analyze");
@@ -119,10 +130,12 @@ export default function NewDietLogForm({ onSuccess }) {
     if (!capturedImage) return;
 
     try {
+      console.log("Starting image analysis...");
       const formData = new FormData();
       formData.append("mealImage", capturedImage);
 
       const result = await analyzeMeal.mutateAsync(formData);
+      console.log("Analysis result:", result);
 
       setAiAnalysis(result.analysis);
       setImageData(result.imageData);
@@ -136,8 +149,16 @@ export default function NewDietLogForm({ onSuccess }) {
       setStep("approve");
     } catch (error) {
       console.error("Analysis failed:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       alert("Failed to analyze image. Please try again or enter manually.");
-      setStep("capture");
+      // Go back to search instead of non-existent "capture" step
+      setCapturedImage(null);
+      setImagePreview(null);
+      setStep("search");
     }
   };
 
