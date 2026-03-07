@@ -160,17 +160,6 @@ export default function PinEntry({ onSuccess }) {
               Incorrect PIN. Please try again.
             </motion.p>
           )}
-
-          {/* Help Text */}
-          <div className="mt-6 pt-6 border-t border-navy-700/30">
-            <p className="text-xs text-text-secondary text-center">
-              Default PIN:{" "}
-              <span className="font-mono font-semibold">123456</span>
-            </p>
-            <p className="text-xs text-text-secondary text-center mt-1">
-              Contact admin to change PIN
-            </p>
-          </div>
         </div>
       </motion.div>
 
