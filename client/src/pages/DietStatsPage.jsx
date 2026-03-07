@@ -86,45 +86,43 @@ export default function DietStatsPage() {
       className="flex flex-col gap-4"
     >
       {/* View Toggle */}
-      <div className="overflow-x-auto">
-        <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setView("today")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-              view === "today"
-                ? "bg-green-500 text-white"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <ListOrdered size={18} />
-            Today's Log
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setView("calendar")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-              view === "calendar"
-                ? "bg-green-500 text-white"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <Calendar size={18} />
-            Calendar
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setView("library")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-              view === "library"
-                ? "bg-green-500 text-white"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <BookOpen size={18} />
-            Meal Library
-          </motion.button>
-        </div>
+      <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setView("today")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            view === "today"
+              ? "bg-green-500 text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <ListOrdered size={18} />
+          Today's Log
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setView("calendar")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            view === "calendar"
+              ? "bg-green-500 text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <Calendar size={18} />
+          Calendar
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setView("library")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            view === "library"
+              ? "bg-green-500 text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <BookOpen size={18} />
+          Meal Library
+        </motion.button>
       </div>
 
       {/* Content */}
@@ -367,7 +365,7 @@ export default function DietStatsPage() {
 
           {/* Meal Grid */}
           {!mealsLoading && filteredMeals.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredMeals.map((meal) => (
                 <motion.div
                   key={meal._id}
@@ -377,7 +375,7 @@ export default function DietStatsPage() {
                   className="bg-navy-800/40 border border-navy-700/30 rounded-2xl overflow-hidden group"
                 >
                   {/* Meal Image */}
-                  <div className="relative aspect-3/4 bg-navy-700/40">
+                  <div className="relative aspect-video bg-navy-700/40">
                     {meal.thumbnailUrl || meal.imageUrl ? (
                       <img
                         src={meal.thumbnailUrl || meal.imageUrl}
