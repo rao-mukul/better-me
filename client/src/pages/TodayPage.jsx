@@ -13,7 +13,6 @@ import {
 import Card from "../components/ui/Card";
 import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
-import IntakeList from "../components/water/IntakeList";
 import GoalSetter from "../components/water/GoalSetter";
 import WaterAnimation from "../components/water/WaterAnimation";
 import SleepRing from "../components/sleep/SleepRing";
@@ -378,14 +377,12 @@ export default function TodayPage() {
                   disabled={updateGoal.isPending}
                 />
 
-                <div className="mt-6 mb-6">
+                <div className="mt-6">
                   <QuickAddBar
                     onAdd={handleWaterAdd}
                     disabled={addLog.isPending}
                   />
                 </div>
-
-                <IntakeList logs={logs} onDelete={handleWaterDelete} />
               </motion.div>
             )}
           </AnimatePresence>
