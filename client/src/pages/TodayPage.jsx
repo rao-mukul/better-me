@@ -2,14 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import {
-  Droplets,
-  Moon,
-  Dumbbell,
-  Utensils,
-  ChevronDown,
-  Settings,
-} from "lucide-react";
+import { Droplets, Moon, Dumbbell, Utensils, ChevronDown } from "lucide-react";
 import Card from "../components/ui/Card";
 import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
@@ -405,16 +398,6 @@ export default function TodayPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
-                <div className="mb-4">
-                  <button
-                    onClick={() => navigate("/gym-program")}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-800/40 hover:bg-navy-800/60 border border-navy-700/30 hover:border-primary/30 rounded-lg text-sm text-text-secondary hover:text-primary transition-all"
-                  >
-                    <Settings size={16} />
-                    Customize Training Program
-                  </button>
-                </div>
-
                 {!todayLog ? (
                   <div className="mb-6">
                     <NewGymLogForm

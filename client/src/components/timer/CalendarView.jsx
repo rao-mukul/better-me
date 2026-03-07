@@ -9,8 +9,12 @@ import {
   isAfter,
   startOfWeek,
   endOfWeek,
+  eachMonthOfInterval,
+  isSameMonth,
 } from "date-fns";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function CalendarView({ timer, stats }) {
   if (!timer) return null;
@@ -18,9 +22,16 @@ export default function CalendarView({ timer, stats }) {
   const now = new Date();
   const startDate = new Date(timer.startedAt);
 
-  // Get current month view
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
+  // Get all months from start to now
+  const allMonths = eachMonthOfInterval({ start: startDate, end: now });
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(
+    allMonths.length - 1,
+  );
+  const currentViewMonth = allMonths[currentMonthIndex];
+
+  // Get calendar view for selected month
+  const monthStart = startOfMonth(currentViewMonth);
+  const monthEnd = endOfMonth(currentViewMonth);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
@@ -117,9 +128,31 @@ export default function CalendarView({ timer, stats }) {
   return (
     <div className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-text-primary">
-          {format(now, "MMMM yyyy")}
-        </h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() =>
+              setCurrentMonthIndex(Math.max(0, currentMonthIndex - 1))
+            }
+            disabled={currentMonthIndex === 0}
+            className="p-1.5 rounded-lg hover:bg-navy-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft size={18} className="text-text-primary" />
+          </button>
+          <h3 className="text-lg font-semibold text-text-primary min-w-35 text-center">
+            {format(currentViewMonth, "MMMM yyyy")}
+          </h3>
+          <button
+            onClick={() =>
+              setCurrentMonthIndex(
+                Math.min(allMonths.length - 1, currentMonthIndex + 1),
+              )
+            }
+            disabled={currentMonthIndex === allMonths.length - 1}
+            className="p-1.5 rounded-lg hover:bg-navy-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight size={18} className="text-text-primary" />
+          </button>
+        </div>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-green-500/80" />
@@ -148,7 +181,7 @@ export default function CalendarView({ timer, stats }) {
       <div className="grid grid-cols-7 gap-2">
         {days.map((day, idx) => {
           const status = getDayStatus(day);
-          const isCurrentMonth = format(day, "M") === format(now, "M");
+          const isInViewMonth = isSameMonth(day, currentViewMonth);
           const isTodayDate = isToday(day);
 
           return (
@@ -159,7 +192,7 @@ export default function CalendarView({ timer, stats }) {
                 aspect-square rounded-lg flex flex-col items-center justify-center
                 transition-colors relative
                 ${getColorClass(status)}
-                ${!isCurrentMonth && "opacity-40"}
+                ${!isInViewMonth && "opacity-40"}
                 ${isTodayDate && "ring-2 ring-primary"}
               `}
               title={status.reason || ""}

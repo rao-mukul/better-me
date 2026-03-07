@@ -98,7 +98,7 @@ export default function TimerAnalytics({ timer, stats }) {
   ];
 
   return (
-    <div className="space-y-4">
+    <>
       {/* Analytics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {analyticsCards.map((card, index) => (
@@ -207,47 +207,6 @@ export default function TimerAnalytics({ timer, stats }) {
           )}
         </div>
       </motion.div>
-
-      {/* Milestones Progress */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-5"
-      >
-        <h3 className="text-lg font-semibold text-text-primary mb-4">
-          Milestone Progress
-        </h3>
-        <div className="space-y-4">
-          {[7, 14, 30, 60, 90, 180, 365].map((milestone) => {
-            const progress = Math.min((currentDays / milestone) * 100, 100);
-            const achieved = currentDays >= milestone;
-
-            return (
-              <div key={milestone}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-text-primary font-medium">
-                    {milestone} days {achieved && "✓"}
-                  </span>
-                  <span className="text-xs text-text-secondary">
-                    {currentDays}/{milestone}
-                  </span>
-                </div>
-                <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    className={`h-full rounded-full ${
-                      achieved ? "bg-green-500" : "bg-primary"
-                    }`}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </motion.div>
-    </div>
+    </>
   );
 }

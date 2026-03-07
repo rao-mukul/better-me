@@ -11,6 +11,7 @@ import DietStatsPage from "./pages/DietStatsPage";
 import MealLibraryPage from "./pages/MealLibraryPage";
 import CleanTimerPage from "./pages/CleanTimerPage";
 import CleanTimerStatsPage from "./pages/CleanTimerStatsPage";
+import ProtectedTimerRoute from "./components/timer/ProtectedTimerRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,8 +46,22 @@ export default function App() {
             <Route path="/gym-program" element={<GymProgramPage />} />
             <Route path="/diet-stats" element={<DietStatsPage />} />
             <Route path="/meal-library" element={<MealLibraryPage />} />
-            <Route path="/clean-timer" element={<CleanTimerPage />} />
-            <Route path="/clean-timer/:id" element={<CleanTimerStatsPage />} />
+            <Route
+              path="/clean-timer"
+              element={
+                <ProtectedTimerRoute>
+                  <CleanTimerPage />
+                </ProtectedTimerRoute>
+              }
+            />
+            <Route
+              path="/clean-timer/:id"
+              element={
+                <ProtectedTimerRoute>
+                  <CleanTimerStatsPage />
+                </ProtectedTimerRoute>
+              }
+            />
           </Route>
         </Routes>
       </BrowserRouter>

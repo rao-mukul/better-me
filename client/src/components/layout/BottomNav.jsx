@@ -3,10 +3,10 @@ import { Home, Droplets, Moon, Dumbbell, Utensils, Timer } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Today", icon: Home },
+  { to: "/diet-stats", label: "Diet", icon: Utensils },
+  { to: "/gym-stats", label: "Gym", icon: Dumbbell },
   { to: "/water-stats", label: "Water", icon: Droplets },
   { to: "/sleep-stats", label: "Sleep", icon: Moon },
-  { to: "/gym-stats", label: "Gym", icon: Dumbbell },
-  { to: "/diet-stats", label: "Diet", icon: Utensils },
   { to: "/clean-timer", label: "Timer", icon: Timer },
 ];
 

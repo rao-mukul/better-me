@@ -90,14 +90,14 @@ export default function CleanTimerStatsPage() {
         </div>
       )}
 
-      {/* Analytics Cards */}
-      <TimerAnalytics timer={timer} stats={stats} />
-
       {/* Calendar View */}
       <CalendarView timer={timer} stats={stats} />
 
       {/* Reset History */}
       <ResetHistory timer={timer} />
+
+      {/* Analytics */}
+      <TimerAnalytics timer={timer} stats={stats} />
     </motion.div>
   );
 }
