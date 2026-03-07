@@ -33,31 +33,33 @@ export default function StatsPage() {
       className="flex flex-col gap-4"
     >
       {/* View Toggle */}
-      <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setView("today")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            view === "today"
-              ? "bg-primary text-white"
-              : "text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <ListOrdered size={18} />
-          Today's Log
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setView("calendar")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            view === "calendar"
-              ? "bg-primary text-white"
-              : "text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <Calendar size={18} />
-          Calendar
-        </motion.button>
+      <div className="overflow-x-auto">
+        <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setView("today")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              view === "today"
+                ? "bg-primary text-white"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <ListOrdered size={18} />
+            Today's Log
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setView("calendar")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              view === "calendar"
+                ? "bg-primary text-white"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <Calendar size={18} />
+            Calendar
+          </motion.button>
+        </div>
       </div>
 
       {/* Content */}

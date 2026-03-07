@@ -69,9 +69,7 @@ export default function PinEntry({ onSuccess }) {
 
       // Check if complete
       if (pastedData.length === 6) {
-        const correctPin = getStoredPin();
-        if (pastedData === correctPin) {
-          sessionStorage.setItem("cleanTimerAuth", "true");
+        if (pastedData === CORRECT_PIN) {
           onSuccess();
         } else {
           setError(true);
@@ -86,30 +84,30 @@ export default function PinEntry({ onSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 flex items-center justify-center px-4">
+    <div className="fixed inset-0 bg-navy-900 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full"
+        className="w-full max-w-md"
       >
-        <div className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-8">
+        <div className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-6">
           {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-primary/20 rounded-full">
-              <Lock size={32} className="text-primary" />
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-primary/20 rounded-full">
+              <Lock size={24} className="text-primary" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-text-primary text-center mb-2">
+          <h2 className="text-lg font-bold text-text-primary text-center mb-2">
             Clean Timer Protected
           </h2>
-          <p className="text-sm text-text-secondary text-center mb-8">
+          <p className="text-xs text-text-secondary text-center mb-6">
             Enter your 6-digit PIN to continue
           </p>
 
           {/* PIN Input */}
-          <div className="flex justify-center gap-3 mb-6">
+          <div className="flex justify-center gap-2 mb-4">
             {pin.map((digit, index) => (
               <input
                 key={index}
@@ -121,7 +119,7 @@ export default function PinEntry({ onSuccess }) {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={handlePaste}
-                className={`w-12 h-14 text-center text-2xl font-bold bg-navy-700/50 border-2 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                className={`w-10 h-12 text-center text-xl font-bold bg-navy-700/50 border-2 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 ${
                   error
                     ? "border-red-500 animate-shake"
                     : digit
@@ -160,17 +158,6 @@ export default function PinEntry({ onSuccess }) {
               Incorrect PIN. Please try again.
             </motion.p>
           )}
-
-          {/* Help Text */}
-          <div className="mt-6 pt-6 border-t border-navy-700/30">
-            <p className="text-xs text-text-secondary text-center">
-              Default PIN:{" "}
-              <span className="font-mono font-semibold">123456</span>
-            </p>
-            <p className="text-xs text-text-secondary text-center mt-1">
-              Contact admin to change PIN
-            </p>
-          </div>
         </div>
       </motion.div>
 

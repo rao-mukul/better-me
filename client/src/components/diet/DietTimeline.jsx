@@ -73,7 +73,7 @@ export default function DietTimeline({ logs = [], onDelete }) {
                   <img
                     src={log.thumbnailUrl || log.imageUrl}
                     alt={log.foodName}
-                    className="w-16 h-16 rounded-lg object-cover shrink-0"
+                    className="w-16 h-20 rounded-lg object-cover shrink-0"
                   />
                 )}
 

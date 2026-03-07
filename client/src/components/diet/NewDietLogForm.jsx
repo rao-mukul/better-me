@@ -341,11 +341,13 @@ export default function NewDietLogForm({ onSuccess }) {
             className="text-center py-12"
           >
             {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="Captured meal"
-                className="w-48 h-48 object-cover rounded-xl mx-auto mb-6"
-              />
+              <div className="w-48 mx-auto mb-6">
+                <img
+                  src={imagePreview}
+                  alt="Captured meal"
+                  className="w-full aspect-3/4 object-cover rounded-lg"
+                />
+              </div>
             )}
             <Loader2
               className="animate-spin text-primary mx-auto mb-4"
@@ -387,11 +389,11 @@ export default function NewDietLogForm({ onSuccess }) {
 
             {/* Image Preview */}
             {(imagePreview || selectedMeal?.thumbnailUrl) && (
-              <div className="relative">
+              <div className="relative w-56 mx-auto">
                 <img
                   src={imagePreview || selectedMeal.thumbnailUrl}
                   alt="Meal"
-                  className="w-full h-48 object-cover rounded-xl"
+                  className="w-full aspect-3/4 object-cover rounded-lg"
                 />
               </div>
             )}
