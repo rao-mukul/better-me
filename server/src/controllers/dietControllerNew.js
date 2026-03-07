@@ -1,0 +1,392 @@
+import { format } from "date-fns";
+import DietLog from "../models/DietLog.js";
+import MealLibrary from "../models/MealLibrary.js";
+import { DEFAULT_USER_ID } from "../constants/defaults.js";
+import { analyzeFoodImage, getNutritionalInfo } from "../config/gemini.js";
+import { uploadMealImage, deleteMealImage } from "../config/imagekit.js";
+import multer from "multer";
+
+const getToday = (req) => {
+  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+};
+
+// Multer config for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"), false);
+    }
+  },
+});
+
+export const uploadMiddleware = upload.single("mealImage");
+
+// Get today's meal logs
+export const getTodayData = async (req, res, next) => {
+  try {
+    const date = getToday(req);
+
+    const logs = await DietLog.find({
+      userId: DEFAULT_USER_ID,
+      date,
+    })
+      .populate("mealId")
+      .sort({ eatenAt: -1 });
+
+    // Calculate daily totals
+    const totals = logs.reduce(
+      (acc, log) => ({
+        calories: acc.calories + log.calories,
+        protein: acc.protein + log.protein,
+        carbs: acc.carbs + log.carbs,
+        fat: acc.fat + log.fat,
+        count: acc.count + 1,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 },
+    );
+
+    res.json({ logs, totals });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Search meals in library (autocomplete)
+export const searchMeals = async (req, res, next) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.length < 2) {
+      return res.json([]);
+    }
+
+    // Search by name (case-insensitive)
+    const searchRegex = new RegExp(query, "i");
+
+    const meals = await MealLibrary.find({
+      userId: DEFAULT_USER_ID,
+      $or: [{ name: searchRegex }, { searchName: searchRegex }],
+    })
+      .sort({ timesLogged: -1, lastLoggedAt: -1 })
+      .limit(10)
+      .select(
+        "name description imageUrl thumbnailUrl calories protein carbs fat servingSize category timesLogged",
+      );
+
+    res.json(meals);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get popular/recent meals
+export const getPopularMeals = async (req, res, next) => {
+  try {
+    const meals = await MealLibrary.find({
+      userId: DEFAULT_USER_ID,
+    })
+      .sort({ timesLogged: -1, lastLoggedAt: -1 })
+      .limit(20)
+      .select(
+        "name description imageUrl thumbnailUrl calories protein carbs fat servingSize category timesLogged lastLoggedAt",
+      );
+
+    res.json(meals);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Analyze meal image with Gemini AI
+export const analyzeMealImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    // Convert buffer to base64
+    const imageBase64 = req.file.buffer.toString("base64");
+
+    // Upload to ImageKit first
+    const imageData = await uploadMealImage(
+      req.file.buffer,
+      req.file.originalname,
+    );
+
+    // Analyze with Gemini
+    const analysis = await analyzeFoodImage(imageBase64);
+
+    res.json({
+      analysis,
+      imageData,
+    });
+  } catch (err) {
+    console.error("Meal analysis error:", err);
+    next(err);
+  }
+};
+
+// Get nutritional info for a meal (from Gemini)
+export const getMealNutrition = async (req, res, next) => {
+  try {
+    const { name, description, portionSize } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Meal name is required" });
+    }
+
+    const nutrition = await getNutritionalInfo(
+      name,
+      description || "",
+      portionSize || "1 serving",
+    );
+
+    res.json(nutrition);
+  } catch (err) {
+    console.error("Nutrition fetch error:", err);
+    next(err);
+  }
+};
+
+// Save meal to library
+export const saveMealToLibrary = async (req, res, next) => {
+  try {
+    const {
+      name,
+      description,
+      aiDescription,
+      imageUrl,
+      imageId,
+      thumbnailUrl,
+      calories,
+      protein,
+      carbs,
+      fat,
+      servingSize,
+      servingUnit,
+      category,
+      tags,
+      isAIAnalyzed,
+    } = req.body;
+
+    if (
+      !name ||
+      calories === undefined ||
+      protein === undefined ||
+      carbs === undefined ||
+      fat === undefined
+    ) {
+      return res.status(400).json({
+        error: "Name and nutritional values are required",
+      });
+    }
+
+    // Check if meal already exists
+    const existingMeal = await MealLibrary.findOne({
+      userId: DEFAULT_USER_ID,
+      searchName: name.toLowerCase().replace(/[^a-z0-9\s]/g, ""),
+    });
+
+    if (existingMeal) {
+      // Update existing meal
+      existingMeal.description = description || existingMeal.description;
+      existingMeal.aiDescription = aiDescription || existingMeal.aiDescription;
+      existingMeal.calories = calories;
+      existingMeal.protein = protein;
+      existingMeal.carbs = carbs;
+      existingMeal.fat = fat;
+      existingMeal.servingSize = servingSize || existingMeal.servingSize;
+      existingMeal.servingUnit = servingUnit || existingMeal.servingUnit;
+      existingMeal.category = category || existingMeal.category;
+      existingMeal.tags = tags || existingMeal.tags;
+      existingMeal.isAIAnalyzed = isAIAnalyzed || existingMeal.isAIAnalyzed;
+
+      // Update image if new one provided
+      if (imageUrl && imageUrl !== existingMeal.imageUrl) {
+        // Delete old image if exists
+        if (existingMeal.imageId) {
+          try {
+            await deleteMealImage(existingMeal.imageId);
+          } catch (err) {
+            console.error("Failed to delete old image:", err);
+          }
+        }
+        existingMeal.imageUrl = imageUrl;
+        existingMeal.imageId = imageId;
+        existingMeal.thumbnailUrl = thumbnailUrl;
+      }
+
+      await existingMeal.save();
+      return res.json(existingMeal);
+    }
+
+    // Create new meal
+    const meal = await MealLibrary.create({
+      userId: DEFAULT_USER_ID,
+      name,
+      description: description || "",
+      aiDescription: aiDescription || "",
+      imageUrl: imageUrl || "",
+      imageId: imageId || "",
+      thumbnailUrl: thumbnailUrl || "",
+      calories,
+      protein,
+      carbs,
+      fat,
+      servingSize: servingSize || "",
+      servingUnit: servingUnit || "",
+      category: category || "other",
+      tags: tags || [],
+      isAIAnalyzed: isAIAnalyzed || false,
+    });
+
+    res.status(201).json(meal);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Log a meal (from library or new)
+export const logMeal = async (req, res, next) => {
+  try {
+    const {
+      mealId, // If logging from library
+      foodName,
+      calories,
+      protein,
+      carbs,
+      fat,
+      servingSize,
+      category,
+      eatenAt,
+      notes,
+    } = req.body;
+
+    if (
+      !foodName ||
+      calories === undefined ||
+      protein === undefined ||
+      carbs === undefined ||
+      fat === undefined
+    ) {
+      return res.status(400).json({
+        error: "Meal name and nutritional values are required",
+      });
+    }
+
+    const eatenAtDate = eatenAt ? new Date(eatenAt) : new Date();
+    const date = format(eatenAtDate, "yyyy-MM-dd");
+
+    // Create log entry
+    const log = await DietLog.create({
+      userId: DEFAULT_USER_ID,
+      mealId: mealId || null,
+      foodName,
+      calories,
+      protein,
+      carbs,
+      fat,
+      servingSize: servingSize || "",
+      category: category || "other",
+      eatenAt: eatenAtDate,
+      date,
+      notes: notes || "",
+    });
+
+    // If mealId exists, update meal library stats
+    if (mealId) {
+      await MealLibrary.findByIdAndUpdate(mealId, {
+        $inc: { timesLogged: 1 },
+        $set: { lastLoggedAt: new Date() },
+      });
+    }
+
+    const populatedLog = await DietLog.findById(log._id).populate("mealId");
+
+    res.status(201).json(populatedLog);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Delete a meal log
+export const deleteLog = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const log = await DietLog.findOne({
+      _id: id,
+      userId: DEFAULT_USER_ID,
+    });
+
+    if (!log) {
+      return res.status(404).json({ error: "Log not found" });
+    }
+
+    // If it was from library, decrement times logged
+    if (log.mealId) {
+      await MealLibrary.findByIdAndUpdate(log.mealId, {
+        $inc: { timesLogged: -1 },
+      });
+    }
+
+    await log.deleteOne();
+
+    res.json({ message: "Log deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Delete a meal from library
+export const deleteMealFromLibrary = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const meal = await MealLibrary.findOne({
+      _id: id,
+      userId: DEFAULT_USER_ID,
+    });
+
+    if (!meal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+
+    // Delete image from ImageKit if exists
+    if (meal.imageId) {
+      try {
+        await deleteMealImage(meal.imageId);
+      } catch (err) {
+        console.error("Failed to delete image:", err);
+      }
+    }
+
+    // Delete all logs referencing this meal
+    await DietLog.deleteMany({ mealId: meal._id });
+
+    await meal.deleteOne();
+
+    res.json({ message: "Meal deleted from library" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default {
+  getTodayData,
+  searchMeals,
+  getPopularMeals,
+  analyzeMealImage,
+  getMealNutrition,
+  saveMealToLibrary,
+  logMeal,
+  deleteLog,
+  deleteMealFromLibrary,
+  uploadMiddleware,
+};

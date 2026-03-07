@@ -9,6 +9,37 @@ import cleanTimerRoutes from "./routes/cleanTimer.js";
 import dietRoutes from "./routes/diet.js";
 import errorHandler from "./middleware/errorHandler.js";
 
+// Validate required environment variables
+function validateEnv() {
+  const warnings = [];
+
+  if (
+    !process.env.GEMINI_API_KEY ||
+    process.env.GEMINI_API_KEY.includes("your_")
+  ) {
+    warnings.push(
+      "⚠️  GEMINI_API_KEY not configured - AI meal analysis will not work",
+    );
+  }
+
+  if (
+    !process.env.IMAGEKIT_PUBLIC_KEY ||
+    process.env.IMAGEKIT_PUBLIC_KEY.includes("your_")
+  ) {
+    warnings.push(
+      "⚠️  ImageKit keys not configured - Image upload will not work",
+    );
+  }
+
+  if (warnings.length > 0) {
+    console.warn("\n⚠️  Configuration Warnings:");
+    warnings.forEach((w) => console.warn(w));
+    console.warn("\n💡 See .env file to configure API keys\n");
+  } else {
+    console.log("✅ All API keys configured");
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -51,6 +82,9 @@ app.use(errorHandler);
 
 // Initialize DB connection
 connectDB();
+
+// Validate environment variables
+validateEnv();
 
 // Only start server if not running in Vercel (serverless environment)
 if (process.env.VERCEL !== "1") {

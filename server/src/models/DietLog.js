@@ -6,6 +6,13 @@ const dietLogSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  // Reference to meal in library (if exists)
+  mealId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "MealLibrary",
+    default: null,
+  },
+  // Meal data (denormalized for quick access)
   foodName: {
     type: String,
     required: true,
@@ -34,6 +41,7 @@ const dietLogSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  // Log metadata
   eatenAt: {
     type: Date,
     required: true,
@@ -41,6 +49,11 @@ const dietLogSchema = new mongoose.Schema({
   date: {
     type: String, // yyyy-MM-dd format
     required: true,
+  },
+  category: {
+    type: String,
+    enum: ["breakfast", "lunch", "dinner", "snack", "other"],
+    default: "other",
   },
   notes: {
     type: String,
@@ -53,5 +66,6 @@ const dietLogSchema = new mongoose.Schema({
 });
 
 dietLogSchema.index({ userId: 1, date: 1 });
+dietLogSchema.index({ userId: 1, mealId: 1 });
 
 export default mongoose.model("DietLog", dietLogSchema);

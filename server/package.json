@@ -11,11 +11,14 @@
     "start": "NODE_ENV=production node src/index.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "imagekit": "^6.0.0",
     "mongoose": "^8.12.1",
-    "date-fns": "^4.1.0"
+    "multer": "^2.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

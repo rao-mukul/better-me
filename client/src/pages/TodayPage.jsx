@@ -24,10 +24,8 @@ import SleepCard from "../components/sleep/SleepCard";
 import NewGymLogForm from "../components/gym/NewGymLogForm";
 import GymLogList from "../components/gym/GymLogList";
 import GymCard from "../components/gym/GymCard";
-import DietLogForm from "../components/diet/DietLogForm";
+import NewDietLogForm from "../components/diet/NewDietLogForm";
 import DietLogList from "../components/diet/DietLogList";
-import DietCard from "../components/diet/DietCard";
-import DietGoalSetter from "../components/diet/GoalSetter";
 import {
   useWaterToday,
   useAddWaterLog,
@@ -50,12 +48,7 @@ import {
   useGymProgram,
   useGymWeekHistory,
 } from "../hooks/useGymData";
-import {
-  useDietToday,
-  useAddDietLog,
-  useDeleteDietLog,
-  useUpdateDietGoals,
-} from "../hooks/useDietData";
+import { useDietToday, useDeleteDietLog } from "../hooks/useDietData";
 
 export default function TodayPage() {
   const navigate = useNavigate();
@@ -165,9 +158,7 @@ export default function TodayPage() {
 
   // Diet tracking
   const { data: dietData, isLoading: dietLoading } = useDietToday();
-  const addDietLog = useAddDietLog();
   const deleteDietLog = useDeleteDietLog();
-  const updateDietGoals = useUpdateDietGoals();
 
   const dietLogs = dietData?.logs || [];
   const dietStats = dietData?.stats || {
@@ -258,27 +249,13 @@ export default function TodayPage() {
     deleteWorkout.mutate(id);
   };
 
-  const handleDietAdd = (data) => {
-    addDietLog.mutate(data, {
-      onSuccess: () => {
-        toast.success("Food entry logged! 🥗", {
-          duration: 2000,
-        });
-      },
-    });
-  };
-
   const handleDietDelete = (id) => {
     deleteDietLog.mutate(id);
   };
 
-  const handleDietGoalsUpdate = (goals) => {
-    updateDietGoals.mutate(goals, {
-      onSuccess: () => {
-        toast.success("Nutrition goals updated! 🎯", {
-          duration: 2000,
-        });
-      },
+  const handleDietSuccess = () => {
+    toast.success("Meal logged! 🥗", {
+      duration: 2000,
     });
   };
 
@@ -319,10 +296,7 @@ export default function TodayPage() {
                 <span className="text-sm font-bold text-green-400">
                   {dietStats.totalCalories}
                 </span>
-                <span className="text-xs text-text-secondary mx-0.5">/</span>
-                <span className="text-xs text-text-secondary">
-                  {dietStats.calorieGoal}cal
-                </span>
+                <span className="text-xs text-text-secondary ml-0.5">cal</span>
               </div>
               <motion.div
                 animate={{ rotate: expandedSection === "diet" ? 180 : 0 }}
@@ -345,24 +319,47 @@ export default function TodayPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
-                <DietGoalSetter
-                  stats={dietStats}
-                  onUpdate={handleDietGoalsUpdate}
-                  disabled={updateDietGoals.isPending}
-                />
-
-                <div className="mb-6">
-                  <DietLogForm
-                    onAddLog={handleDietAdd}
-                    disabled={addDietLog.isPending}
-                  />
-                </div>
-
+                {/* Simple daily totals */}
                 {dietStats.entryCount > 0 && (
-                  <div className="mb-6">
-                    <DietCard stats={dietStats} />
+                  <div className="mb-6 grid grid-cols-4 gap-3">
+                    <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
+                      <div className="text-xl font-bold text-green-400">
+                        {dietStats.totalCalories}
+                      </div>
+                      <div className="text-xs text-text-secondary mt-1">
+                        Calories
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+                      <div className="text-xl font-bold text-blue-400">
+                        {dietStats.totalProtein}g
+                      </div>
+                      <div className="text-xs text-text-secondary mt-1">
+                        Protein
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-center">
+                      <div className="text-xl font-bold text-orange-400">
+                        {dietStats.totalCarbs}g
+                      </div>
+                      <div className="text-xs text-text-secondary mt-1">
+                        Carbs
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-center">
+                      <div className="text-xl font-bold text-yellow-400">
+                        {dietStats.totalFat}g
+                      </div>
+                      <div className="text-xs text-text-secondary mt-1">
+                        Fat
+                      </div>
+                    </div>
                   </div>
                 )}
+
+                <div className="mb-6">
+                  <NewDietLogForm onSuccess={handleDietSuccess} />
+                </div>
 
                 <DietLogList logs={dietLogs} onDelete={handleDietDelete} />
               </motion.div>

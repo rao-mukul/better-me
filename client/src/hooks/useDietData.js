@@ -9,13 +9,53 @@ export function useDietToday() {
   });
 }
 
-export function useAddDietLog() {
+export function useSearchMeals(query) {
+  return useQuery({
+    queryKey: ["diet", "search", query],
+    queryFn: () => dietApi.searchMeals(query),
+    enabled: !!query && query.length >= 2,
+  });
+}
+
+export function usePopularMeals() {
+  return useQuery({
+    queryKey: ["diet", "popular"],
+    queryFn: dietApi.getPopularMeals,
+  });
+}
+
+export function useAnalyzeMealImage() {
+  return useMutation({
+    mutationFn: dietApi.analyzeMealImage,
+  });
+}
+
+export function useGetMealNutrition() {
+  return useMutation({
+    mutationFn: dietApi.getMealNutrition,
+  });
+}
+
+export function useSaveMeal() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: dietApi.addLog,
+    mutationFn: dietApi.saveMeal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["diet"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "popular"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "search"] });
+    },
+  });
+}
+
+export function useLogMeal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: dietApi.logMeal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["diet", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "popular"] });
     },
   });
 }
@@ -26,32 +66,18 @@ export function useDeleteDietLog() {
   return useMutation({
     mutationFn: dietApi.deleteLog,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["diet"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "today"] });
     },
   });
 }
 
-export function useDietWeek() {
-  return useQuery({
-    queryKey: ["diet", "week"],
-    queryFn: dietApi.getWeek,
-  });
-}
-
-export function useUpdateDietGoals() {
+export function useDeleteMeal() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: dietApi.updateGoals,
+    mutationFn: dietApi.deleteMeal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["diet"] });
     },
-  });
-}
-
-export function useDietStreak() {
-  return useQuery({
-    queryKey: ["diet", "streak"],
-    queryFn: dietApi.getStreak,
   });
 }

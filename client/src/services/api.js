@@ -93,18 +93,34 @@ export const cleanTimerApi = {
 };
 
 export const dietApi = {
+  // Today's logs
   getToday: () =>
     api
       .get("/diet/today", { params: { date: getTodayDate() } })
       .then((r) => r.data),
-  addLog: (data) => api.post("/diet/log", data).then((r) => r.data),
-  deleteLog: (id) => api.delete(`/diet/log/${id}`).then((r) => r.data),
-  getWeek: () => api.get("/diet/week").then((r) => r.data),
-  updateGoals: (goals) =>
+
+  // Meal library
+  searchMeals: (query) =>
+    api.get("/diet/meals/search", { params: { query } }).then((r) => r.data),
+  getPopularMeals: () => api.get("/diet/meals/popular").then((r) => r.data),
+  deleteMeal: (id) => api.delete(`/diet/meals/${id}`).then((r) => r.data),
+
+  // AI-powered meal analysis
+  analyzeMealImage: (formData) =>
     api
-      .put("/diet/goals", goals, { params: { date: getTodayDate() } })
+      .post("/diet/analyze-image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
       .then((r) => r.data),
-  getStreak: () => api.get("/diet/streak").then((r) => r.data),
+  getMealNutrition: (data) =>
+    api.post("/diet/get-nutrition", data).then((r) => r.data),
+
+  // Save meal to library
+  saveMeal: (data) => api.post("/diet/meals", data).then((r) => r.data),
+
+  // Log meal
+  logMeal: (data) => api.post("/diet/log", data).then((r) => r.data),
+  deleteLog: (id) => api.delete(`/diet/log/${id}`).then((r) => r.data),
 };
 
 export default api;
