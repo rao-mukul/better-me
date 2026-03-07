@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getTodayData,
+  getWeekLogs,
   startSleep,
   completeSleep,
   logCompleteSleep,
@@ -14,6 +15,7 @@ import {
 const router = Router();
 
 router.get("/today", getTodayData);
+router.get("/week-logs", getWeekLogs);
 router.post("/start", startSleep);
 router.put("/complete/:id", completeSleep);
 router.post("/log", logCompleteSleep);

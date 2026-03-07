@@ -66,7 +66,7 @@ export default function DietTimeline({ logs = [], onDelete }) {
               {/* Content Card */}
               <motion.div
                 whileHover={{ x: 4 }}
-                className="flex-1 flex items-start gap-3 bg-navy-800/40 border border-navy-700/30 rounded-xl px-4 py-3 group"
+                className="flex-1 min-w-0 flex items-start gap-3 bg-navy-800/40 border border-navy-700/30 rounded-xl px-4 py-3 group overflow-hidden"
               >
                 {/* Image if available */}
                 {log.imageUrl && (
@@ -77,14 +77,14 @@ export default function DietTimeline({ logs = [], onDelete }) {
                   />
                 )}
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold text-text-primary truncate">
+                      <h4 className="text-sm font-semibold text-text-primary wrap-break-word">
                         {log.foodName}
                       </h4>
                       {log.servingSize && (
-                        <p className="text-xs text-text-secondary mt-0.5">
+                        <p className="text-xs text-text-secondary mt-0.5 wrap-break-word">
                           {log.servingSize}
                         </p>
                       )}
@@ -103,20 +103,20 @@ export default function DietTimeline({ logs = [], onDelete }) {
                   </div>
 
                   {/* Macros */}
-                  <div className="flex items-center gap-3 text-xs mb-2">
-                    <div className="flex items-center gap-1">
+                  <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs mb-2">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
                       <span className="text-text-secondary">Protein:</span>
                       <span className="text-blue-400 font-semibold">
                         {log.protein}g
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
                       <span className="text-text-secondary">Carbs:</span>
                       <span className="text-orange-400 font-semibold">
                         {log.carbs}g
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
                       <span className="text-text-secondary">Fat:</span>
                       <span className="text-yellow-400 font-semibold">
                         {log.fat}g
@@ -126,7 +126,7 @@ export default function DietTimeline({ logs = [], onDelete }) {
 
                   {/* Notes if available */}
                   {log.notes && (
-                    <p className="text-xs text-text-secondary italic mt-2">
+                    <p className="text-xs text-text-secondary italic mt-2 wrap-break-word">
                       {log.notes}
                     </p>
                   )}

@@ -127,6 +127,51 @@ export const getTodayData = async (req, res, next) => {
   }
 };
 
+export const getWeekLogs = async (req, res, next) => {
+  try {
+    // Use client's date if provided, otherwise use server's date
+    const clientDate = req.query.date;
+    // Parse client date explicitly as UTC to avoid timezone issues
+    const today = clientDate ? parseISO(`${clientDate}T00:00:00Z`) : new Date();
+
+    // Get the date 7 days ago
+    const sevenDaysAgo = subDays(today, 6); // Including today makes it 7 days
+
+    // Format dates using UTC to avoid timezone issues
+    const startYear = sevenDaysAgo.getUTCFullYear();
+    const startMonth = String(sevenDaysAgo.getUTCMonth() + 1).padStart(2, "0");
+    const startDay = String(sevenDaysAgo.getUTCDate()).padStart(2, "0");
+    const startDate = `${startYear}-${startMonth}-${startDay}`;
+
+    const endYear = today.getUTCFullYear();
+    const endMonth = String(today.getUTCMonth() + 1).padStart(2, "0");
+    const endDay = String(today.getUTCDate()).padStart(2, "0");
+    const endDate = `${endYear}-${endMonth}-${endDay}`;
+
+    // Get all completed logs for the last 7 days
+    const logs = await SleepLog.find({
+      userId: DEFAULT_USER_ID,
+      date: { $gte: startDate, $lte: endDate },
+      isComplete: true,
+    }).sort({ wokeUpAt: -1 }); // Sort by wake time, most recent first
+
+    // Check for active (incomplete) sleep log
+    const activeSleepLog = await SleepLog.findOne({
+      userId: DEFAULT_USER_ID,
+      isComplete: false,
+    }).sort({ sleptAt: -1 });
+
+    res.json({
+      logs,
+      activeSleepLog: activeSleepLog || null,
+      startDate,
+      endDate,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const startSleep = async (req, res, next) => {
   try {
     const { sleptAt, notes } = req.body;

@@ -9,6 +9,14 @@ export function useSleepToday() {
   });
 }
 
+export function useSleepWeekLogs() {
+  return useQuery({
+    queryKey: ["sleep", "week-logs"],
+    queryFn: sleepApi.getWeekLogs,
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function useStartSleep() {
   const queryClient = useQueryClient();
 

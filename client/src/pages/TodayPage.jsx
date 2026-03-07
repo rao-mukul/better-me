@@ -15,9 +15,7 @@ import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
 import GoalSetter from "../components/water/GoalSetter";
 import WaterAnimation from "../components/water/WaterAnimation";
-import SleepRing from "../components/sleep/SleepRing";
 import SleepLogForm from "../components/sleep/SleepLogForm";
-import TargetSetter from "../components/sleep/TargetSetter";
 import NewGymLogForm from "../components/gym/NewGymLogForm";
 import GymLogList from "../components/gym/GymLogList";
 import GymCard from "../components/gym/GymCard";
@@ -32,8 +30,6 @@ import {
   useSleepToday,
   useStartSleep,
   useCompleteSleep,
-  useLogCompleteSleep,
-  useUpdateTarget,
 } from "../hooks/useSleepData";
 import {
   useGymToday,
@@ -121,8 +117,6 @@ export default function TodayPage() {
   const { data: sleepData, isLoading: sleepLoading } = useSleepToday();
   const startSleep = useStartSleep();
   const completeSleep = useCompleteSleep();
-  const logCompleteSleep = useLogCompleteSleep();
-  const updateTarget = useUpdateTarget();
   const activeSleepLog = sleepData?.activeSleepLog || null;
   const sleepStats = sleepData?.stats || {
     totalMinutes: 0,
@@ -149,6 +143,11 @@ export default function TodayPage() {
     totalExercises: 0,
     averageIntensity: "none",
   };
+
+  // Calculate number of unique days with workouts this week
+  const weekWorkoutDays = gymWeekHistory
+    ? new Set(gymWeekHistory.map((log) => log.date)).size
+    : 0;
 
   // Diet tracking
   const { data: dietData, isLoading: dietLoading } = useDietToday();
@@ -207,20 +206,6 @@ export default function TodayPage() {
         });
       },
     });
-  };
-
-  const handleLogCompleteSleep = (data) => {
-    logCompleteSleep.mutate(data, {
-      onSuccess: () => {
-        toast.success("Past sleep logged successfully! 😴", {
-          duration: 2000,
-        });
-      },
-    });
-  };
-
-  const handleTargetUpdate = (targetHours) => {
-    updateTarget.mutate(targetHours);
   };
 
   const handleGymLogSubmit = (data) => {
@@ -393,10 +378,10 @@ export default function TodayPage() {
             <div className="flex items-center gap-2">
               <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
                 <span className="text-sm font-bold text-orange-400">
-                  {gymStats.totalWorkouts}
+                  {weekWorkoutDays}
                 </span>
                 <span className="text-xs text-text-secondary ml-1">
-                  {gymStats.totalWorkouts === 1 ? "workout" : "workouts"}
+                  {weekWorkoutDays === 1 ? "day" : "days"} this week
                 </span>
               </div>
               <motion.div
@@ -550,15 +535,13 @@ export default function TodayPage() {
               <h2 className="text-xl font-bold text-text-primary">Sleep</h2>
             </div>
             <div className="flex items-center gap-2">
-              <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
-                <span className="text-sm font-bold text-purple-400">
-                  {(sleepStats.totalMinutes / 60).toFixed(1)}
-                </span>
-                <span className="text-xs text-text-secondary mx-0.5">/</span>
-                <span className="text-xs text-text-secondary">
-                  {sleepStats.targetHours}h
-                </span>
-              </div>
+              {sleepStats.totalMinutes > 0 && (
+                <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                  <span className="text-sm font-bold text-purple-400">
+                    {(sleepStats.totalMinutes / 60).toFixed(1)}h
+                  </span>
+                </div>
+              )}
               <motion.div
                 animate={{ rotate: expandedSection === "sleep" ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
@@ -580,30 +563,12 @@ export default function TodayPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
-                <SleepRing
-                  totalMinutes={sleepStats.totalMinutes}
-                  targetHours={sleepStats.targetHours}
+                <SleepLogForm
+                  activeSleepLog={activeSleepLog}
+                  onStartSleep={handleStartSleep}
+                  onCompleteSleep={handleCompleteSleep}
+                  disabled={startSleep.isPending || completeSleep.isPending}
                 />
-
-                <TargetSetter
-                  targetHours={sleepStats.targetHours}
-                  onUpdate={handleTargetUpdate}
-                  disabled={updateTarget.isPending}
-                />
-
-                <div className="mt-6">
-                  <SleepLogForm
-                    activeSleepLog={activeSleepLog}
-                    onStartSleep={handleStartSleep}
-                    onCompleteSleep={handleCompleteSleep}
-                    onLogComplete={handleLogCompleteSleep}
-                    disabled={
-                      startSleep.isPending ||
-                      completeSleep.isPending ||
-                      logCompleteSleep.isPending
-                    }
-                  />
-                </div>
               </motion.div>
             )}
           </AnimatePresence>

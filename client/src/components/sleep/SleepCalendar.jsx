@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Moon, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useState } from "react";
 import { useSleepMonth } from "../../hooks/useSleepData";
 
@@ -66,17 +66,13 @@ export default function SleepCalendar() {
     (new Date(currentYear, currentMonth - 1, 1).getDay() + 6) % 7;
 
   // Determine color based on sleep quality
-  const getSleepColor = (totalMinutes, targetHours, quality, targetMet) => {
+  const getSleepColor = (totalMinutes, quality) => {
     if (totalMinutes === 0) return "bg-navy-700/20";
     if (quality !== "none") {
       return qualityColors[quality];
     }
-    // Fallback to duration-based coloring
-    const hours = totalMinutes / 60;
-    if (targetMet) return "bg-primary";
-    if (hours >= targetHours * 0.75) return "bg-primary/70";
-    if (hours >= targetHours * 0.5) return "bg-primary/50";
-    return "bg-primary/30";
+    // Fallback to neutral color if no quality is set
+    return "bg-primary/50";
   };
 
   const isToday = (day) => {
@@ -161,15 +157,13 @@ export default function SleepCalendar() {
               whileHover={{ scale: 1.05 }}
               className={`aspect-square rounded-lg ${getSleepColor(
                 totalMinutes,
-                targetHours,
                 averageQuality,
-                targetMet,
               )} relative cursor-pointer transition-all ${
                 isTodayDate ? "ring-2 ring-accent" : ""
               }`}
               title={
                 totalMinutes > 0
-                  ? `${totalHours}h sleep / ${targetHours}h target\nQuality: ${averageQuality}`
+                  ? `${totalHours}h sleep\nQuality: ${averageQuality}`
                   : "No data"
               }
             >
@@ -183,13 +177,6 @@ export default function SleepCalendar() {
                 >
                   {day}
                 </span>
-                {targetMet && (
-                  <Moon
-                    size={12}
-                    className="text-white mt-0.5"
-                    fill="currentColor"
-                  />
-                )}
                 {averageQuality === "excellent" && (
                   <Star
                     size={10}
@@ -225,14 +212,6 @@ export default function SleepCalendar() {
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-success" />
             <span>Excellent</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Moon
-              size={14}
-              className="text-text-secondary"
-              fill="currentColor"
-            />
-            <span>Target met</span>
           </div>
         </div>
       </div>

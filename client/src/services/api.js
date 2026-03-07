@@ -38,6 +38,10 @@ export const sleepApi = {
     api
       .get("/sleep/today", { params: { date: getTodayDate() } })
       .then((r) => r.data),
+  getWeekLogs: () =>
+    api
+      .get("/sleep/week-logs", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   startSleep: (data) => api.post("/sleep/start", data).then((r) => r.data),
   completeSleep: (id, data) =>
     api.put(`/sleep/complete/${id}`, data).then((r) => r.data),
