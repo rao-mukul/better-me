@@ -14,7 +14,6 @@ const mealLibrarySchema = new mongoose.Schema({
   // Normalized name for search (lowercase, no special chars)
   searchName: {
     type: String,
-    required: true,
     lowercase: true,
     index: true,
   },

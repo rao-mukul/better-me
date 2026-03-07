@@ -99,6 +99,10 @@ export const dietApi = {
       .get("/diet/today", { params: { date: getTodayDate() } })
       .then((r) => r.data),
 
+  // Month data for calendar
+  getMonth: (year, month) =>
+    api.get("/diet/month", { params: { year, month } }).then((r) => r.data),
+
   // Meal library
   searchMeals: (query) =>
     api.get("/diet/meals/search", { params: { query } }).then((r) => r.data),

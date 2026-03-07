@@ -9,6 +9,14 @@ export function useDietToday() {
   });
 }
 
+export function useDietMonth(year, month) {
+  return useQuery({
+    queryKey: ["diet", "month", year, month],
+    queryFn: () => dietApi.getMonth(year, month),
+    enabled: !!year && !!month,
+  });
+}
+
 export function useSearchMeals(query) {
   return useQuery({
     queryKey: ["diet", "search", query],

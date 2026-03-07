@@ -161,17 +161,12 @@ export default function TodayPage() {
   const deleteDietLog = useDeleteDietLog();
 
   const dietLogs = dietData?.logs || [];
-  const dietStats = dietData?.stats || {
-    totalCalories: 0,
-    totalProtein: 0,
-    totalCarbs: 0,
-    totalFat: 0,
-    calorieGoal: 2000,
-    proteinGoal: 150,
-    carbsGoal: 200,
-    fatGoal: 65,
-    goalMet: false,
-    entryCount: 0,
+  const dietTotals = dietData?.totals || {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    count: 0,
   };
 
   // Show celebration when water goal is first achieved
@@ -294,7 +289,7 @@ export default function TodayPage() {
             <div className="flex items-center gap-2">
               <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
                 <span className="text-sm font-bold text-green-400">
-                  {dietStats.totalCalories}
+                  {dietTotals.calories}
                 </span>
                 <span className="text-xs text-text-secondary ml-0.5">cal</span>
               </div>
@@ -319,44 +314,6 @@ export default function TodayPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
-                {/* Simple daily totals */}
-                {dietStats.entryCount > 0 && (
-                  <div className="mb-6 grid grid-cols-4 gap-3">
-                    <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
-                      <div className="text-xl font-bold text-green-400">
-                        {dietStats.totalCalories}
-                      </div>
-                      <div className="text-xs text-text-secondary mt-1">
-                        Calories
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
-                      <div className="text-xl font-bold text-blue-400">
-                        {dietStats.totalProtein}g
-                      </div>
-                      <div className="text-xs text-text-secondary mt-1">
-                        Protein
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-center">
-                      <div className="text-xl font-bold text-orange-400">
-                        {dietStats.totalCarbs}g
-                      </div>
-                      <div className="text-xs text-text-secondary mt-1">
-                        Carbs
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-center">
-                      <div className="text-xl font-bold text-yellow-400">
-                        {dietStats.totalFat}g
-                      </div>
-                      <div className="text-xs text-text-secondary mt-1">
-                        Fat
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 <div className="mb-6">
                   <NewDietLogForm onSuccess={handleDietSuccess} />
                 </div>

@@ -187,6 +187,20 @@ export const saveMealToLibrary = async (req, res, next) => {
       });
     }
 
+    // Normalize category to valid enum values
+    const normalizeCategory = (cat) => {
+      if (!cat) return "other";
+      const normalized = cat.toLowerCase().trim();
+      // Extract first valid category if multiple (e.g., "breakfast/snack" -> "breakfast")
+      if (normalized.includes("breakfast")) return "breakfast";
+      if (normalized.includes("lunch")) return "lunch";
+      if (normalized.includes("dinner")) return "dinner";
+      if (normalized.includes("snack")) return "snack";
+      return "other";
+    };
+
+    const validCategory = normalizeCategory(category);
+
     // Check if meal already exists
     const existingMeal = await MealLibrary.findOne({
       userId: DEFAULT_USER_ID,
@@ -203,7 +217,7 @@ export const saveMealToLibrary = async (req, res, next) => {
       existingMeal.fat = fat;
       existingMeal.servingSize = servingSize || existingMeal.servingSize;
       existingMeal.servingUnit = servingUnit || existingMeal.servingUnit;
-      existingMeal.category = category || existingMeal.category;
+      existingMeal.category = validCategory;
       existingMeal.tags = tags || existingMeal.tags;
       existingMeal.isAIAnalyzed = isAIAnalyzed || existingMeal.isAIAnalyzed;
 
@@ -241,13 +255,14 @@ export const saveMealToLibrary = async (req, res, next) => {
       fat,
       servingSize: servingSize || "",
       servingUnit: servingUnit || "",
-      category: category || "other",
+      category: validCategory,
       tags: tags || [],
       isAIAnalyzed: isAIAnalyzed || false,
     });
 
     res.status(201).json(meal);
   } catch (err) {
+    console.error("Save meal to library error:", err);
     next(err);
   }
 };
@@ -280,6 +295,17 @@ export const logMeal = async (req, res, next) => {
       });
     }
 
+    // Normalize category to valid enum values
+    const normalizeCategory = (cat) => {
+      if (!cat) return "other";
+      const normalized = cat.toLowerCase().trim();
+      if (normalized.includes("breakfast")) return "breakfast";
+      if (normalized.includes("lunch")) return "lunch";
+      if (normalized.includes("dinner")) return "dinner";
+      if (normalized.includes("snack")) return "snack";
+      return "other";
+    };
+
     const eatenAtDate = eatenAt ? new Date(eatenAt) : new Date();
     const date = format(eatenAtDate, "yyyy-MM-dd");
 
@@ -293,7 +319,7 @@ export const logMeal = async (req, res, next) => {
       carbs,
       fat,
       servingSize: servingSize || "",
-      category: category || "other",
+      category: normalizeCategory(category),
       eatenAt: eatenAtDate,
       date,
       notes: notes || "",
@@ -378,6 +404,73 @@ export const deleteMealFromLibrary = async (req, res, next) => {
   }
 };
 
+// Get month data for calendar view
+export const getMonthData = async (req, res, next) => {
+  try {
+    const { year, month } = req.query;
+    const userId = DEFAULT_USER_ID;
+
+    if (!year || !month) {
+      return res.status(400).json({ error: "Year and month are required" });
+    }
+
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const endDate = new Date(parseInt(year), parseInt(month), 0);
+    const daysInMonth = endDate.getDate();
+
+    const monthName = startDate.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+
+    // Get all logs for the month
+    const logs = await DietLog.find({
+      userId,
+      date: {
+        $gte: format(startDate, "yyyy-MM-dd"),
+        $lte: format(endDate, "yyyy-MM-dd"),
+      },
+    });
+
+    // Group by day
+    const dayData = {};
+    logs.forEach((log) => {
+      const day = parseInt(log.date.split("-")[2]);
+      if (!dayData[day]) {
+        dayData[day] = {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          count: 0,
+        };
+      }
+      dayData[day].calories += log.calories;
+      dayData[day].protein += log.protein;
+      dayData[day].carbs += log.carbs;
+      dayData[day].fat += log.fat;
+      dayData[day].count += 1;
+    });
+
+    // Create array for all days in month
+    const data = Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      return {
+        day,
+        calories: dayData[day]?.calories || 0,
+        protein: dayData[day]?.protein || 0,
+        carbs: dayData[day]?.carbs || 0,
+        fat: dayData[day]?.fat || 0,
+        count: dayData[day]?.count || 0,
+      };
+    });
+
+    res.json({ data, monthName });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   getTodayData,
   searchMeals,
@@ -388,5 +481,6 @@ export default {
   logMeal,
   deleteLog,
   deleteMealFromLibrary,
+  getMonthData,
   uploadMiddleware,
 };

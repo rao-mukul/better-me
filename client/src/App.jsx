@@ -8,6 +8,7 @@ import SleepStatsPage from "./pages/SleepStatsPage";
 import GymStatsPage from "./pages/GymStatsPage";
 import GymProgramPage from "./pages/GymProgramPage";
 import DietStatsPage from "./pages/DietStatsPage";
+import MealLibraryPage from "./pages/MealLibraryPage";
 import CleanTimerPage from "./pages/CleanTimerPage";
 import CleanTimerStatsPage from "./pages/CleanTimerStatsPage";
 
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/gym-stats" element={<GymStatsPage />} />
             <Route path="/gym-program" element={<GymProgramPage />} />
             <Route path="/diet-stats" element={<DietStatsPage />} />
+            <Route path="/meal-library" element={<MealLibraryPage />} />
             <Route path="/clean-timer" element={<CleanTimerPage />} />
             <Route path="/clean-timer/:id" element={<CleanTimerStatsPage />} />
           </Route>

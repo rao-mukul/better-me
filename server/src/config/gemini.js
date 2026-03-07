@@ -3,9 +3,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Get the model
+// Get the model - using gemini-2.5-flash (stable, fast, multimodal with vision)
 export const geminiModel = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash", // Using flash for speed and cost-effectiveness
+  model: "gemini-2.5-flash", // Stable Gemini 2.5 Flash - supports image analysis
 });
 
 // Helper function to analyze food image

@@ -97,7 +97,9 @@ export default function NewDietLogForm({ onSuccess }) {
     setFat(meal.fat);
     setServingSize(meal.servingSize || "");
     setCategory(meal.category || "other");
-    setStep("approve");
+
+    // Skip directly to nutrition step since we already have all data
+    setStep("nutrition");
   };
 
   // Handle image capture/upload
@@ -493,25 +495,39 @@ export default function NewDietLogForm({ onSuccess }) {
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleGetNutrition}
-                disabled={!mealName || getNutrition.isPending}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {getNutrition.isPending ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} />
-                    Getting Nutrition...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} />
-                    Get Nutrition
-                    <ChevronRight size={18} />
-                  </>
-                )}
-              </motion.button>
+              {/* Check if nutrition is already complete */}
+              {calories && protein && carbs && fat ? (
+                // Nutrition already available - allow direct proceed
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setStep("nutrition")}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-medium transition-all"
+                >
+                  Continue
+                  <ChevronRight size={18} />
+                </motion.button>
+              ) : (
+                // Need to fetch nutrition from AI
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleGetNutrition}
+                  disabled={!mealName || getNutrition.isPending}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {getNutrition.isPending ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      Getting Nutrition...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      Get Nutrition
+                      <ChevronRight size={18} />
+                    </>
+                  )}
+                </motion.button>
+              )}
             </div>
           </motion.div>
         )}
@@ -539,14 +555,39 @@ export default function NewDietLogForm({ onSuccess }) {
               </button>
             </div>
 
+            {/* Info hint when from library */}
+            {selectedMeal && (
+              <div className="text-xs text-text-secondary bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                💡 Nutrition from your meal library. Edit values below if
+                needed.
+              </div>
+            )}
+
             {/* Meal Summary */}
             <div className="p-4 rounded-xl bg-navy-800/40 border border-navy-700/30">
-              <h4 className="font-semibold text-text-primary mb-1">
-                {mealName}
-              </h4>
-              {mealDescription && (
-                <p className="text-sm text-text-secondary">{mealDescription}</p>
-              )}
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-text-primary mb-1">
+                    {mealName}
+                  </h4>
+                  {mealDescription && (
+                    <p className="text-sm text-text-secondary">
+                      {mealDescription}
+                    </p>
+                  )}
+                </div>
+                {/* Optional: Refresh nutrition button */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleGetNutrition}
+                  disabled={getNutrition.isPending}
+                  className="px-3 py-1.5 rounded-lg bg-navy-700/50 hover:bg-navy-700 text-xs text-text-secondary hover:text-primary transition-all flex items-center gap-1 disabled:opacity-50"
+                  title="Refresh nutrition with AI"
+                >
+                  <Sparkles size={12} />
+                  {getNutrition.isPending ? "Updating..." : "Refresh"}
+                </motion.button>
+              </div>
             </div>
 
             {/* Macros Grid */}

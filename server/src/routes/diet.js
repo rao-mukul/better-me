@@ -9,6 +9,7 @@ import {
   logMeal,
   deleteLog,
   deleteMealFromLibrary,
+  getMonthData,
   uploadMiddleware,
 } from "../controllers/dietControllerNew.js";
 
@@ -16,6 +17,9 @@ const router = express.Router();
 
 // Today's logs
 router.get("/today", getTodayData);
+
+// Month data for calendar
+router.get("/month", getMonthData);
 
 // Meal library
 router.get("/meals/search", searchMeals);
