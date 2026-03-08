@@ -188,16 +188,6 @@ export default function TimerCard({
         <p className="text-sm text-text-secondary mb-4 italic">{timer.notes}</p>
       )}
 
-      {/* Reset History */}
-      {timer.resetHistory && timer.resetHistory.length > 0 && (
-        <div className="mb-4 p-3 bg-bg-primary/30 rounded-lg">
-          <p className="text-xs text-text-secondary mb-1">Previous Streak</p>
-          <p className={`text-sm font-semibold ${colorStyle.text}`}>
-            {timer.resetHistory[timer.resetHistory.length - 1].daysClean} days
-          </p>
-        </div>
-      )}
-
       {/* Actions */}
       {!showResetConfirm && !showDeleteConfirm && (
         <div className="flex gap-2">

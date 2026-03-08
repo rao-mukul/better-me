@@ -2,7 +2,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Target } from "lucide-react";
 import CalendarView from "../components/timer/CalendarView";
-import ResetHistory from "../components/timer/ResetHistory";
 import TimerAnalytics from "../components/timer/TimerAnalytics";
 import { useTimerStats } from "../hooks/useCleanTimer";
 
@@ -92,9 +91,6 @@ export default function CleanTimerStatsPage() {
 
       {/* Calendar View */}
       <CalendarView timer={timer} stats={stats} />
-
-      {/* Reset History */}
-      <ResetHistory timer={timer} />
 
       {/* Analytics */}
       <TimerAnalytics timer={timer} stats={stats} />
