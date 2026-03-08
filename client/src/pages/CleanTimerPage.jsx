@@ -112,53 +112,6 @@ export default function CleanTimerPage() {
         onViewStats={handleViewStats}
         disabled={resetTimer.isPending || deleteTimer.isPending}
       />
-
-      {/* Stats Summary */}
-      {timers.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-4 p-5 bg-navy-800/40 border border-navy-700/30 rounded-xl"
-        >
-          <h3 className="text-sm font-semibold text-text-primary mb-3">
-            Summary
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-xs text-text-secondary mb-1">Active Timers</p>
-              <p className="text-2xl font-bold text-primary">{timers.length}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-secondary mb-1">Total Resets</p>
-              <p className="text-2xl font-bold text-orange-400">
-                {timers.reduce(
-                  (sum, t) => sum + (t.resetHistory?.length || 0),
-                  0,
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-text-secondary mb-1">Best Streak</p>
-              <p className="text-2xl font-bold text-green-400">
-                {timers.reduce((max, t) => {
-                  const best =
-                    t.resetHistory && t.resetHistory.length > 0
-                      ? Math.max(...t.resetHistory.map((r) => r.daysClean))
-                      : 0;
-                  return Math.max(max, best);
-                }, 0)}{" "}
-                <span className="text-sm">days</span>
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-text-secondary mb-1">Categories</p>
-              <p className="text-2xl font-bold text-purple-400">
-                {new Set(timers.map((t) => t.category)).size}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
     </motion.div>
   );
 }

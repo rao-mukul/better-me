@@ -102,6 +102,10 @@ export default function CalendarView({ timer, stats }) {
     }
 
     if (isClean) {
+      // Don't mark today as clean until the day is over
+      if (isToday(day)) {
+        return { type: "today", label: "•" };
+      }
       return { type: "clean", label: "✓" };
     }
 
@@ -112,6 +116,8 @@ export default function CalendarView({ timer, stats }) {
     switch (status.type) {
       case "clean":
         return "bg-green-500/80 text-white hover:bg-green-500";
+      case "today":
+        return "bg-blue-500/80 text-white hover:bg-blue-500";
       case "reset":
         return "bg-red-500/80 text-white hover:bg-red-500 cursor-help";
       case "future":
@@ -157,6 +163,10 @@ export default function CalendarView({ timer, stats }) {
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-green-500/80" />
             <span className="text-text-secondary">Clean</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-blue-500/80" />
+            <span className="text-text-secondary">Today</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-red-500/80" />
@@ -209,8 +219,9 @@ export default function CalendarView({ timer, stats }) {
       {/* Legend */}
       <div className="mt-4 pt-4 border-t border-border text-xs text-text-secondary">
         <p>
-          <span className="font-semibold">Tip:</span> Green days = clean, Red
-          days = reset. Hover over reset days to see reasons.
+          <span className="font-semibold">Tip:</span> Green = completed clean
+          days, Blue = today (in progress), Red = reset days. Hover over reset
+          days to see reasons.
         </p>
       </div>
     </div>
