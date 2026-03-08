@@ -27,7 +27,6 @@ const workoutTypes = [
   {
     id: "chestTriceps",
     name: "Chest & Triceps",
-    description: "Chest focus, triceps secondary",
     primary: "chest",
     secondary: "triceps",
     color: "from-red-500 to-orange-500",
@@ -36,7 +35,6 @@ const workoutTypes = [
   {
     id: "tricepsChest",
     name: "Triceps & Chest",
-    description: "Triceps focus, chest secondary",
     primary: "triceps",
     secondary: "chest",
     color: "from-orange-500 to-red-500",
@@ -45,7 +43,6 @@ const workoutTypes = [
   {
     id: "backBiceps",
     name: "Back & Biceps",
-    description: "Back focus, biceps secondary",
     primary: "back",
     secondary: "biceps",
     color: "from-blue-500 to-cyan-500",
@@ -54,7 +51,6 @@ const workoutTypes = [
   {
     id: "bicepsBack",
     name: "Biceps & Back",
-    description: "Biceps focus, back secondary",
     primary: "biceps",
     secondary: "back",
     color: "from-cyan-500 to-blue-500",
@@ -63,7 +59,6 @@ const workoutTypes = [
   {
     id: "legsShoulders",
     name: "Legs & Shoulders",
-    description: "Legs focus, shoulders secondary",
     primary: "legs",
     secondary: "shoulders",
     color: "from-green-500 to-emerald-500",
@@ -72,7 +67,6 @@ const workoutTypes = [
   {
     id: "shouldersLegs",
     name: "Shoulders & Legs",
-    description: "Shoulders focus, legs secondary",
     primary: "shoulders",
     secondary: "legs",
     color: "from-emerald-500 to-green-500",
@@ -198,30 +192,31 @@ export default function GymStatsPage() {
       className="flex flex-col gap-4"
     >
       {/* View Toggle */}
-      <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
+      <div className="flex items-center gap-1.5 sm:gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1 sm:p-1.5 w-fit">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setView("calendar")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
             view === "calendar"
               ? "bg-orange-500 text-white"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          <Calendar size={18} />
+          <Calendar size={16} className="sm:w-4.5 sm:h-4.5" />
           Calendar
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setView("program")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
             view === "program"
               ? "bg-orange-500 text-white"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          <Dumbbell size={18} />
-          Training Program
+          <Dumbbell size={16} className="sm:w-4.5 sm:h-4.5" />
+          <span className="hidden xs:inline">Training Program</span>
+          <span className="xs:hidden">Program</span>
         </motion.button>
       </div>
 
@@ -232,34 +227,30 @@ export default function GymStatsPage() {
         /* Training Program View */
         <>
           {/* Header */}
-          <div className="flex items-center justify-between bg-navy-800/40 border border-navy-700/30 rounded-xl p-4">
-            <div>
-              <h2 className="text-xl font-bold text-text-primary mb-1">
-                Training Program
-              </h2>
-              <p className="text-sm text-text-secondary">
-                Configure 6 workout variations - train each muscle group with
-                different focus
-              </p>
-            </div>
+          <div className="flex items-center justify-between bg-navy-800/40 border border-navy-700/30 rounded-xl p-3 sm:p-4">
+            <h2 className="text-base sm:text-xl font-bold text-text-primary">
+              Select Exercises
+            </h2>
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => setIsEditMode(!isEditMode)}
                 variant={isEditMode ? "primary" : "secondary"}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5 text-sm"
               >
-                <Edit3 size={18} />
-                {isEditMode ? "Done" : "Edit"}
+                <Edit3 size={16} />
+                <span className="hidden sm:inline">
+                  {isEditMode ? "Done" : "Edit"}
+                </span>
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={updateProgram.isPending}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5 text-sm"
               >
                 {updateProgram.isPending ? (
-                  <Loader className="animate-spin" size={18} />
+                  <Loader className="animate-spin" size={16} />
                 ) : (
-                  <Save size={18} />
+                  <Save size={16} />
                 )}
                 Save
               </Button>
@@ -293,29 +284,24 @@ export default function GymStatsPage() {
                     onClick={() =>
                       setExpandedWorkout(isExpanded ? null : workout.id)
                     }
-                    className="w-full flex items-center justify-between p-6 hover:bg-navy-800/60 transition-colors"
+                    className="w-full flex items-center justify-between p-4 sm:p-6 hover:bg-navy-800/60 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                       <div
-                        className={`w-12 h-12 rounded-xl bg-linear-to-br ${workout.color} flex items-center justify-center text-2xl`}
+                        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-linear-to-br ${workout.color} flex items-center justify-center text-xl sm:text-2xl shrink-0`}
                       >
                         {workout.icon}
                       </div>
-                      <div className="text-left">
-                        <h3 className="text-lg font-semibold text-text-primary">
+                      <div className="text-left flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-text-primary truncate">
                           {workout.name}
                         </h3>
-                        <p className="text-sm text-text-secondary">
-                          {workout.description}
+                        <p className="text-xs sm:text-sm text-text-secondary">
+                          {workoutProgram.primary.length} exercises
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className="text-sm text-text-secondary">
-                          {workoutProgram.primary.length} exercises
-                        </div>
-                      </div>
+                    <div className="shrink-0">
                       {isExpanded ? (
                         <ChevronUp className="text-text-secondary" size={20} />
                       ) : (
@@ -329,15 +315,13 @@ export default function GymStatsPage() {
 
                   {/* Expanded Content */}
                   {isExpanded && (
-                    <div className="border-t border-navy-700/30 p-6 space-y-6">
+                    <div className="border-t border-navy-700/30 p-4 sm:p-6 space-y-4 sm:space-y-6">
                       {/* Primary Muscle Group Section */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
-                              Primary: {workout.primary}
-                            </h4>
-                            <span className="text-xs text-text-secondary">
+                          <h4 className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">
+                            {workout.primary}
+                            <span className="ml-2 text-[10px] normal-case opacity-70">
                               (
                               {
                                 workoutProgram.primary.filter((ex) =>
@@ -348,7 +332,7 @@ export default function GymStatsPage() {
                               }{" "}
                               selected)
                             </span>
-                          </div>
+                          </h4>
                           <button
                             onClick={() =>
                               openAddExerciseModal(workout.primary)
@@ -356,7 +340,7 @@ export default function GymStatsPage() {
                             className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
                           >
                             <Plus size={14} />
-                            Add
+                            <span className="hidden sm:inline">Add</span>
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -379,7 +363,7 @@ export default function GymStatsPage() {
                                     )
                                   }
                                   whileTap={{ scale: 0.95 }}
-                                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
                                     workoutProgram.primary.includes(
                                       exercise.name,
                                     )
@@ -418,11 +402,9 @@ export default function GymStatsPage() {
                       {/* Secondary Muscle Group Section */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
-                              Secondary: {workout.secondary}
-                            </h4>
-                            <span className="text-xs text-text-secondary">
+                          <h4 className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">
+                            {workout.secondary}
+                            <span className="ml-2 text-[10px] normal-case opacity-70">
                               (
                               {
                                 workoutProgram.primary.filter((ex) =>
@@ -433,7 +415,7 @@ export default function GymStatsPage() {
                               }{" "}
                               selected)
                             </span>
-                          </div>
+                          </h4>
                           <button
                             onClick={() =>
                               openAddExerciseModal(workout.secondary)
@@ -441,7 +423,7 @@ export default function GymStatsPage() {
                             className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
                           >
                             <Plus size={14} />
-                            Add
+                            <span className="hidden sm:inline">Add</span>
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -464,7 +446,7 @@ export default function GymStatsPage() {
                                     )
                                   }
                                   whileTap={{ scale: 0.95 }}
-                                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
                                     workoutProgram.primary.includes(
                                       exercise.name,
                                     )

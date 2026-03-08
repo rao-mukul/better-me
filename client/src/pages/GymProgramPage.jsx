@@ -25,7 +25,6 @@ const workoutTypes = [
   {
     id: "chestTriceps",
     name: "Chest & Triceps",
-    description: "Chest focus, triceps secondary",
     primary: "chest",
     secondary: "triceps",
     color: "from-red-500 to-orange-500",
@@ -34,7 +33,6 @@ const workoutTypes = [
   {
     id: "tricepsChest",
     name: "Triceps & Chest",
-    description: "Triceps focus, chest secondary",
     primary: "triceps",
     secondary: "chest",
     color: "from-orange-500 to-red-500",
@@ -43,7 +41,6 @@ const workoutTypes = [
   {
     id: "backBiceps",
     name: "Back & Biceps",
-    description: "Back focus, biceps secondary",
     primary: "back",
     secondary: "biceps",
     color: "from-blue-500 to-cyan-500",
@@ -52,7 +49,6 @@ const workoutTypes = [
   {
     id: "bicepsBack",
     name: "Biceps & Back",
-    description: "Biceps focus, back secondary",
     primary: "biceps",
     secondary: "back",
     color: "from-cyan-500 to-blue-500",
@@ -61,7 +57,6 @@ const workoutTypes = [
   {
     id: "legsShoulders",
     name: "Legs & Shoulders",
-    description: "Legs focus, shoulders secondary",
     primary: "legs",
     secondary: "shoulders",
     color: "from-green-500 to-emerald-500",
@@ -70,7 +65,6 @@ const workoutTypes = [
   {
     id: "shouldersLegs",
     name: "Shoulders & Legs",
-    description: "Shoulders focus, legs secondary",
     primary: "shoulders",
     secondary: "legs",
     color: "from-emerald-500 to-green-500",
@@ -188,37 +182,35 @@ export default function GymProgramPage() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 px-4 py-8 pb-28 md:pb-8">
+    <div className="min-h-screen bg-navy-900 px-3 sm:px-4 py-6 sm:py-8 pb-28 md:pb-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-text-primary mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">
               Training Program
             </h1>
-            <p className="text-text-secondary">
-              Configure 6 workout variations - train each muscle group with
-              different focus
-            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={() => setIsEditMode(!isEditMode)}
               variant={isEditMode ? "primary" : "secondary"}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1.5 text-sm"
             >
-              <Edit3 size={18} />
-              {isEditMode ? "Done" : "Edit"}
+              <Edit3 size={16} />
+              <span className="hidden sm:inline">
+                {isEditMode ? "Done" : "Edit"}
+              </span>
             </Button>
             <Button
               onClick={handleSave}
               disabled={updateProgram.isPending}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1.5 text-sm"
             >
               {updateProgram.isPending ? (
-                <Loader className="animate-spin" size={18} />
+                <Loader className="animate-spin" size={16} />
               ) : (
-                <Save size={18} />
+                <Save size={16} />
               )}
               Save
             </Button>
@@ -257,29 +249,24 @@ export default function GymProgramPage() {
                   onClick={() =>
                     setExpandedWorkout(isExpanded ? null : workout.id)
                   }
-                  className="w-full flex items-center justify-between p-6 hover:bg-navy-800/60 transition-colors"
+                  className="w-full flex items-center justify-between p-4 sm:p-6 hover:bg-navy-800/60 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                     <div
-                      className={`w-12 h-12 rounded-xl bg-linear-to-br ${workout.color} flex items-center justify-center text-2xl`}
+                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-linear-to-br ${workout.color} flex items-center justify-center text-xl sm:text-2xl shrink-0`}
                     >
                       {workout.icon}
                     </div>
-                    <div className="text-left">
-                      <h3 className="text-lg font-semibold text-text-primary">
+                    <div className="text-left flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-semibold text-text-primary truncate">
                         {workout.name}
                       </h3>
-                      <p className="text-sm text-text-secondary">
-                        {workout.description}
+                      <p className="text-xs sm:text-sm text-text-secondary">
+                        {workoutProgram.primary.length} exercises
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <div className="text-sm text-text-secondary">
-                        {workoutProgram.primary.length} exercises
-                      </div>
-                    </div>
+                  <div className="shrink-0">
                     {isExpanded ? (
                       <ChevronUp className="text-text-secondary" size={20} />
                     ) : (
@@ -290,22 +277,18 @@ export default function GymProgramPage() {
 
                 {/* Expanded Content */}
                 {isExpanded && (
-                  <div className="border-t border-navy-700/30 p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="text-md font-medium text-text-primary">
-                          {workout.name}
-                        </h4>
-                        <p className="text-xs text-text-secondary mt-1">
-                          {workout.description}
-                        </p>
-                      </div>
+                  <div className="border-t border-navy-700/30 p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-medium text-text-secondary uppercase tracking-wide">
+                        Select Exercises
+                      </h4>
                       <button
                         onClick={() => openAddExerciseModal(workout.primary)}
                         className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                       >
                         <Plus size={14} />
-                        Add Exercise
+                        <span className="hidden sm:inline">Add Exercise</span>
+                        <span className="sm:hidden">Add</span>
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -321,13 +304,13 @@ export default function GymProgramPage() {
                                 toggleExercise(workout.id, exercise.name, true)
                               }
                               whileTap={{ scale: 0.95 }}
-                              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
                                 workoutProgram.primary.includes(exercise.name)
                                   ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
                                   : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
                               }`}
                             >
-                              <span className="text-[10px] opacity-70 uppercase mr-1.5">
+                              <span className="text-[10px] opacity-70 uppercase mr-1 sm:mr-1.5 hidden xs:inline">
                                 {exercise.muscleGroup.slice(0, 4)}
                               </span>
                               {exercise.name}
