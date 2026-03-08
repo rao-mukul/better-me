@@ -43,16 +43,8 @@ export default function TodayPage() {
   const gymRef = useRef(null);
   const sleepRef = useRef(null);
 
-  // Track which section is expanded (only one at a time) - default to diet
-  const [expandedSection, setExpandedSection] = useState(() => {
-    const saved = localStorage.getItem("todayPageExpanded");
-    return saved ? saved : "diet";
-  });
-
-  // Save to localStorage whenever section changes
-  useEffect(() => {
-    localStorage.setItem("todayPageExpanded", expandedSection);
-  }, [expandedSection]);
+  // Track which section is expanded (only one at a time) - all collapsed by default
+  const [expandedSection, setExpandedSection] = useState(null);
 
   const toggleSection = (section) => {
     // If clicking the currently expanded section, collapse it
