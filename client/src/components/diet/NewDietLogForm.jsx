@@ -116,10 +116,12 @@ export default function NewDietLogForm({ onSuccess }) {
       let processedFile = file;
 
       // Check if the file is HEIC/HEIF format
+      // Note: iPhone photos might have empty MIME type, so check extension too
       const isHEIC =
         /\.(heic|heif)$/i.test(file.name) ||
         file.type === "image/heic" ||
-        file.type === "image/heif";
+        file.type === "image/heif" ||
+        (!file.type && /\.(heic|heif)$/i.test(file.name));
 
       if (isHEIC) {
         console.log("Converting HEIC image to JPEG...");
@@ -128,7 +130,7 @@ export default function NewDietLogForm({ onSuccess }) {
           const convertedBlob = await heic2any({
             blob: file,
             toType: "image/jpeg",
-            quality: 0.9,
+            quality: 0.8, // Reduced quality to keep file size smaller
           });
 
           // Create a new File object from the converted Blob
@@ -138,14 +140,36 @@ export default function NewDietLogForm({ onSuccess }) {
             { type: "image/jpeg" },
           );
 
+          console.log("HEIC conversion successful:", {
+            originalSize: file.size,
+            convertedSize: convertedFile.size,
+            type: convertedFile.type,
+          });
+
           processedFile = convertedFile;
-          console.log("HEIC conversion successful");
         } catch (conversionError) {
           console.error("HEIC conversion error:", conversionError);
-          alert("Failed to convert HEIC image. Please try a different photo.");
+          alert(
+            "Failed to convert HEIC image. Please try a different photo or change your camera settings to capture as JPEG.",
+          );
           return;
         }
       }
+
+      // Check file size (client-side validation)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (processedFile.size > maxSize) {
+        alert(
+          `Image is too large (${(processedFile.size / 1024 / 1024).toFixed(1)}MB). Please use a smaller image (max 5MB).`,
+        );
+        return;
+      }
+
+      console.log("Processed file ready:", {
+        name: processedFile.name,
+        type: processedFile.type,
+        size: processedFile.size,
+      });
 
       setCapturedImage(processedFile);
       const reader = new FileReader();
@@ -171,6 +195,12 @@ export default function NewDietLogForm({ onSuccess }) {
 
     try {
       console.log("Starting image analysis...");
+      console.log("Image to analyze:", {
+        name: capturedImage.name,
+        type: capturedImage.type,
+        size: capturedImage.size,
+      });
+
       const formData = new FormData();
       formData.append("mealImage", capturedImage);
 
@@ -194,7 +224,25 @@ export default function NewDietLogForm({ onSuccess }) {
         response: error.response?.data,
         status: error.response?.status,
       });
-      alert("Failed to analyze image. Please try again or enter manually.");
+
+      // More specific error messages
+      let errorMessage = "Failed to analyze image. ";
+      if (error.response?.status === 413) {
+        errorMessage += "Image is too large. Please use a smaller photo.";
+      } else if (error.response?.status === 400) {
+        errorMessage +=
+          error.response?.data?.error ||
+          "Invalid image format. Please try again.";
+      } else if (error.response?.status >= 500) {
+        errorMessage += "Server error. Please try again later.";
+      } else if (!error.response) {
+        errorMessage += "Network error. Check your internet connection.";
+      } else {
+        errorMessage += "Please try again or enter meal details manually.";
+      }
+
+      alert(errorMessage);
+
       // Go back to search instead of non-existent "capture" step
       setCapturedImage(null);
       setImagePreview(null);
