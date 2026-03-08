@@ -351,7 +351,7 @@ export default function NewGymLogForm({
                     <button
                       onClick={submitNewExercise}
                       disabled={!newExerciseName.trim()}
-                      className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-lg text-lg font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="w-10 h-10 flex items-center justify-center text-primary text-2xl font-bold hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       +
                     </button>
@@ -469,7 +469,7 @@ export default function NewGymLogForm({
                     <button
                       onClick={submitNewExercise}
                       disabled={!newExerciseName.trim()}
-                      className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-lg text-lg font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="w-10 h-10 flex items-center justify-center text-primary text-2xl font-bold hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       +
                     </button>
