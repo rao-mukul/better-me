@@ -86,42 +86,44 @@ export default function DietStatsPage() {
       className="flex flex-col gap-4"
     >
       {/* View Toggle */}
-      <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
+      <div className="flex items-center gap-1.5 sm:gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1 sm:p-1.5 w-fit">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setView("today")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
             view === "today"
               ? "bg-green-500 text-white"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          <ListOrdered size={18} />
-          Today's Log
+          <ListOrdered size={16} className="sm:w-4.5 sm:h-4.5" />
+          <span className="hidden xs:inline">Today's Log</span>
+          <span className="xs:hidden">Today</span>
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setView("calendar")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
             view === "calendar"
               ? "bg-green-500 text-white"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          <Calendar size={18} />
+          <Calendar size={16} className="sm:w-4.5 sm:h-4.5" />
           Calendar
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setView("library")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
             view === "library"
               ? "bg-green-500 text-white"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          <BookOpen size={18} />
-          Meal Library
+          <BookOpen size={16} className="sm:w-4.5 sm:h-4.5" />
+          <span className="hidden xs:inline">Meal Library</span>
+          <span className="xs:hidden">Library</span>
         </motion.button>
       </div>
 
