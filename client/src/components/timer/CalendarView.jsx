@@ -133,7 +133,7 @@ export default function CalendarView({ timer, stats }) {
 
   return (
     <div className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-center mb-4">
         <div className="flex items-center gap-2">
           <button
             onClick={() =>
@@ -158,20 +158,6 @@ export default function CalendarView({ timer, stats }) {
           >
             <ChevronRight size={18} className="text-text-primary" />
           </button>
-        </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-green-500/80" />
-            <span className="text-text-secondary">Clean</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-blue-500/80" />
-            <span className="text-text-secondary">Today</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-red-500/80" />
-            <span className="text-text-secondary">Reset</span>
-          </div>
         </div>
       </div>
 
@@ -214,15 +200,6 @@ export default function CalendarView({ timer, stats }) {
             </motion.div>
           );
         })}
-      </div>
-
-      {/* Legend */}
-      <div className="mt-4 pt-4 border-t border-border text-xs text-text-secondary">
-        <p>
-          <span className="font-semibold">Tip:</span> Green = completed clean
-          days, Blue = today (in progress), Red = reset days. Hover over reset
-          days to see reasons.
-        </p>
       </div>
     </div>
   );
