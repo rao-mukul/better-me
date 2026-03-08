@@ -54,6 +54,10 @@ export default function WaterTimeline({ logs = [], onDelete }) {
           });
           const isLast = index === logs.length - 1;
 
+          // Extract just the type name without the amount
+          // e.g., "Bottle (1 L)" becomes "Bottle"
+          const displayLabel = log.label.split("(")[0].trim();
+
           return (
             <motion.div
               key={log._id}
@@ -97,7 +101,7 @@ export default function WaterTimeline({ logs = [], onDelete }) {
 
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-semibold text-text-primary truncate">
-                    {log.label}
+                    {displayLabel}
                   </p>
                   <p className="text-xs text-text-secondary mt-0.5 hidden sm:block">
                     {log.amount} ml added
