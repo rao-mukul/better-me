@@ -178,26 +178,26 @@ export default function DietCalendar() {
       </div>
 
       {/* Legend */}
-      <div className="mt-6 flex items-center gap-4 text-xs text-text-secondary">
+      <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-text-secondary">
         <span className="font-medium">Calories:</span>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-100/30" />
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-100/30" />
           <span>&lt;1000</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-200/50" />
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-200/50" />
           <span>1000-1500</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-300" />
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-300" />
           <span>1500-2000</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-400" />
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-400" />
           <span>2000-2500</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-500" />
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-500" />
           <span>2500+</span>
         </div>
       </div>
