@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import heic2any from "heic2any";
 import {
   Camera,
   Image as ImageIcon,
@@ -101,7 +102,7 @@ export default function NewDietLogForm({ onSuccess }) {
   };
 
   // Handle image capture/upload
-  const handleImageSelect = (event) => {
+  const handleImageSelect = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -111,18 +112,57 @@ export default function NewDietLogForm({ onSuccess }) {
       size: file.size,
     });
 
-    setCapturedImage(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-      console.log("Image preview created");
-    };
-    reader.onerror = (error) => {
-      console.error("FileReader error:", error);
-      alert("Failed to read image file. Please try again.");
-    };
-    reader.readAsDataURL(file);
-    setStep("analyze");
+    try {
+      let processedFile = file;
+
+      // Check if the file is HEIC/HEIF format
+      const isHEIC =
+        /\.(heic|heif)$/i.test(file.name) ||
+        file.type === "image/heic" ||
+        file.type === "image/heif";
+
+      if (isHEIC) {
+        console.log("Converting HEIC image to JPEG...");
+        try {
+          // Convert HEIC to JPEG
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.9,
+          });
+
+          // Create a new File object from the converted Blob
+          const convertedFile = new File(
+            [Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob],
+            file.name.replace(/\.(heic|heif)$/i, ".jpg"),
+            { type: "image/jpeg" },
+          );
+
+          processedFile = convertedFile;
+          console.log("HEIC conversion successful");
+        } catch (conversionError) {
+          console.error("HEIC conversion error:", conversionError);
+          alert("Failed to convert HEIC image. Please try a different photo.");
+          return;
+        }
+      }
+
+      setCapturedImage(processedFile);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        console.log("Image preview created");
+      };
+      reader.onerror = (error) => {
+        console.error("FileReader error:", error);
+        alert("Failed to read image file. Please try again.");
+      };
+      reader.readAsDataURL(processedFile);
+      setStep("analyze");
+    } catch (error) {
+      console.error("Image processing error:", error);
+      alert("Failed to process image. Please try again.");
+    }
   };
 
   // Analyze image with AI
@@ -308,7 +348,7 @@ export default function NewDietLogForm({ onSuccess }) {
             <input
               ref={cameraInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               capture="environment"
               onChange={handleImageSelect}
               className="hidden"
@@ -316,7 +356,7 @@ export default function NewDietLogForm({ onSuccess }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               onChange={handleImageSelect}
               className="hidden"
             />
