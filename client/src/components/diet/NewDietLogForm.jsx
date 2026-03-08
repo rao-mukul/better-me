@@ -101,6 +101,76 @@ export default function NewDietLogForm({ onSuccess }) {
     setStep("nutrition");
   };
 
+  // Helper function to resize and compress image
+  const resizeAndCompressImage = (file, maxSizeMB = 5) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = 2048; // Max width or height
+
+          // Resize if image is too large
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height / width) * maxDimension;
+              width = maxDimension;
+            } else {
+              width = (width / height) * maxDimension;
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Start with quality 0.8 and reduce if needed
+          let quality = 0.8;
+          const tryCompress = (currentQuality) => {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error("Failed to compress image"));
+                  return;
+                }
+
+                const sizeMB = blob.size / 1024 / 1024;
+                console.log(
+                  `Compressed to ${sizeMB.toFixed(2)}MB with quality ${currentQuality}`,
+                );
+
+                // If still too large and we can reduce quality further, try again
+                if (sizeMB > maxSizeMB && currentQuality > 0.3) {
+                  tryCompress(currentQuality - 0.1);
+                } else {
+                  // Convert blob to File
+                  const compressedFile = new File([blob], file.name, {
+                    type: "image/jpeg",
+                    lastModified: Date.now(),
+                  });
+                  resolve(compressedFile);
+                }
+              },
+              "image/jpeg",
+              currentQuality,
+            );
+          };
+
+          tryCompress(quality);
+        };
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Handle image capture/upload
   const handleImageSelect = async (event) => {
     const file = event.target.files?.[0];
@@ -126,11 +196,11 @@ export default function NewDietLogForm({ onSuccess }) {
       if (isHEIC) {
         console.log("Converting HEIC image to JPEG...");
         try {
-          // Convert HEIC to JPEG
+          // Convert HEIC to JPEG with lower quality
           const convertedBlob = await heic2any({
             blob: file,
             toType: "image/jpeg",
-            quality: 0.8, // Reduced quality to keep file size smaller
+            quality: 0.6, // Lower quality for initial conversion
           });
 
           // Create a new File object from the converted Blob
@@ -156,11 +226,28 @@ export default function NewDietLogForm({ onSuccess }) {
         }
       }
 
-      // Check file size (client-side validation)
+      // Always compress and resize to ensure file is under 5MB
+      console.log("Compressing image...");
+      try {
+        const compressedFile = await resizeAndCompressImage(processedFile, 4.5); // Target 4.5MB to have buffer
+
+        console.log("Compression complete:", {
+          originalSize: `${(processedFile.size / 1024 / 1024).toFixed(2)}MB`,
+          compressedSize: `${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`,
+        });
+
+        processedFile = compressedFile;
+      } catch (compressionError) {
+        console.error("Compression error:", compressionError);
+        alert("Failed to process image. Please try a different photo.");
+        return;
+      }
+
+      // Final size check
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (processedFile.size > maxSize) {
         alert(
-          `Image is too large (${(processedFile.size / 1024 / 1024).toFixed(1)}MB). Please use a smaller image (max 5MB).`,
+          `Image is still too large (${(processedFile.size / 1024 / 1024).toFixed(1)}MB). Please use a smaller photo.`,
         );
         return;
       }
@@ -168,7 +255,7 @@ export default function NewDietLogForm({ onSuccess }) {
       console.log("Processed file ready:", {
         name: processedFile.name,
         type: processedFile.type,
-        size: processedFile.size,
+        size: `${(processedFile.size / 1024 / 1024).toFixed(2)}MB`,
       });
 
       setCapturedImage(processedFile);
