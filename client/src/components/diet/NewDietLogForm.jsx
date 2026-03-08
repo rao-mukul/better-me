@@ -372,10 +372,23 @@ export default function NewDietLogForm({ onSuccess }) {
     }
 
     try {
+      console.log("=== Starting meal save and log ===");
+      console.log("Current meal data:", {
+        mealName,
+        calories,
+        protein,
+        carbs,
+        fat,
+        servingSize,
+        category,
+        selectedMeal: selectedMeal?._id,
+      });
+
       // Save to library first (if AI analyzed or has image)
       let mealId = selectedMeal?._id;
 
       if (!selectedMeal && (aiAnalysis || imageData)) {
+        console.log("Saving new meal to library...");
         const savedMeal = await saveMeal.mutateAsync({
           name: mealName,
           description: mealDescription,
@@ -392,11 +405,23 @@ export default function NewDietLogForm({ onSuccess }) {
           tags: aiAnalysis?.tags || [],
           isAIAnalyzed: !!aiAnalysis,
         });
+        console.log("Meal saved to library:", savedMeal);
         mealId = savedMeal._id;
       }
 
+      // Get current time in local timezone (not UTC)
+      // This ensures the date matches what getTodayDate() returns
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const seconds = String(now.getSeconds()).padStart(2, "0");
+      const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+
       // Log the meal
-      await logMeal.mutateAsync({
+      const logData = {
         mealId,
         foodName: mealName,
         calories: parseFloat(calories),
@@ -405,8 +430,13 @@ export default function NewDietLogForm({ onSuccess }) {
         fat: parseFloat(fat),
         servingSize,
         category,
-        eatenAt: new Date().toISOString(),
-      });
+        eatenAt: localDateTime,
+      };
+      console.log("Logging meal with data:", logData);
+
+      const logResult = await logMeal.mutateAsync(logData);
+      console.log("Meal logged successfully:", logResult);
+      console.log("=== Meal save and log complete ===");
 
       setStep("done");
       setTimeout(() => {
@@ -415,6 +445,7 @@ export default function NewDietLogForm({ onSuccess }) {
       }, 1500);
     } catch (error) {
       console.error("Save failed:", error);
+      console.error("Error response:", error.response?.data);
       alert("Failed to log meal. Please try again.");
     }
   };
