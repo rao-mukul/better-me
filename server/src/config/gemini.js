@@ -3,9 +3,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Get the model - using gemini-2.5-flash (stable, fast, multimodal with vision)
+// Image analysis model - default temperature for better creative food recognition
 export const geminiModel = genAI.getGenerativeModel({
   model: "gemini-2.5-flash", // Stable Gemini 2.5 Flash - supports image analysis
+});
+
+// Nutrition calculation model - temperature 0 for deterministic, consistent values
+const geminiNutritionModel = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash",
+  generationConfig: {
+    temperature: 0, // deterministic output — same food/portion always returns same macros
+  },
 });
 
 // Helper function to analyze food image
@@ -148,7 +156,7 @@ Provide nutritional information as a JSON object:
 
 Be as accurate as possible. This is for health tracking, precision matters.`;
 
-    const result = await geminiModel.generateContent(prompt);
+    const result = await geminiNutritionModel.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
