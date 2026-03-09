@@ -125,13 +125,30 @@ export const analyzeMealImage = async (req, res, next) => {
       req.file.originalname,
     );
 
-    // Analyze with Gemini - pass the correct MIME type
-    const analysis = await analyzeFoodImage(imageBase64, req.file.mimetype);
+    try {
+      // Analyze with Gemini - pass the correct MIME type
+      const analysis = await analyzeFoodImage(imageBase64, req.file.mimetype);
 
-    res.json({
-      analysis,
-      imageData,
-    });
+      res.json({
+        analysis,
+        imageData,
+      });
+    } catch (analysisError) {
+      // If AI analysis fails, cleanup the uploaded image and propagate error
+      console.error(
+        "AI analysis failed, cleaning up image:",
+        imageData.imageId,
+      );
+      try {
+        await deleteMealImage(imageData.imageId);
+      } catch (cleanupError) {
+        console.error(
+          "Failed to cleanup image after analysis error:",
+          cleanupError,
+        );
+      }
+      throw analysisError;
+    }
   } catch (err) {
     console.error("Meal analysis error:", err);
     console.error("Error details:", {
@@ -232,12 +249,13 @@ export const saveMealToLibrary = async (req, res, next) => {
       existingMeal.tags = tags || existingMeal.tags;
       existingMeal.isAIAnalyzed = isAIAnalyzed || existingMeal.isAIAnalyzed;
 
-      // Update image if new one provided
+      // Update image if new one provided AND it's different
       if (imageUrl && imageUrl !== existingMeal.imageUrl) {
         // Delete old image if exists
         if (existingMeal.imageId) {
           try {
             await deleteMealImage(existingMeal.imageId);
+            console.log(`Deleted old image: ${existingMeal.imageId}`);
           } catch (err) {
             console.error("Failed to delete old image:", err);
           }
@@ -245,6 +263,14 @@ export const saveMealToLibrary = async (req, res, next) => {
         existingMeal.imageUrl = imageUrl;
         existingMeal.imageId = imageId;
         existingMeal.thumbnailUrl = thumbnailUrl;
+      } else if (imageId && imageId !== existingMeal.imageId) {
+        // If a new image was uploaded but we're keeping the old one, delete the new one
+        try {
+          await deleteMealImage(imageId);
+          console.log(`Deleted duplicate image: ${imageId}`);
+        } catch (err) {
+          console.error("Failed to delete duplicate image:", err);
+        }
       }
 
       await existingMeal.save();
@@ -399,8 +425,10 @@ export const deleteMealFromLibrary = async (req, res, next) => {
     if (meal.imageId) {
       try {
         await deleteMealImage(meal.imageId);
+        console.log(`Deleted image from ImageKit: ${meal.imageId}`);
       } catch (err) {
-        console.error("Failed to delete image:", err);
+        console.error("Failed to delete image from ImageKit:", err);
+        // Continue with meal deletion even if image deletion fails
       }
     }
 
@@ -410,6 +438,29 @@ export const deleteMealFromLibrary = async (req, res, next) => {
     await meal.deleteOne();
 
     res.json({ message: "Meal deleted from library" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Cleanup orphaned image (when user abandons form)
+export const cleanupImage = async (req, res, next) => {
+  try {
+    const { imageId } = req.body;
+
+    if (!imageId) {
+      return res.status(400).json({ error: "Image ID is required" });
+    }
+
+    try {
+      await deleteMealImage(imageId);
+      console.log(`Cleaned up orphaned image: ${imageId}`);
+      res.json({ message: "Image deleted successfully" });
+    } catch (err) {
+      console.error("Failed to delete image:", err);
+      // Return success anyway - image might already be deleted
+      res.json({ message: "Image cleanup attempted" });
+    }
   } catch (err) {
     next(err);
   }
@@ -492,6 +543,7 @@ export default {
   logMeal,
   deleteLog,
   deleteMealFromLibrary,
+  cleanupImage,
   getMonthData,
   uploadMiddleware,
 };

@@ -127,6 +127,10 @@ export const dietApi = {
   getMealNutrition: (data) =>
     api.post("/diet/get-nutrition", data).then((r) => r.data),
 
+  // Image cleanup
+  cleanupImage: (imageId) =>
+    api.post("/diet/cleanup-image", { imageId }).then((r) => r.data),
+
   // Save meal to library
   saveMeal: (data) => api.post("/diet/meals", data).then((r) => r.data),
 

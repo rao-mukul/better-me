@@ -9,6 +9,7 @@ import {
   logMeal,
   deleteLog,
   deleteMealFromLibrary,
+  cleanupImage,
   getMonthData,
   uploadMiddleware,
 } from "../controllers/dietControllerNew.js";
@@ -29,6 +30,9 @@ router.delete("/meals/:id", deleteMealFromLibrary);
 // AI-powered meal analysis
 router.post("/analyze-image", uploadMiddleware, analyzeMealImage);
 router.post("/get-nutrition", getMealNutrition);
+
+// Image cleanup
+router.post("/cleanup-image", cleanupImage);
 
 // Save meal to library (after AI analysis or manual entry)
 router.post("/meals", saveMealToLibrary);

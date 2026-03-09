@@ -24,6 +24,7 @@ import {
   useLogMeal,
 } from "../../hooks/useDietData";
 import { getMealImageUrl } from "../../utils/imageHelpers";
+import { dietApi } from "../../services/api";
 
 const mealCategories = [
   { value: "breakfast", label: "Breakfast", emoji: "🌅" },
@@ -46,6 +47,10 @@ export default function NewDietLogForm({ onSuccess }) {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [imageData, setImageData] = useState(null);
   const [nutritionData, setNutritionData] = useState(null);
+
+  // Track if uploaded image needs cleanup (if meal is not saved)
+  const [pendingImageId, setPendingImageId] = useState(null);
+  const needsCleanup = useRef(false);
 
   // Form Data
   const [mealName, setMealName] = useState("");
@@ -83,8 +88,25 @@ export default function NewDietLogForm({ onSuccess }) {
   const saveMeal = useSaveMeal();
   const logMeal = useLogMeal();
 
+  // Cleanup orphaned images on unmount
+  useEffect(() => {
+    return () => {
+      // If component unmounts and there's a pending image that wasn't saved
+      if (needsCleanup.current && pendingImageId) {
+        console.log("Cleaning up orphaned image on unmount:", pendingImageId);
+        dietApi.cleanupImage(pendingImageId).catch((err) => {
+          console.error("Failed to cleanup image:", err);
+        });
+      }
+    };
+  }, [pendingImageId]);
+
   // Reset form
   const resetForm = () => {
+    // Don't cleanup the image here since it might be saved
+    setPendingImageId(null);
+    needsCleanup.current = false;
+
     setStep("search");
     setSearchQuery("");
     setProcessingStatus("");
@@ -115,6 +137,23 @@ export default function NewDietLogForm({ onSuccess }) {
     });
   };
 
+  // Handle cancel/back - cleanup any uploaded images
+  const handleCancel = async () => {
+    // If there's a pending image that needs cleanup, delete it
+    if (needsCleanup.current && pendingImageId) {
+      console.log("Cancelling form, cleaning up image:", pendingImageId);
+      try {
+        await dietApi.cleanupImage(pendingImageId);
+        console.log("Image cleaned up successfully");
+      } catch (err) {
+        console.error("Failed to cleanup image:", err);
+      }
+    }
+
+    // Reset the form
+    resetForm();
+  };
+
   // Handle manual entry (skip AI analysis)
   const handleManualEntry = () => {
     setStep("approve");
@@ -131,6 +170,15 @@ export default function NewDietLogForm({ onSuccess }) {
     setFat(meal.fat);
     setServingSize(meal.servingSize || "");
     setCategory(meal.category || "other");
+
+    // Use existing image from the meal library (no need to upload new one)
+    if (meal.imageUrl) {
+      setImageData({
+        imageUrl: meal.imageUrl,
+        imageId: meal.imageId,
+        thumbnailUrl: meal.thumbnailUrl,
+      });
+    }
 
     // Skip directly to nutrition step since we already have all data
     setStep("nutrition");
@@ -344,6 +392,13 @@ export default function NewDietLogForm({ onSuccess }) {
       setAiAnalysis(result.analysis);
       setImageData(result.imageData);
 
+      // Track this image for potential cleanup if meal isn't saved
+      if (result.imageData?.imageId) {
+        setPendingImageId(result.imageData.imageId);
+        needsCleanup.current = true;
+        console.log("Tracking image for cleanup:", result.imageData.imageId);
+      }
+
       // Pre-fill form with AI analysis
       setMealName(result.analysis.name || "");
       setMealDescription(result.analysis.description || "");
@@ -469,6 +524,7 @@ export default function NewDietLogForm({ onSuccess }) {
         servingSize,
         category,
         selectedMeal: selectedMeal?._id,
+        imageData,
       });
 
       // Save to library first (if it's a new meal, not from library)
@@ -494,6 +550,10 @@ export default function NewDietLogForm({ onSuccess }) {
         });
         console.log("Meal saved to library:", savedMeal);
         mealId = savedMeal._id;
+
+        // Image is now saved with the meal, no need to cleanup
+        needsCleanup.current = false;
+        console.log("Image saved with meal, cleanup flag cleared");
       }
 
       // Log the meal with current time in ISO format (includes timezone)
@@ -768,7 +828,7 @@ export default function NewDietLogForm({ onSuccess }) {
                 Confirm Details
               </h3>
               <button
-                onClick={() => setStep("search")}
+                onClick={handleCancel}
                 className="p-1.5 sm:p-2 hover:bg-navy-700/50 rounded-lg transition-colors"
               >
                 <X
