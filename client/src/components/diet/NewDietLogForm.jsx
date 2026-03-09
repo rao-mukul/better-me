@@ -31,9 +31,10 @@ const mealCategories = [
 
 export default function NewDietLogForm({ onSuccess }) {
   // UI State
-  const [step, setStep] = useState("search"); // search, capture, analyze, approve, nutrition, done
+  const [step, setStep] = useState("search"); // search, processing, analyze, approve, nutrition, done
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(true);
+  const [processingStatus, setProcessingStatus] = useState("");
 
   // Meal Data
   const [selectedMeal, setSelectedMeal] = useState(null);
@@ -70,6 +71,7 @@ export default function NewDietLogForm({ onSuccess }) {
   const resetForm = () => {
     setStep("search");
     setSearchQuery("");
+    setProcessingStatus("");
     setSelectedMeal(null);
     setCapturedImage(null);
     setImagePreview(null);
@@ -183,6 +185,10 @@ export default function NewDietLogForm({ onSuccess }) {
       size: file.size,
     });
 
+    // Show processing UI immediately
+    setStep("processing");
+    setProcessingStatus("Preparing image...");
+
     try {
       let processedFile = file;
 
@@ -196,6 +202,7 @@ export default function NewDietLogForm({ onSuccess }) {
 
       if (isHEIC) {
         console.log("Converting HEIC image to JPEG...");
+        setProcessingStatus("Converting image format...");
         try {
           // Convert HEIC to JPEG with lower quality
           const convertedBlob = await heic2any({
@@ -223,12 +230,14 @@ export default function NewDietLogForm({ onSuccess }) {
           alert(
             "Failed to convert HEIC image. Please try a different photo or change your camera settings to capture as JPEG.",
           );
+          setStep("search");
           return;
         }
       }
 
       // Always compress and resize to ensure file is under 5MB
       console.log("Compressing image...");
+      setProcessingStatus("Optimizing image size...");
       try {
         const compressedFile = await resizeAndCompressImage(processedFile, 4.5); // Target 4.5MB to have buffer
 
@@ -241,6 +250,7 @@ export default function NewDietLogForm({ onSuccess }) {
       } catch (compressionError) {
         console.error("Compression error:", compressionError);
         alert("Failed to process image. Please try a different photo.");
+        setStep("search");
         return;
       }
 
@@ -250,6 +260,7 @@ export default function NewDietLogForm({ onSuccess }) {
         alert(
           `Image is still too large (${(processedFile.size / 1024 / 1024).toFixed(1)}MB). Please use a smaller photo.`,
         );
+        setStep("search");
         return;
       }
 
@@ -259,21 +270,24 @@ export default function NewDietLogForm({ onSuccess }) {
         size: `${(processedFile.size / 1024 / 1024).toFixed(2)}MB`,
       });
 
+      setProcessingStatus("Loading preview...");
       setCapturedImage(processedFile);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
         console.log("Image preview created");
+        setStep("analyze");
       };
       reader.onerror = (error) => {
         console.error("FileReader error:", error);
         alert("Failed to read image file. Please try again.");
+        setStep("search");
       };
       reader.readAsDataURL(processedFile);
-      setStep("analyze");
     } catch (error) {
       console.error("Image processing error:", error);
       alert("Failed to process image. Please try again.");
+      setStep("search");
     }
   };
 
@@ -550,6 +564,41 @@ export default function NewDietLogForm({ onSuccess }) {
           </motion.div>
         )}
 
+        {/* Step 1.5: Processing Image */}
+        {step === "processing" && (
+          <motion.div
+            key="processing"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="text-center py-8 sm:py-12"
+          >
+            <motion.div
+              className="w-40 h-40 sm:w-48 sm:h-48 mx-auto mb-4 sm:mb-6 bg-navy-800/40 rounded-lg sm:rounded-xl flex items-center justify-center border-2 border-primary/20"
+              animate={{
+                borderColor: [
+                  "rgba(56, 189, 248, 0.2)",
+                  "rgba(56, 189, 248, 0.5)",
+                  "rgba(56, 189, 248, 0.2)",
+                ],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <ImageIcon className="text-navy-600" size={48} />
+            </motion.div>
+            <Loader2
+              className="animate-spin text-primary mx-auto mb-3 sm:mb-4"
+              size={32}
+            />
+            <p className="text-text-primary text-sm sm:text-base font-medium mb-1.5 sm:mb-2">
+              {processingStatus}
+            </p>
+            <p className="text-text-secondary text-xs sm:text-sm">
+              This may take a few seconds
+            </p>
+          </motion.div>
+        )}
+
         {/* Step 2: Analyzing (auto-triggered) */}
         {step === "analyze" && (
           <motion.div
@@ -563,19 +612,22 @@ export default function NewDietLogForm({ onSuccess }) {
               <img
                 src={imagePreview}
                 alt="Captured meal"
-                className="w-40 h-40 sm:w-48 sm:h-48 object-cover rounded-lg sm:rounded-xl mx-auto mb-4 sm:mb-6"
+                className="w-40 h-40 sm:w-48 sm:h-48 object-cover rounded-lg sm:rounded-xl mx-auto mb-4 sm:mb-6 border-2 border-primary/20"
               />
             )}
-            <Loader2
-              className="animate-spin text-primary mx-auto mb-3 sm:mb-4"
-              size={32}
-            />
+            <div className="relative inline-block mb-3 sm:mb-4">
+              <Loader2 className="animate-spin text-primary" size={32} />
+            </div>
             <p className="text-text-primary text-sm sm:text-base font-medium mb-1.5 sm:mb-2">
-              Analyzing your meal...
+              Analyzing your meal with AI...
             </p>
-            <p className="text-text-secondary text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2">
+            <p className="text-text-secondary text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 mb-2">
               <Sparkles size={14} className="sm:w-4 sm:h-4" />
               AI is identifying the food
+            </p>
+            <p className="text-text-secondary text-[10px] sm:text-xs opacity-75 flex items-center justify-center gap-1">
+              <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
+              Usually takes 2-5 seconds
             </p>
           </motion.div>
         )}
