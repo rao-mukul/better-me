@@ -142,43 +142,8 @@ export default function DietStatsPage() {
             </h3>
 
             {totals.count > 0 ? (
-              <div className="flex items-center justify-around gap-4">
+              <div className="flex items-center justify-around gap-2">
                 {/* Calories - Larger */}
-                <div className="flex flex-col items-center">
-                  <div className="relative w-20 h-20 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
-                        stroke="currentColor"
-                        strokeWidth="6"
-                        fill="none"
-                        className="text-navy-700/40"
-                      />
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
-                        stroke="currentColor"
-                        strokeWidth="6"
-                        fill="none"
-                        strokeDasharray={`${226} ${226}`}
-                        className="text-green-400"
-                      />
-                    </svg>
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-text-primary">
-                        {totals.calories}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-text-secondary mt-1">
-                    Calories
-                  </span>
-                </div>
-
-                {/* Protein */}
                 <div className="flex flex-col items-center">
                   <div className="relative w-16 h-16 flex items-center justify-center">
                     <svg className="absolute inset-0 w-full h-full -rotate-90">
@@ -199,6 +164,41 @@ export default function DietStatsPage() {
                         strokeWidth="5"
                         fill="none"
                         strokeDasharray={`${176} ${176}`}
+                        className="text-green-400"
+                      />
+                    </svg>
+                    <div className="text-center">
+                      <div className="text-base font-bold text-text-primary">
+                        {totals.calories}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-text-secondary mt-1">
+                    Calories
+                  </span>
+                </div>
+
+                {/* Protein */}
+                <div className="flex flex-col items-center">
+                  <div className="relative w-14 h-14 flex items-center justify-center">
+                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                      <circle
+                        cx="28"
+                        cy="28"
+                        r="24"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                        className="text-navy-700/40"
+                      />
+                      <circle
+                        cx="28"
+                        cy="28"
+                        r="24"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                        strokeDasharray={`${151} ${151}`}
                         className="text-blue-400"
                       />
                     </svg>
@@ -215,25 +215,25 @@ export default function DietStatsPage() {
 
                 {/* Carbs */}
                 <div className="flex flex-col items-center">
-                  <div className="relative w-16 h-16 flex items-center justify-center">
+                  <div className="relative w-14 h-14 flex items-center justify-center">
                     <svg className="absolute inset-0 w-full h-full -rotate-90">
                       <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
+                        cx="28"
+                        cy="28"
+                        r="24"
                         stroke="currentColor"
-                        strokeWidth="5"
+                        strokeWidth="4"
                         fill="none"
                         className="text-navy-700/40"
                       />
                       <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
+                        cx="28"
+                        cy="28"
+                        r="24"
                         stroke="currentColor"
-                        strokeWidth="5"
+                        strokeWidth="4"
                         fill="none"
-                        strokeDasharray={`${176} ${176}`}
+                        strokeDasharray={`${151} ${151}`}
                         className="text-orange-400"
                       />
                     </svg>
@@ -250,25 +250,25 @@ export default function DietStatsPage() {
 
                 {/* Fat */}
                 <div className="flex flex-col items-center">
-                  <div className="relative w-16 h-16 flex items-center justify-center">
+                  <div className="relative w-14 h-14 flex items-center justify-center">
                     <svg className="absolute inset-0 w-full h-full -rotate-90">
                       <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
+                        cx="28"
+                        cy="28"
+                        r="24"
                         stroke="currentColor"
-                        strokeWidth="5"
+                        strokeWidth="4"
                         fill="none"
                         className="text-navy-700/40"
                       />
                       <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
+                        cx="28"
+                        cy="28"
+                        r="24"
                         stroke="currentColor"
-                        strokeWidth="5"
+                        strokeWidth="4"
                         fill="none"
-                        strokeDasharray={`${176} ${176}`}
+                        strokeDasharray={`${151} ${151}`}
                         className="text-yellow-400"
                       />
                     </svg>
@@ -295,9 +295,9 @@ export default function DietStatsPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-6"
+            className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-3 sm:p-6"
           >
-            <h3 className="text-lg font-semibold text-text-primary mb-6">
+            <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-4 sm:mb-6">
               Meal Timeline
             </h3>
             <DietTimeline logs={logs} onDelete={handleDelete} />
