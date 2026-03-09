@@ -5,6 +5,7 @@ export function useSleepToday() {
   return useQuery({
     queryKey: ["sleep", "today"],
     queryFn: sleepApi.getToday,
+    staleTime: 30000, // Consider data fresh for 30s
     refetchOnWindowFocus: true,
   });
 }
@@ -13,6 +14,7 @@ export function useSleepWeekLogs() {
   return useQuery({
     queryKey: ["sleep", "week-logs"],
     queryFn: sleepApi.getWeekLogs,
+    staleTime: 60000, // Consider data fresh for 1min
     refetchOnWindowFocus: true,
   });
 }

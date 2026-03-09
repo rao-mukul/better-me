@@ -5,6 +5,7 @@ export function useWaterToday() {
   return useQuery({
     queryKey: ["water", "today"],
     queryFn: waterApi.getToday,
+    staleTime: 30000, // Consider data fresh for 30s
     refetchOnWindowFocus: true,
   });
 }
@@ -35,6 +36,7 @@ export function useWaterWeek() {
   return useQuery({
     queryKey: ["water", "week"],
     queryFn: waterApi.getWeek,
+    staleTime: 60000, // Consider data fresh for 1min
   });
 }
 

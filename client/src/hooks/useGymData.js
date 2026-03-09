@@ -5,6 +5,7 @@ export function useGymToday() {
   return useQuery({
     queryKey: ["gym", "today"],
     queryFn: gymApi.getTodayLog,
+    staleTime: 30000, // Consider data fresh for 30s
     refetchOnWindowFocus: true,
   });
 }
@@ -37,6 +38,7 @@ export function useGymExercises() {
   return useQuery({
     queryKey: ["gym", "exercises"],
     queryFn: gymApi.getExercises,
+    staleTime: 300000, // Consider data fresh for 5min (rarely changes)
   });
 }
 

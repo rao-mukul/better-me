@@ -5,6 +5,7 @@ export function useDietToday() {
   return useQuery({
     queryKey: ["diet", "today"],
     queryFn: dietApi.getToday,
+    staleTime: 30000, // Consider data fresh for 30s
     refetchOnWindowFocus: true,
   });
 }
@@ -29,6 +30,7 @@ export function usePopularMeals() {
   return useQuery({
     queryKey: ["diet", "popular"],
     queryFn: dietApi.getPopularMeals,
+    staleTime: 300000, // Consider data fresh for 5min
   });
 }
 
