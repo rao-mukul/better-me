@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Sparkles,
   Clock,
+  Plus,
 } from "lucide-react";
 import {
   useSearchMeals,
@@ -53,6 +54,8 @@ export default function NewDietLogForm({ onSuccess }) {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
   const [servingSize, setServingSize] = useState("");
+  const [ingredients, setIngredients] = useState([]);
+  const [newIngredient, setNewIngredient] = useState("");
 
   // Refs
   const fileInputRef = useRef(null);
@@ -86,6 +89,8 @@ export default function NewDietLogForm({ onSuccess }) {
     setCarbs("");
     setFat("");
     setServingSize("");
+    setIngredients([]);
+    setNewIngredient("");
   };
 
   // Handle meal selection from search
@@ -317,6 +322,7 @@ export default function NewDietLogForm({ onSuccess }) {
       setMealDescription(result.analysis.description || "");
       setCategory(result.analysis.category || "other");
       setServingSize(result.analysis.portionSize || "");
+      setIngredients(result.analysis.ingredients || []);
 
       setStep("approve");
     } catch (error) {
@@ -361,6 +367,7 @@ export default function NewDietLogForm({ onSuccess }) {
         name: mealName,
         description: mealDescription,
         portionSize: servingSize || "1 serving",
+        ingredients: ingredients,
       });
 
       setCalories(result.calories);
@@ -376,6 +383,26 @@ export default function NewDietLogForm({ onSuccess }) {
     } catch (error) {
       console.error("Nutrition fetch failed:", error);
       alert("Failed to get nutrition info. Please enter manually.");
+    }
+  };
+
+  // Ingredient management
+  const handleRemoveIngredient = (indexToRemove) => {
+    setIngredients(ingredients.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleAddIngredient = () => {
+    const trimmed = newIngredient.trim().toLowerCase();
+    if (trimmed && !ingredients.includes(trimmed)) {
+      setIngredients([...ingredients, trimmed]);
+      setNewIngredient("");
+    }
+  };
+
+  const handleIngredientKeyPress = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddIngredient();
     }
   };
 
@@ -736,30 +763,67 @@ export default function NewDietLogForm({ onSuccess }) {
               </div>
             </div>
 
-            {/* AI Tags */}
-            {aiAnalysis?.tags && aiAnalysis.tags.length > 0 && (
-              <div>
-                <p className="text-[10px] sm:text-xs text-text-secondary mb-1.5 sm:mb-2">
-                  AI Detected:
-                </p>
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {aiAnalysis.tags.map((tag, i) => (
-                    <span
+            {/* Ingredients (Editable) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                <label className="text-[10px] sm:text-xs text-text-secondary">
+                  Ingredients{" "}
+                  {ingredients.length > 0 && `(${ingredients.length})`}
+                </label>
+                <span className="text-[9px] sm:text-[10px] text-text-secondary/70">
+                  Used for nutrition calculation
+                </span>
+              </div>
+
+              {/* Ingredient chips */}
+              {ingredients.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
+                  {ingredients.map((ingredient, i) => (
+                    <motion.div
                       key={i}
-                      className="px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-full bg-green-500/20 text-green-400 border border-green-500/30"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      className="group flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-full bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-colors"
                     >
-                      {tag}
-                    </span>
+                      <span>{ingredient}</span>
+                      <button
+                        onClick={() => handleRemoveIngredient(i)}
+                        className="opacity-60 hover:opacity-100 transition-opacity"
+                        type="button"
+                      >
+                        <X size={12} className="sm:w-3.5 sm:h-3.5" />
+                      </button>
+                    </motion.div>
                   ))}
                 </div>
+              )}
+
+              {/* Add ingredient input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newIngredient}
+                  onChange={(e) => setNewIngredient(e.target.value)}
+                  onKeyPress={handleIngredientKeyPress}
+                  placeholder="Add ingredient (e.g., chicken, rice)"
+                  className="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                />
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleAddIngredient}
+                  disabled={!newIngredient.trim()}
+                  type="button"
+                  className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus size={16} className="sm:w-5 sm:h-5" />
+                </motion.button>
               </div>
-            )}
+            </div>
 
             {/* Actions */}
             <div className="flex gap-2 sm:gap-3 pt-1 sm:pt-2">
-              {/* Check if nutrition is already complete */}
               {calories && protein && carbs && fat ? (
-                // Nutrition already available - allow direct proceed
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setStep("nutrition")}
@@ -769,7 +833,6 @@ export default function NewDietLogForm({ onSuccess }) {
                   <ChevronRight size={16} className="sm:w-4.5 sm:h-4.5" />
                 </motion.button>
               ) : (
-                // Need to fetch nutrition from AI
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={handleGetNutrition}

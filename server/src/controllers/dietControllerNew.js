@@ -145,7 +145,7 @@ export const analyzeMealImage = async (req, res, next) => {
 // Get nutritional info for a meal (from Gemini)
 export const getMealNutrition = async (req, res, next) => {
   try {
-    const { name, description, portionSize } = req.body;
+    const { name, description, portionSize, ingredients } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: "Meal name is required" });
@@ -155,6 +155,7 @@ export const getMealNutrition = async (req, res, next) => {
       name,
       description || "",
       portionSize || "1 serving",
+      ingredients || [],
     );
 
     res.json(nutrition);

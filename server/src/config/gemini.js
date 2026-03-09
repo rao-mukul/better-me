@@ -19,21 +19,31 @@ export async function analyzeFoodImage(imageBase64, mimeType = "image/jpeg") {
       geminiMimeType = "image/jpeg"; // fallback
     }
 
-    const prompt = `Analyze this food image and provide a detailed description of the meal. Include:
-1. Name of the dish/food
-2. Main ingredients you can identify
-3. Estimated portion size
-4. Meal type (breakfast/lunch/dinner/snack)
-5. Any notable characteristics
+    const prompt = `Analyze this food image and identify the dish and its main nutritional ingredients.
 
-Format your response as a JSON object with these fields:
+IMPORTANT: List ONLY the actual food ingredients that contribute to nutritional value. 
+Do NOT include:
+- Cooking methods ("grilled", "fried", "baked")
+- Adjectives ("spicy", "delicious", "fresh") 
+- Meal types ("breakfast", "lunch", "dinner")
+- Serving descriptions ("plated", "served")
+
+DO include:
+- Main proteins (chicken, fish, eggs, paneer, tofu)
+- Grains & starches (rice, bread, pasta, potato)
+- Vegetables (specific ones: tomato, spinach, broccoli)
+- Dairy (milk, cheese, yogurt, butter)
+- Legumes (lentils, chickpeas, beans)
+- Fats/oils (oil, ghee, nuts)
+- Major spices/sauces if significant (curry, soy sauce)
+
+Format your response as a JSON object:
 {
   "name": "dish name",
-  "description": "detailed description",
-  "ingredients": ["ingredient1", "ingredient2"],
+  "description": "brief description",
+  "ingredients": ["chicken", "rice", "onion", "tomato", "oil"],
   "portionSize": "estimated size",
-  "category": "breakfast/lunch/dinner/snack",
-  "tags": ["tag1", "tag2"]
+  "category": "breakfast/lunch/dinner/snack"
 }`;
 
     const result = await geminiModel.generateContent([
@@ -63,11 +73,21 @@ Format your response as a JSON object with these fields:
 }
 
 // Helper function to get nutritional information
-export async function getNutritionalInfo(foodName, description, portionSize) {
+export async function getNutritionalInfo(
+  foodName,
+  description,
+  portionSize,
+  ingredients = [],
+) {
   try {
+    const ingredientsList =
+      ingredients.length > 0
+        ? `\nMain Ingredients: ${ingredients.join(", ")}`
+        : "";
+
     const prompt = `Based on this food information, provide accurate nutritional values:
 Food: ${foodName}
-Description: ${description}
+Description: ${description}${ingredientsList}
 Portion Size: ${portionSize}
 
 Provide nutritional information as a JSON object:
@@ -79,7 +99,7 @@ Provide nutritional information as a JSON object:
   "servingSize": "description of serving size"
 }
 
-Be as accurate as possible based on standard nutritional databases.`;
+Be as accurate as possible based on standard nutritional databases. Consider the specific ingredients listed if provided.`;
 
     const result = await geminiModel.generateContent(prompt);
     const response = await result.response;
