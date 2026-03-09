@@ -2,16 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import {
-  Droplets,
-  Moon,
-  Dumbbell,
-  Utensils,
-  ChevronDown,
-  Loader2,
-} from "lucide-react";
+import { Droplets, Moon, Dumbbell, Utensils, ChevronDown } from "lucide-react";
 import Card from "../components/ui/Card";
 import { CardSkeleton } from "../components/ui/Skeleton";
+import ServerWakeupAnimation from "../components/ui/ServerWakeupAnimation";
 import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
 import GoalSetter from "../components/water/GoalSetter";
@@ -240,21 +234,9 @@ export default function TodayPage() {
     <>
       <WaterAnimation show={showAnimation} />
 
-      {/* Cold Start Indicator */}
+      {/* Cold Start Loading Animation */}
       <AnimatePresence>
-        {isInitialLoad && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-4 p-3 rounded-lg bg-navy-800/60 border border-navy-700 flex items-center gap-3"
-          >
-            <Loader2 size={18} className="text-primary animate-spin" />
-            <span className="text-sm text-text-secondary">
-              Waking up the server... This takes 1-2 seconds on first load
-            </span>
-          </motion.div>
-        )}
+        {isInitialLoad && <ServerWakeupAnimation />}
       </AnimatePresence>
 
       <motion.div
