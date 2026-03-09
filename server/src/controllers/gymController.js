@@ -41,14 +41,14 @@ export const addExercise = async (req, res, next) => {
   }
 };
 
-// Delete a custom exercise
+// Delete an exercise (custom or seeded)
 export const deleteExercise = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const exercise = await GymExercise.findOne({
       _id: id,
-      userId: DEFAULT_USER_ID,
+      $or: [{ userId: DEFAULT_USER_ID }, { userId: "default" }],
     });
 
     if (!exercise) {

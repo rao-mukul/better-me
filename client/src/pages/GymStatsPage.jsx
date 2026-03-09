@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Loader,
   Edit3,
+  GripVertical,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -89,6 +90,9 @@ export default function GymStatsPage() {
   const [newExercise, setNewExercise] = useState({ name: "", muscleGroup: "" });
   const [currentMuscleGroup, setCurrentMuscleGroup] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [touchDragData, setTouchDragData] = useState(null);
+  const [touchDragPosition, setTouchDragPosition] = useState(null);
+  const longPressTimerRef = useRef(null);
 
   // Initialize program state when data loads
   useEffect(() => {
@@ -99,6 +103,217 @@ export default function GymStatsPage() {
 
   const getExercisesByMuscle = (muscleGroup) => {
     return exercises.filter((ex) => ex.muscleGroup === muscleGroup);
+  };
+
+  const getSortedExercises = (muscleGroup, workoutId) => {
+    const allMuscleExercises = getExercisesByMuscle(muscleGroup);
+    const selectedExercises = programState[workoutId]?.primary || [];
+
+    // Create a map for selected exercises with their order
+    const selectedMap = new Map();
+    selectedExercises.forEach((name, index) => {
+      selectedMap.set(name, index);
+    });
+
+    // Separate selected and unselected
+    const selected = [];
+    const unselected = [];
+
+    allMuscleExercises.forEach((exercise) => {
+      if (selectedMap.has(exercise.name)) {
+        selected.push({
+          ...exercise,
+          order: selectedMap.get(exercise.name),
+        });
+      } else {
+        unselected.push(exercise);
+      }
+    });
+
+    // Sort selected by their order in the program
+    selected.sort((a, b) => a.order - b.order);
+
+    // Return selected first, then unselected
+    return [...selected, ...unselected];
+  };
+
+  const handleDragStart = (e, exercise, workoutId, muscleGroup) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData(
+      "text/plain",
+      JSON.stringify({
+        exerciseName: exercise.name,
+        workoutId,
+        muscleGroup,
+      }),
+    );
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e, targetExercise, workoutId) => {
+    e.preventDefault();
+    const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+
+    if (data.workoutId !== workoutId) return;
+
+    setProgramState((prev) => {
+      const workout = prev[workoutId] || { primary: [], secondary: [] };
+      const exercises = [...(workout.primary || [])];
+
+      const sourceIndex = exercises.indexOf(data.exerciseName);
+      const targetIndex = exercises.indexOf(targetExercise.name);
+
+      // Both exercises must be in the selected list to reorder
+      if (sourceIndex === -1 || targetIndex === -1) return prev;
+
+      // Remove source and insert at target position
+      exercises.splice(sourceIndex, 1);
+      exercises.splice(targetIndex, 0, data.exerciseName);
+
+      return {
+        ...prev,
+        [workoutId]: {
+          ...workout,
+          primary: exercises,
+        },
+      };
+    });
+  };
+
+  const moveExercise = (workoutId, exerciseName, direction) => {
+    setProgramState((prev) => {
+      const workout = prev[workoutId] || { primary: [], secondary: [] };
+      const exercises = [...(workout.primary || [])];
+
+      const currentIndex = exercises.indexOf(exerciseName);
+      if (currentIndex === -1) return prev;
+
+      const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+      // Check bounds
+      if (newIndex < 0 || newIndex >= exercises.length) return prev;
+
+      // Swap elements
+      [exercises[currentIndex], exercises[newIndex]] = [
+        exercises[newIndex],
+        exercises[currentIndex],
+      ];
+
+      return {
+        ...prev,
+        [workoutId]: {
+          ...workout,
+          primary: exercises,
+        },
+      };
+    });
+  };
+
+  // Touch event handlers for mobile drag-and-drop
+  const handleTouchStart = (e, exerciseName, workoutId, muscleGroup) => {
+    const touch = e.touches[0];
+    setTouchDragPosition({ x: touch.clientX, y: touch.clientY });
+
+    // Start long-press detection (300ms)
+    longPressTimerRef.current = setTimeout(() => {
+      setTouchDragData({ exerciseName, workoutId, muscleGroup });
+      // Haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 300);
+  };
+
+  const handleTouchMove = (e, workoutId) => {
+    if (!touchDragData) {
+      // Cancel long-press if finger moves before timer completes
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Scrolling prevented via CSS touch-action: none
+    const touch = e.touches[0];
+    setTouchDragPosition({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const handleTouchEnd = (e, workoutId) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    if (!touchDragData || touchDragData.workoutId !== workoutId) {
+      setTouchDragData(null);
+      setTouchDragPosition(null);
+      return;
+    }
+
+    // Find the element under the touch point
+    const touch = e.changedTouches[0];
+    const elementAtPoint = document.elementFromPoint(
+      touch.clientX,
+      touch.clientY,
+    );
+
+    // Find the closest exercise button or container
+    let targetElement = elementAtPoint;
+    let targetExerciseName = null;
+
+    // Traverse up to find exercise button with data attribute
+    while (targetElement && !targetExerciseName) {
+      if (targetElement.dataset && targetElement.dataset.exerciseName) {
+        targetExerciseName = targetElement.dataset.exerciseName;
+        break;
+      }
+      targetElement = targetElement.parentElement;
+    }
+
+    // If we found a valid target, reorder
+    if (
+      targetExerciseName &&
+      targetExerciseName !== touchDragData.exerciseName
+    ) {
+      setProgramState((prev) => {
+        const workout = prev[workoutId] || { primary: [], secondary: [] };
+        const exercises = [...(workout.primary || [])];
+
+        const sourceIndex = exercises.indexOf(touchDragData.exerciseName);
+        const targetIndex = exercises.indexOf(targetExerciseName);
+
+        if (sourceIndex === -1 || targetIndex === -1) return prev;
+
+        exercises.splice(sourceIndex, 1);
+        exercises.splice(targetIndex, 0, touchDragData.exerciseName);
+
+        return {
+          ...prev,
+          [workoutId]: {
+            ...workout,
+            primary: exercises,
+          },
+        };
+      });
+    }
+
+    // Clear touch state
+    setTouchDragData(null);
+    setTouchDragPosition(null);
+  };
+
+  const cancelTouchDrag = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    setTouchDragData(null);
+    setTouchDragPosition(null);
   };
 
   const toggleExercise = (workoutId, exerciseName, isPrimary) => {
@@ -322,15 +537,7 @@ export default function GymStatsPage() {
                           <h4 className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">
                             {workout.primary}
                             <span className="ml-2 text-[10px] normal-case opacity-70">
-                              (
-                              {
-                                workoutProgram.primary.filter((ex) =>
-                                  primaryMuscleExercises.some(
-                                    (e) => e.name === ex,
-                                  ),
-                                ).length
-                              }{" "}
-                              selected)
+                              ({workoutProgram.primary.length} selected)
                             </span>
                           </h4>
                           <button
@@ -344,54 +551,172 @@ export default function GymStatsPage() {
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {primaryMuscleExercises.length === 0 ? (
+                          {getSortedExercises(workout.primary, workout.id)
+                            .length === 0 ? (
                             <p className="text-sm text-text-secondary">
                               No exercises available
                             </p>
                           ) : (
-                            primaryMuscleExercises.map((exercise) => (
-                              <div
-                                key={exercise._id}
-                                className="relative group"
-                              >
-                                <motion.button
-                                  onClick={() =>
-                                    toggleExercise(
-                                      workout.id,
-                                      exercise.name,
-                                      true,
-                                    )
-                                  }
-                                  whileTap={{ scale: 0.95 }}
-                                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
-                                    workoutProgram.primary.includes(
-                                      exercise.name,
-                                    )
-                                      ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
-                                      : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
-                                  }`}
-                                >
-                                  {exercise.name}
-                                </motion.button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteExercise(
-                                      exercise._id,
-                                      exercise.name,
-                                    );
-                                  }}
-                                  className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
-                                    isEditMode
-                                      ? "opacity-100"
-                                      : "opacity-0 pointer-events-none"
-                                  }`}
-                                  title="Delete exercise"
-                                >
-                                  <X size={12} className="text-white" />
-                                </button>
-                              </div>
-                            ))
+                            getSortedExercises(workout.primary, workout.id).map(
+                              (exercise) => {
+                                const isSelected =
+                                  workoutProgram.primary.includes(
+                                    exercise.name,
+                                  );
+                                return (
+                                  <div
+                                    key={exercise._id}
+                                    className={`relative group ${touchDragData?.exerciseName === exercise.name ? "opacity-50" : ""} ${isSelected && isEditMode ? "touch-none" : ""}`}
+                                    draggable={isSelected && isEditMode}
+                                    onDragStart={(e) =>
+                                      handleDragStart(
+                                        e,
+                                        exercise,
+                                        workout.id,
+                                        workout.primary,
+                                      )
+                                    }
+                                    onDragOver={
+                                      isSelected ? handleDragOver : undefined
+                                    }
+                                    onDrop={
+                                      isSelected
+                                        ? (e) =>
+                                            handleDrop(e, exercise, workout.id)
+                                        : undefined
+                                    }
+                                    onTouchStart={
+                                      isSelected && isEditMode
+                                        ? (e) =>
+                                            handleTouchStart(
+                                              e,
+                                              exercise.name,
+                                              workout.id,
+                                              workout.primary,
+                                            )
+                                        : undefined
+                                    }
+                                    onTouchMove={
+                                      isSelected && isEditMode
+                                        ? (e) => handleTouchMove(e, workout.id)
+                                        : undefined
+                                    }
+                                    onTouchEnd={
+                                      isSelected && isEditMode
+                                        ? (e) => handleTouchEnd(e, workout.id)
+                                        : undefined
+                                    }
+                                    onTouchCancel={
+                                      isSelected && isEditMode
+                                        ? cancelTouchDrag
+                                        : undefined
+                                    }
+                                  >
+                                    <motion.button
+                                      data-exercise-name={exercise.name}
+                                      onClick={() =>
+                                        toggleExercise(
+                                          workout.id,
+                                          exercise.name,
+                                          true,
+                                        )
+                                      }
+                                      whileTap={{ scale: 0.95 }}
+                                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
+                                        isSelected
+                                          ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
+                                          : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
+                                      }`}
+                                    >
+                                      {isSelected && isEditMode && (
+                                        <GripVertical
+                                          size={14}
+                                          className="cursor-grab active:cursor-grabbing opacity-70"
+                                        />
+                                      )}
+                                      {exercise.name}
+                                    </motion.button>
+
+                                    {/* Reorder buttons - only for selected exercises in edit mode */}
+                                    {isSelected && isEditMode && (
+                                      <>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            moveExercise(
+                                              workout.id,
+                                              exercise.name,
+                                              "up",
+                                            );
+                                          }}
+                                          disabled={
+                                            workoutProgram.primary.indexOf(
+                                              exercise.name,
+                                            ) === 0
+                                          }
+                                          className={`absolute -top-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
+                                            isEditMode
+                                              ? "opacity-100"
+                                              : "opacity-0 pointer-events-none"
+                                          }`}
+                                          title="Move up"
+                                        >
+                                          <ChevronUp
+                                            size={12}
+                                            className="text-white"
+                                          />
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            moveExercise(
+                                              workout.id,
+                                              exercise.name,
+                                              "down",
+                                            );
+                                          }}
+                                          disabled={
+                                            workoutProgram.primary.indexOf(
+                                              exercise.name,
+                                            ) ===
+                                            workoutProgram.primary.length - 1
+                                          }
+                                          className={`absolute -bottom-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
+                                            isEditMode
+                                              ? "opacity-100"
+                                              : "opacity-0 pointer-events-none"
+                                          }`}
+                                          title="Move down"
+                                        >
+                                          <ChevronDown
+                                            size={12}
+                                            className="text-white"
+                                          />
+                                        </button>
+                                      </>
+                                    )}
+
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteExercise(
+                                          exercise._id,
+                                          exercise.name,
+                                        );
+                                      }}
+                                      className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
+                                        isEditMode
+                                          ? "opacity-100"
+                                          : "opacity-0 pointer-events-none"
+                                      }`}
+                                      title="Delete exercise"
+                                    >
+                                      <X size={12} className="text-white" />
+                                    </button>
+                                  </div>
+                                );
+                              },
+                            )
                           )}
                         </div>
                       </div>
@@ -408,9 +733,10 @@ export default function GymStatsPage() {
                               (
                               {
                                 workoutProgram.primary.filter((ex) =>
-                                  secondaryMuscleExercises.some(
-                                    (e) => e.name === ex,
-                                  ),
+                                  getSortedExercises(
+                                    workout.secondary,
+                                    workout.id,
+                                  ).some((e) => e.name === ex),
                                 ).length
                               }{" "}
                               selected)
@@ -427,54 +753,171 @@ export default function GymStatsPage() {
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {secondaryMuscleExercises.length === 0 ? (
+                          {getSortedExercises(workout.secondary, workout.id)
+                            .length === 0 ? (
                             <p className="text-sm text-text-secondary">
                               No exercises available
                             </p>
                           ) : (
-                            secondaryMuscleExercises.map((exercise) => (
-                              <div
-                                key={exercise._id}
-                                className="relative group"
-                              >
-                                <motion.button
-                                  onClick={() =>
-                                    toggleExercise(
+                            getSortedExercises(
+                              workout.secondary,
+                              workout.id,
+                            ).map((exercise) => {
+                              const isSelected =
+                                workoutProgram.primary.includes(exercise.name);
+                              return (
+                                <div
+                                  key={exercise._id}
+                                  className={`relative group ${touchDragData?.exerciseName === exercise.name ? "opacity-50" : ""} ${isSelected && isEditMode ? "touch-none" : ""}`}
+                                  draggable={isSelected && isEditMode}
+                                  onDragStart={(e) =>
+                                    handleDragStart(
+                                      e,
+                                      exercise,
                                       workout.id,
-                                      exercise.name,
-                                      true,
+                                      workout.secondary,
                                     )
                                   }
-                                  whileTap={{ scale: 0.95 }}
-                                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
-                                    workoutProgram.primary.includes(
-                                      exercise.name,
-                                    )
-                                      ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
-                                      : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
-                                  }`}
+                                  onDragOver={
+                                    isSelected ? handleDragOver : undefined
+                                  }
+                                  onDrop={
+                                    isSelected
+                                      ? (e) =>
+                                          handleDrop(e, exercise, workout.id)
+                                      : undefined
+                                  }
+                                  onTouchStart={
+                                    isSelected && isEditMode
+                                      ? (e) =>
+                                          handleTouchStart(
+                                            e,
+                                            exercise.name,
+                                            workout.id,
+                                            workout.secondary,
+                                          )
+                                      : undefined
+                                  }
+                                  onTouchMove={
+                                    isSelected && isEditMode
+                                      ? (e) => handleTouchMove(e, workout.id)
+                                      : undefined
+                                  }
+                                  onTouchEnd={
+                                    isSelected && isEditMode
+                                      ? (e) => handleTouchEnd(e, workout.id)
+                                      : undefined
+                                  }
+                                  onTouchCancel={
+                                    isSelected && isEditMode
+                                      ? cancelTouchDrag
+                                      : undefined
+                                  }
                                 >
-                                  {exercise.name}
-                                </motion.button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteExercise(
-                                      exercise._id,
-                                      exercise.name,
-                                    );
-                                  }}
-                                  className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
-                                    isEditMode
-                                      ? "opacity-100"
-                                      : "opacity-0 pointer-events-none"
-                                  }`}
-                                  title="Delete exercise"
-                                >
-                                  <X size={12} className="text-white" />
-                                </button>
-                              </div>
-                            ))
+                                  <motion.button
+                                    data-exercise-name={exercise.name}
+                                    onClick={() =>
+                                      toggleExercise(
+                                        workout.id,
+                                        exercise.name,
+                                        true,
+                                      )
+                                    }
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
+                                      isSelected
+                                        ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
+                                        : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
+                                    }`}
+                                  >
+                                    {isSelected && isEditMode && (
+                                      <GripVertical
+                                        size={14}
+                                        className="cursor-grab active:cursor-grabbing opacity-70"
+                                      />
+                                    )}
+                                    {exercise.name}
+                                  </motion.button>
+
+                                  {/* Reorder buttons - only for selected exercises in edit mode */}
+                                  {isSelected && isEditMode && (
+                                    <>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          moveExercise(
+                                            workout.id,
+                                            exercise.name,
+                                            "up",
+                                          );
+                                        }}
+                                        disabled={
+                                          workoutProgram.primary.indexOf(
+                                            exercise.name,
+                                          ) === 0
+                                        }
+                                        className={`absolute -top-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
+                                          isEditMode
+                                            ? "opacity-100"
+                                            : "opacity-0 pointer-events-none"
+                                        }`}
+                                        title="Move up"
+                                      >
+                                        <ChevronUp
+                                          size={12}
+                                          className="text-white"
+                                        />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          moveExercise(
+                                            workout.id,
+                                            exercise.name,
+                                            "down",
+                                          );
+                                        }}
+                                        disabled={
+                                          workoutProgram.primary.indexOf(
+                                            exercise.name,
+                                          ) ===
+                                          workoutProgram.primary.length - 1
+                                        }
+                                        className={`absolute -bottom-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
+                                          isEditMode
+                                            ? "opacity-100"
+                                            : "opacity-0 pointer-events-none"
+                                        }`}
+                                        title="Move down"
+                                      >
+                                        <ChevronDown
+                                          size={12}
+                                          className="text-white"
+                                        />
+                                      </button>
+                                    </>
+                                  )}
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteExercise(
+                                        exercise._id,
+                                        exercise.name,
+                                      );
+                                    }}
+                                    className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
+                                      isEditMode
+                                        ? "opacity-100"
+                                        : "opacity-0 pointer-events-none"
+                                    }`}
+                                    title="Delete exercise"
+                                  >
+                                    <X size={12} className="text-white" />
+                                  </button>
+                                </div>
+                              );
+                            })
                           )}
                         </div>
                       </div>

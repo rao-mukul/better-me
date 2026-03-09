@@ -180,7 +180,61 @@ export default function NewGymLogForm({
   };
 
   const getExercisesForMuscle = (muscleGroup) => {
-    return allExercises.filter((ex) => ex.muscleGroup === muscleGroup);
+    const filtered = allExercises.filter(
+      (ex) => ex.muscleGroup === muscleGroup,
+    );
+
+    // Sort exercises: program exercises first in their saved order, then others
+    if (userProgram && selectedWorkout) {
+      const timesThisWeek = weekHistory.filter(
+        (log) => log.workoutType === selectedWorkout.id,
+      ).length;
+
+      const configMapping = {
+        chestTriceps: {
+          first: "chestTriceps",
+          second: "tricepsChest",
+        },
+        backBiceps: {
+          first: "backBiceps",
+          second: "bicepsBack",
+        },
+        legsShoulders: {
+          first: "legsShoulders",
+          second: "shouldersLegs",
+        },
+      };
+
+      const mapping = configMapping[selectedWorkout.id];
+      const configKey = timesThisWeek === 0 ? mapping.first : mapping.second;
+      const programExercises = userProgram[configKey]?.primary || [];
+
+      // Create order map from program
+      const orderMap = new Map();
+      programExercises.forEach((name, index) => {
+        orderMap.set(name, index);
+      });
+
+      // Separate exercises into program (with order) and non-program
+      const inProgram = [];
+      const notInProgram = [];
+
+      filtered.forEach((ex) => {
+        if (orderMap.has(ex.name)) {
+          inProgram.push({ ...ex, order: orderMap.get(ex.name) });
+        } else {
+          notInProgram.push(ex);
+        }
+      });
+
+      // Sort program exercises by their saved order
+      inProgram.sort((a, b) => a.order - b.order);
+
+      // Return program exercises first, then others
+      return [...inProgram, ...notInProgram];
+    }
+
+    return filtered;
   };
 
   return (
