@@ -462,28 +462,28 @@ export default function NewDietLogForm({ onSuccess }) {
             {/* Search Input */}
             <div className="relative">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-                size={18}
+                className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+                size={16}
               />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search meals or scan food..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-navy-800/40 border border-navy-700/30 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-navy-800/40 border border-navy-700/30 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                 autoFocus
               />
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-linear-to-br from-green-600/20 to-teal-600/20 border border-green-500/30 hover:border-green-500/50 transition-colors"
+                className="flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-linear-to-br from-green-600/20 to-teal-600/20 border border-green-500/30 hover:border-green-500/50 transition-colors"
               >
-                <Camera size={24} className="text-green-400" />
-                <span className="text-sm font-medium text-text-primary">
+                <Camera size={20} className="sm:w-6 sm:h-6 text-green-400" />
+                <span className="text-xs sm:text-sm font-medium text-text-primary">
                   Take Photo
                 </span>
               </motion.button>
@@ -491,10 +491,10 @@ export default function NewDietLogForm({ onSuccess }) {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-linear-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/30 hover:border-blue-500/50 transition-colors"
+                className="flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-linear-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/30 hover:border-blue-500/50 transition-colors"
               >
-                <ImageIcon size={24} className="text-blue-400" />
-                <span className="text-sm font-medium text-text-primary">
+                <ImageIcon size={20} className="sm:w-6 sm:h-6 text-blue-400" />
+                <span className="text-xs sm:text-sm font-medium text-text-primary">
                   Upload Image
                 </span>
               </motion.button>
@@ -519,14 +519,14 @@ export default function NewDietLogForm({ onSuccess }) {
 
             {/* Search Results */}
             {searchQuery.length >= 2 && (
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 {isSearching ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="animate-spin text-primary" size={24} />
+                  <div className="flex items-center justify-center py-6 sm:py-8">
+                    <Loader2 className="animate-spin text-primary" size={20} />
                   </div>
                 ) : searchResults?.length > 0 ? (
                   <>
-                    <p className="text-xs text-text-secondary px-1">
+                    <p className="text-[10px] sm:text-xs text-text-secondary px-1">
                       Search Results
                     </p>
                     {searchResults.map((meal) => (
@@ -538,9 +538,11 @@ export default function NewDietLogForm({ onSuccess }) {
                     ))}
                   </>
                 ) : (
-                  <div className="text-center py-8 text-text-secondary text-sm">
+                  <div className="text-center py-6 sm:py-8 text-text-secondary text-xs sm:text-sm">
                     <p>No meals found</p>
-                    <p className="text-xs mt-1">Try taking a photo instead</p>
+                    <p className="text-[10px] sm:text-xs mt-1">
+                      Try taking a photo instead
+                    </p>
                   </div>
                 )}
               </div>
@@ -555,24 +557,24 @@ export default function NewDietLogForm({ onSuccess }) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="text-center py-12"
+            className="text-center py-8 sm:py-12"
           >
             {imagePreview && (
               <img
                 src={imagePreview}
                 alt="Captured meal"
-                className="w-48 h-48 object-cover rounded-xl mx-auto mb-6"
+                className="w-40 h-40 sm:w-48 sm:h-48 object-cover rounded-lg sm:rounded-xl mx-auto mb-4 sm:mb-6"
               />
             )}
             <Loader2
-              className="animate-spin text-primary mx-auto mb-4"
-              size={40}
+              className="animate-spin text-primary mx-auto mb-3 sm:mb-4"
+              size={32}
             />
-            <p className="text-text-primary font-medium mb-2">
+            <p className="text-text-primary text-sm sm:text-base font-medium mb-1.5 sm:mb-2">
               Analyzing your meal...
             </p>
-            <p className="text-text-secondary text-sm flex items-center justify-center gap-2">
-              <Sparkles size={16} />
+            <p className="text-text-secondary text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2">
+              <Sparkles size={14} className="sm:w-4 sm:h-4" />
               AI is identifying the food
             </p>
           </motion.div>
@@ -587,18 +589,24 @@ export default function NewDietLogForm({ onSuccess }) {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-4"
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <div className="flex items-center justify-between mb-3 sm:mb-0">
+              <h3 className="text-base sm:text-lg font-semibold text-text-primary flex items-center gap-1.5 sm:gap-2">
                 {aiAnalysis && (
-                  <Sparkles size={18} className="text-green-400" />
+                  <Sparkles
+                    size={16}
+                    className="sm:w-4.5 sm:h-4.5 text-green-400"
+                  />
                 )}
                 Confirm Details
               </h3>
               <button
                 onClick={() => setStep("search")}
-                className="p-2 hover:bg-navy-700/50 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 hover:bg-navy-700/50 rounded-lg transition-colors"
               >
-                <X size={18} className="text-text-secondary" />
+                <X
+                  size={16}
+                  className="sm:w-4.5 sm:h-4.5 text-text-secondary"
+                />
               </button>
             </div>
 
@@ -608,7 +616,7 @@ export default function NewDietLogForm({ onSuccess }) {
                 <img
                   src={imagePreview || getMealImageUrl(selectedMeal, "preview")}
                   alt="Meal"
-                  className="w-full h-48 object-cover rounded-xl"
+                  className="w-full h-40 sm:h-48 object-cover rounded-lg sm:rounded-xl"
                   loading="lazy"
                 />
               </div>
@@ -616,7 +624,7 @@ export default function NewDietLogForm({ onSuccess }) {
 
             {/* Meal Name */}
             <div>
-              <label className="text-xs text-text-secondary mb-1.5 block">
+              <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                 Meal Name *
               </label>
               <input
@@ -624,13 +632,13 @@ export default function NewDietLogForm({ onSuccess }) {
                 value={mealName}
                 onChange={(e) => setMealName(e.target.value)}
                 placeholder="e.g., Grilled Chicken Salad"
-                className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="text-xs text-text-secondary mb-1.5 block">
+              <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                 Description
               </label>
               <textarea
@@ -638,20 +646,20 @@ export default function NewDietLogForm({ onSuccess }) {
                 onChange={(e) => setMealDescription(e.target.value)}
                 placeholder="Additional details about the meal..."
                 rows={2}
-                className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors resize-none"
+                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors resize-none"
               />
             </div>
 
             {/* Category & Serving */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div>
-                <label className="text-xs text-text-secondary mb-1.5 block">
+                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                   Category
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary outline-none focus:border-green-500/50 transition-colors"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base outline-none focus:border-green-500/50 transition-colors"
                 >
                   <option value="other">Other</option>
                   {mealCategories.map((cat) => (
@@ -663,7 +671,7 @@ export default function NewDietLogForm({ onSuccess }) {
               </div>
 
               <div>
-                <label className="text-xs text-text-secondary mb-1.5 block">
+                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                   Serving Size
                 </label>
                 <input
@@ -671,7 +679,7 @@ export default function NewDietLogForm({ onSuccess }) {
                   value={servingSize}
                   onChange={(e) => setServingSize(e.target.value)}
                   placeholder="1 plate"
-                  className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                 />
               </div>
             </div>
@@ -679,12 +687,14 @@ export default function NewDietLogForm({ onSuccess }) {
             {/* AI Tags */}
             {aiAnalysis?.tags && aiAnalysis.tags.length > 0 && (
               <div>
-                <p className="text-xs text-text-secondary mb-2">AI Detected:</p>
-                <div className="flex flex-wrap gap-2">
+                <p className="text-[10px] sm:text-xs text-text-secondary mb-1.5 sm:mb-2">
+                  AI Detected:
+                </p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {aiAnalysis.tags.map((tag, i) => (
                     <span
                       key={i}
-                      className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-400 border border-green-500/30"
+                      className="px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-full bg-green-500/20 text-green-400 border border-green-500/30"
                     >
                       {tag}
                     </span>
@@ -694,17 +704,17 @@ export default function NewDietLogForm({ onSuccess }) {
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 sm:gap-3 pt-1 sm:pt-2">
               {/* Check if nutrition is already complete */}
               {calories && protein && carbs && fat ? (
                 // Nutrition already available - allow direct proceed
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setStep("nutrition")}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-medium transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white text-sm sm:text-base font-medium transition-all"
                 >
                   Continue
-                  <ChevronRight size={18} />
+                  <ChevronRight size={16} className="sm:w-4.5 sm:h-4.5" />
                 </motion.button>
               ) : (
                 // Need to fetch nutrition from AI
@@ -712,18 +722,18 @@ export default function NewDietLogForm({ onSuccess }) {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleGetNutrition}
                   disabled={!mealName || getNutrition.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white text-sm sm:text-base font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {getNutrition.isPending ? (
                     <>
-                      <Loader2 className="animate-spin" size={18} />
+                      <Loader2 className="animate-spin" size={16} />
                       Getting Nutrition...
                     </>
                   ) : (
                     <>
-                      <Sparkles size={18} />
+                      <Sparkles size={16} className="sm:w-4.5 sm:h-4.5" />
                       Get Nutrition
-                      <ChevronRight size={18} />
+                      <ChevronRight size={16} className="sm:w-4.5 sm:h-4.5" />
                     </>
                   )}
                 </motion.button>
@@ -742,36 +752,39 @@ export default function NewDietLogForm({ onSuccess }) {
             className="space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                <Sparkles size={18} className="text-green-400" />
+              <h3 className="text-base sm:text-lg font-semibold text-text-primary flex items-center gap-1.5 sm:gap-2">
+                <Sparkles
+                  size={16}
+                  className="sm:w-4.5 sm:h-4.5 text-green-400"
+                />
                 Nutrition Info
               </h3>
               <button
                 onClick={() => setStep("approve")}
-                className="text-text-secondary hover:text-text-primary transition-colors text-sm flex items-center gap-1"
+                className="text-text-secondary hover:text-text-primary transition-colors text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1"
               >
-                <Edit2 size={14} />
+                <Edit2 size={12} className="sm:w-3.5 sm:h-3.5" />
                 Edit Details
               </button>
             </div>
 
             {/* Info hint when from library */}
             {selectedMeal && (
-              <div className="text-xs text-text-secondary bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <div className="text-[10px] sm:text-xs text-text-secondary bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 sm:p-3">
                 💡 Nutrition from your meal library. Edit values below if
                 needed.
               </div>
             )}
 
             {/* Meal Summary */}
-            <div className="p-4 rounded-xl bg-navy-800/40 border border-navy-700/30">
-              <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-navy-800/40 border border-navy-700/30">
+              <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
                 <div className="flex-1">
-                  <h4 className="font-semibold text-text-primary mb-1">
+                  <h4 className="font-semibold text-text-primary text-sm sm:text-base mb-0.5 sm:mb-1">
                     {mealName}
                   </h4>
                   {mealDescription && (
-                    <p className="text-sm text-text-secondary">
+                    <p className="text-xs sm:text-sm text-text-secondary">
                       {mealDescription}
                     </p>
                   )}
@@ -781,19 +794,19 @@ export default function NewDietLogForm({ onSuccess }) {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleGetNutrition}
                   disabled={getNutrition.isPending}
-                  className="px-3 py-1.5 rounded-lg bg-navy-700/50 hover:bg-navy-700 text-xs text-text-secondary hover:text-primary transition-all flex items-center gap-1 disabled:opacity-50"
+                  className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-navy-700/50 hover:bg-navy-700 text-[10px] sm:text-xs text-text-secondary hover:text-primary transition-all flex items-center gap-0.5 sm:gap-1 disabled:opacity-50"
                   title="Refresh nutrition with AI"
                 >
-                  <Sparkles size={12} />
+                  <Sparkles size={10} className="sm:w-3 sm:h-3" />
                   {getNutrition.isPending ? "Updating..." : "Refresh"}
                 </motion.button>
               </div>
             </div>
 
             {/* Macros Grid */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div>
-                <label className="text-xs text-text-secondary mb-1.5 block">
+                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                   Calories *
                 </label>
                 <input
@@ -803,12 +816,12 @@ export default function NewDietLogForm({ onSuccess }) {
                   placeholder="200"
                   min="0"
                   step="1"
-                  className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-text-secondary mb-1.5 block">
+                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                   Protein (g) *
                 </label>
                 <input
@@ -818,12 +831,12 @@ export default function NewDietLogForm({ onSuccess }) {
                   placeholder="25"
                   min="0"
                   step="0.1"
-                  className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-text-secondary mb-1.5 block">
+                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                   Carbs (g) *
                 </label>
                 <input
@@ -833,12 +846,12 @@ export default function NewDietLogForm({ onSuccess }) {
                   placeholder="30"
                   min="0"
                   step="0.1"
-                  className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-text-secondary mb-1.5 block">
+                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
                   Fat (g) *
                 </label>
                 <input
@@ -848,21 +861,21 @@ export default function NewDietLogForm({ onSuccess }) {
                   placeholder="10"
                   min="0"
                   step="0.1"
-                  className="w-full px-3 py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                 />
               </div>
             </div>
 
             {/* Total Breakdown */}
             {calories && protein && carbs && fat && (
-              <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30">
-                <div className="flex items-center justify-between text-sm">
+              <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-green-500/10 border border-green-500/30">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-text-secondary">Total Calories:</span>
                   <span className="font-bold text-green-400">
                     {calories} kcal
                   </span>
                 </div>
-                <div className="mt-2 flex gap-4 text-xs text-text-secondary">
+                <div className="mt-1.5 sm:mt-2 flex gap-3 sm:gap-4 text-[10px] sm:text-xs text-text-secondary">
                   <span>P: {protein}g</span>
                   <span>C: {carbs}g</span>
                   <span>F: {fat}g</span>
@@ -871,11 +884,11 @@ export default function NewDietLogForm({ onSuccess }) {
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 sm:gap-3 pt-1 sm:pt-2">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setStep("approve")}
-                className="px-6 py-3 rounded-xl bg-navy-700/50 hover:bg-navy-700 text-text-secondary hover:text-text-primary font-medium transition-all"
+                className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-navy-700/50 hover:bg-navy-700 text-text-secondary hover:text-text-primary text-sm sm:text-base font-medium transition-all"
               >
                 Back
               </motion.button>
@@ -892,16 +905,16 @@ export default function NewDietLogForm({ onSuccess }) {
                   logMeal.isPending ||
                   saveMeal.isPending
                 }
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white text-sm sm:text-base font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {logMeal.isPending || saveMeal.isPending ? (
                   <>
-                    <Loader2 className="animate-spin" size={18} />
+                    <Loader2 className="animate-spin" size={16} />
                     Saving...
                   </>
                 ) : (
                   <>
-                    <Check size={18} />
+                    <Check size={16} className="sm:w-4.5 sm:h-4.5" />
                     Log Meal
                   </>
                 )}
@@ -917,20 +930,20 @@ export default function NewDietLogForm({ onSuccess }) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="text-center py-12"
+            className="text-center py-8 sm:py-12"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", delay: 0.1 }}
-              className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center mx-auto mb-4"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center mx-auto mb-3 sm:mb-4"
             >
-              <Check size={32} className="text-green-400" />
+              <Check size={28} className="sm:w-8 sm:h-8 text-green-400" />
             </motion.div>
-            <p className="text-text-primary font-semibold text-lg mb-2">
+            <p className="text-text-primary font-semibold text-base sm:text-lg mb-1.5 sm:mb-2">
               Meal Logged! 🎉
             </p>
-            <p className="text-text-secondary text-sm">
+            <p className="text-text-secondary text-xs sm:text-sm">
               {mealName} added to your diary
             </p>
           </motion.div>
@@ -948,24 +961,26 @@ function MealResultCard({ meal, onClick }) {
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-xl bg-navy-800/40 border border-navy-700/30 hover:border-green-500/30 transition-all text-left"
+      className="w-full flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-navy-800/40 border border-navy-700/30 hover:border-green-500/30 transition-all text-left"
     >
       {imageUrl ? (
         <img
           src={imageUrl}
           alt={meal.name}
-          className="w-14 h-14 rounded-lg object-cover"
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover"
           loading="lazy"
         />
       ) : (
-        <div className="w-14 h-14 rounded-lg bg-navy-700/50 flex items-center justify-center">
-          <ImageIcon size={20} className="text-text-secondary" />
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-navy-700/50 flex items-center justify-center">
+          <ImageIcon size={16} className="sm:w-5 sm:h-5 text-text-secondary" />
         </div>
       )}
 
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-text-primary truncate">{meal.name}</p>
-        <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
+        <p className="font-medium text-text-primary text-sm sm:text-base truncate">
+          {meal.name}
+        </p>
+        <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-text-secondary mt-0.5 sm:mt-1">
           <span>{meal.calories} cal</span>
           <span>•</span>
           <span>P: {meal.protein}g</span>
@@ -975,14 +990,17 @@ function MealResultCard({ meal, onClick }) {
           <span>F: {meal.fat}g</span>
         </div>
         {meal.timesLogged > 0 && (
-          <div className="flex items-center gap-1 text-xs text-green-400 mt-1">
-            <Clock size={12} />
+          <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-green-400 mt-0.5 sm:mt-1">
+            <Clock size={10} className="sm:w-3 sm:h-3" />
             <span>Logged {meal.timesLogged}x</span>
           </div>
         )}
       </div>
 
-      <ChevronRight size={18} className="text-text-secondary shrink-0" />
+      <ChevronRight
+        size={16}
+        className="sm:w-4.5 sm:h-4.5 text-text-secondary shrink-0"
+      />
     </motion.button>
   );
 }

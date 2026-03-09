@@ -260,24 +260,24 @@ export default function NewGymLogForm({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Progress indicator */}
       {step > 1 && (
-        <div className="flex items-center gap-2 text-sm text-text-secondary">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-text-secondary">
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? "bg-success text-white" : "bg-navy-700 text-text-secondary"}`}
+            className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm ${step >= 2 ? "bg-success text-white" : "bg-navy-700 text-text-secondary"}`}
           >
-            {step > 2 ? <Check size={16} /> : "1"}
+            {step > 2 ? <Check size={12} className="sm:w-4 sm:h-4" /> : "1"}
           </div>
           <div className="flex-1 h-px bg-navy-700" />
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? "bg-success text-white" : step === 2 ? "bg-primary text-white" : "bg-navy-700 text-text-secondary"}`}
+            className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm ${step >= 3 ? "bg-success text-white" : step === 2 ? "bg-primary text-white" : "bg-navy-700 text-text-secondary"}`}
           >
-            {step > 3 ? <Check size={16} /> : "2"}
+            {step > 3 ? <Check size={12} className="sm:w-4 sm:h-4" /> : "2"}
           </div>
           <div className="flex-1 h-px bg-navy-700" />
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 3 ? "bg-primary text-white" : "bg-navy-700 text-text-secondary"}`}
+            className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm ${step === 3 ? "bg-primary text-white" : "bg-navy-700 text-text-secondary"}`}
           >
             3
           </div>
@@ -294,10 +294,10 @@ export default function NewGymLogForm({
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <h3 className="text-lg font-semibold text-text-primary mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-3 sm:mb-4">
               Select Today's Workout
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {workoutTypes.map((workout) => {
                 return (
                   <motion.button
@@ -306,24 +306,27 @@ export default function NewGymLogForm({
                     disabled={disabled}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`relative overflow-hidden ${workout.bgColor} border ${workout.borderColor} rounded-xl p-4 text-left transition-all hover:shadow-lg disabled:opacity-50`}
+                    className={`relative overflow-hidden ${workout.bgColor} border ${workout.borderColor} rounded-lg sm:rounded-xl p-3 sm:p-4 text-left transition-all hover:shadow-lg disabled:opacity-50`}
                   >
                     <div
                       className={`absolute top-0 left-0 w-1 h-full bg-linear-to-b ${workout.color}`}
                     />
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-base font-bold text-text-primary">
+                        <p className="text-sm sm:text-base font-bold text-text-primary">
                           {workout.label}
                         </p>
-                        <p className="text-sm text-text-secondary mt-1">
+                        <p className="text-xs sm:text-sm text-text-secondary mt-0.5 sm:mt-1">
                           <span className="font-semibold">
                             {workout.primary}
                           </span>{" "}
                           focus
                         </p>
                       </div>
-                      <ChevronRight size={20} className="text-text-secondary" />
+                      <ChevronRight
+                        size={18}
+                        className="text-text-secondary sm:w-5 sm:h-5"
+                      />
                     </div>
                   </motion.button>
                 );
@@ -341,31 +344,31 @@ export default function NewGymLogForm({
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
               <button
                 onClick={() => setStep(1)}
-                className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 text-text-secondary hover:text-text-primary transition-colors"
               >
-                <ChevronLeft size={20} />
-                <span className="text-sm">Back</span>
+                <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm">Back</span>
               </button>
             </div>
 
-            <h3 className="text-lg font-semibold text-text-primary mb-2">
+            <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-1.5 sm:mb-2">
               {selectedWorkout.primary} Exercises
             </h3>
-            <p className="text-sm text-text-secondary mb-4">
+            <p className="text-xs sm:text-sm text-text-secondary mb-3 sm:mb-4">
               Select the exercises you performed for {selectedWorkout.primary}
             </p>
 
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
               {getExercisesForMuscle(selectedWorkout.primaryMuscle).map(
                 (exercise) => (
                   <motion.button
                     key={exercise.name}
                     onClick={() => toggleExercise(exercise.name, true)}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
                       primaryExercises.includes(exercise.name)
                         ? `bg-linear-to-r ${selectedWorkout.color} text-white shadow-lg`
                         : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
@@ -373,7 +376,10 @@ export default function NewGymLogForm({
                   >
                     {exercise.name}
                     {primaryExercises.includes(exercise.name) && (
-                      <Check size={14} className="inline ml-1" />
+                      <Check
+                        size={12}
+                        className="sm:w-3.5 sm:h-3.5 inline ml-0.5 sm:ml-1"
+                      />
                     )}
                   </motion.button>
                 ),
@@ -383,9 +389,12 @@ export default function NewGymLogForm({
                 onClick={() =>
                   handleAddNewExercise(selectedWorkout.primaryMuscle)
                 }
-                className="px-4 py-2 rounded-full text-sm font-medium bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-dashed border-navy-600 transition-all"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-dashed border-navy-600 transition-all"
               >
-                <Plus size={14} className="inline mr-1" />
+                <Plus
+                  size={12}
+                  className="sm:w-3.5 sm:h-3.5 inline mr-0.5 sm:mr-1"
+                />
                 Add New
               </button>
             </div>
@@ -397,10 +406,10 @@ export default function NewGymLogForm({
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="mt-4 p-4 bg-navy-700/30 border border-navy-600 rounded-xl"
+                  className="mt-3 sm:mt-4 p-3 sm:p-4 bg-navy-700/30 border border-navy-600 rounded-lg sm:rounded-xl"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-text-primary">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h4 className="text-xs sm:text-sm font-semibold text-text-primary">
                       Add New Exercise
                     </h4>
                     <button
@@ -410,16 +419,16 @@ export default function NewGymLogForm({
                       }}
                       className="text-text-secondary hover:text-text-primary"
                     >
-                      <X size={16} />
+                      <X size={14} className="sm:w-4 sm:h-4" />
                     </button>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2">
                     <input
                       type="text"
                       value={newExerciseName}
                       onChange={(e) => setNewExerciseName(e.target.value)}
                       placeholder="Exercise name"
-                      className="flex-1 px-3 py-2 bg-navy-800 border border-navy-600 rounded-lg text-text-primary text-sm focus:outline-none focus:border-primary"
+                      className="flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-navy-800 border border-navy-600 rounded-lg text-text-primary text-xs sm:text-sm focus:outline-none focus:border-primary"
                       onKeyPress={(e) =>
                         e.key === "Enter" && submitNewExercise()
                       }
@@ -427,7 +436,7 @@ export default function NewGymLogForm({
                     <button
                       onClick={submitNewExercise}
                       disabled={!newExerciseName.trim()}
-                      className="w-10 h-10 flex items-center justify-center text-primary text-2xl font-bold hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-primary text-xl sm:text-2xl font-bold hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       +
                     </button>
@@ -436,14 +445,14 @@ export default function NewGymLogForm({
               )}
             </AnimatePresence>
 
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-end mt-4 sm:mt-6">
               <button
                 onClick={() => setStep(3)}
                 disabled={primaryExercises.length === 0}
-                className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-primary text-white rounded-lg text-sm sm:text-base font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Next
-                <ChevronRight size={18} />
+                <ChevronRight size={16} className="sm:w-4.5 sm:h-4.5" />
               </button>
             </div>
           </motion.div>
@@ -458,32 +467,32 @@ export default function NewGymLogForm({
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
               <button
                 onClick={() => setStep(2)}
-                className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 text-text-secondary hover:text-text-primary transition-colors"
               >
-                <ChevronLeft size={20} />
-                <span className="text-sm">Back</span>
+                <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm">Back</span>
               </button>
             </div>
 
-            <h3 className="text-lg font-semibold text-text-primary mb-2">
+            <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-1.5 sm:mb-2">
               {selectedWorkout.secondary} Exercises
             </h3>
-            <p className="text-sm text-text-secondary mb-4">
+            <p className="text-xs sm:text-sm text-text-secondary mb-3 sm:mb-4">
               Select the exercises you performed for {selectedWorkout.secondary}{" "}
               (optional)
             </p>
 
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
               {getExercisesForMuscle(selectedWorkout.secondaryMuscle).map(
                 (exercise) => (
                   <motion.button
                     key={exercise.name}
                     onClick={() => toggleExercise(exercise.name, false)}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
                       secondaryExercises.includes(exercise.name)
                         ? `bg-linear-to-r ${selectedWorkout.color} text-white shadow-lg`
                         : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
@@ -491,7 +500,10 @@ export default function NewGymLogForm({
                   >
                     {exercise.name}
                     {secondaryExercises.includes(exercise.name) && (
-                      <Check size={14} className="inline ml-1" />
+                      <Check
+                        size={12}
+                        className="sm:w-3.5 sm:h-3.5 inline ml-0.5 sm:ml-1"
+                      />
                     )}
                   </motion.button>
                 ),
@@ -501,9 +513,12 @@ export default function NewGymLogForm({
                 onClick={() =>
                   handleAddNewExercise(selectedWorkout.secondaryMuscle)
                 }
-                className="px-4 py-2 rounded-full text-sm font-medium bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-dashed border-navy-600 transition-all"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-dashed border-navy-600 transition-all"
               >
-                <Plus size={14} className="inline mr-1" />
+                <Plus
+                  size={12}
+                  className="sm:w-3.5 sm:h-3.5 inline mr-0.5 sm:mr-1"
+                />
                 Add New
               </button>
             </div>
@@ -515,10 +530,10 @@ export default function NewGymLogForm({
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="mt-4 p-4 bg-navy-700/30 border border-navy-600 rounded-xl"
+                  className="mt-3 sm:mt-4 p-3 sm:p-4 bg-navy-700/30 border border-navy-600 rounded-lg sm:rounded-xl"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-text-primary">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h4 className="text-xs sm:text-sm font-semibold text-text-primary">
                       Add New Exercise
                     </h4>
                     <button
@@ -528,16 +543,16 @@ export default function NewGymLogForm({
                       }}
                       className="text-text-secondary hover:text-text-primary"
                     >
-                      <X size={16} />
+                      <X size={14} className="sm:w-4 sm:h-4" />
                     </button>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2">
                     <input
                       type="text"
                       value={newExerciseName}
                       onChange={(e) => setNewExerciseName(e.target.value)}
                       placeholder="Exercise name"
-                      className="flex-1 px-3 py-2 bg-navy-800 border border-navy-600 rounded-lg text-text-primary text-sm focus:outline-none focus:border-primary"
+                      className="flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-navy-800 border border-navy-600 rounded-lg text-text-primary text-xs sm:text-sm focus:outline-none focus:border-primary"
                       onKeyPress={(e) =>
                         e.key === "Enter" && submitNewExercise()
                       }
@@ -545,7 +560,7 @@ export default function NewGymLogForm({
                     <button
                       onClick={submitNewExercise}
                       disabled={!newExerciseName.trim()}
-                      className="w-10 h-10 flex items-center justify-center text-primary text-2xl font-bold hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-primary text-xl sm:text-2xl font-bold hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       +
                     </button>
@@ -554,13 +569,13 @@ export default function NewGymLogForm({
               )}
             </AnimatePresence>
 
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-end mt-4 sm:mt-6">
               <button
                 onClick={handleSubmit}
                 disabled={disabled}
-                className="flex items-center gap-2 px-6 py-3 bg-success text-white rounded-lg font-medium hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-success text-white rounded-lg text-sm sm:text-base font-medium hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
               >
-                <Check size={18} />
+                <Check size={16} className="sm:w-4.5 sm:h-4.5" />
                 Complete Workout
               </button>
             </div>
