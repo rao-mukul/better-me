@@ -51,6 +51,7 @@ export default function WaterTimeline({ logs = [], onDelete }) {
           const time = new Date(log.loggedAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
+            hour12: true,
           });
           const isLast = index === logs.length - 1;
 

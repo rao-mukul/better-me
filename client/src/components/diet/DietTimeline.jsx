@@ -30,6 +30,7 @@ export default function DietTimeline({ logs = [], onDelete }) {
           const time = new Date(log.eatenAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
+            hour12: true,
           });
           const isLast = index === logs.length - 1;
 
