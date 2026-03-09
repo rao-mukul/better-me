@@ -69,6 +69,16 @@ app.use(
 );
 app.use(express.json());
 
+// Serverless DB connection middleware - MUST be before routes
+if (process.env.VERCEL === "1") {
+  app.use(async (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+    next();
+  });
+}
+
 app.use("/api/water", waterRoutes);
 app.use("/api/sleep", sleepRoutes);
 app.use("/api/gym", gymRoutes);
@@ -84,21 +94,12 @@ app.use(errorHandler);
 // Validate environment variables
 validateEnv();
 
-// Initialize DB connection and start server
+// Initialize DB connection for local development
 if (process.env.VERCEL !== "1") {
-  // Local development - connect DB then start server
   connectDB().then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
-  });
-} else {
-  // Serverless - connect on first request (cached for subsequent requests)
-  app.use(async (req, res, next) => {
-    if (mongoose.connection.readyState !== 1) {
-      await connectDB();
-    }
-    next();
   });
 }
 
