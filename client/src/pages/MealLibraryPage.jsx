@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { dietApi } from "../services/api";
 import { toast } from "react-hot-toast";
+import { getMealImageUrl } from "../utils/imageHelpers";
 
 export default function MealLibraryPage() {
   const navigate = useNavigate();
@@ -142,12 +143,13 @@ export default function MealLibraryPage() {
                 className="bg-navy-800/40 border border-navy-700/30 rounded-2xl overflow-hidden group"
               >
                 {/* Meal Image */}
-                <div className="relative aspect-video bg-navy-700/40">
-                  {meal.thumbnailUrl || meal.imageUrl ? (
+                <div className="relative aspect-video bg-navy-700/40 overflow-hidden">
+                  {getMealImageUrl(meal, "card") ? (
                     <img
-                      src={meal.thumbnailUrl || meal.imageUrl}
+                      src={getMealImageUrl(meal, "card")}
                       alt={meal.name}
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover object-center"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

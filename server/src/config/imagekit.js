@@ -18,9 +18,21 @@ export async function uploadMealImage(fileBuffer, fileName) {
       tags: ["meal", "food"],
     });
 
+    // Generate thumbnail URL with ImageKit transformations
+    // tr:w-400,h-400,c-at_least,cm-extract,fo-auto,q-80
+    // c-at_least: ensures image is at least 400x400 (no padding)
+    // cm-extract: crops to exact dimensions
+    // fo-auto: smart focus area detection
+    const thumbnailUrl = result.url.includes("?")
+      ? result.url.replace(
+          "?",
+          "?tr=w-400,h-400,c-at_least,cm-extract,fo-auto,q-80&",
+        )
+      : `${result.url}?tr=w-400,h-400,c-at_least,cm-extract,fo-auto,q-80`;
+
     return {
       imageUrl: result.url,
-      thumbnailUrl: result.thumbnailUrl,
+      thumbnailUrl: thumbnailUrl,
       imageId: result.fileId,
     };
   } catch (error) {

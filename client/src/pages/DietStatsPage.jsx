@@ -20,6 +20,7 @@ import {
 import { dietApi } from "../services/api";
 import DietCalendar from "../components/diet/DietCalendar";
 import DietTimeline from "../components/diet/DietTimeline";
+import { getMealImageUrl } from "../utils/imageHelpers";
 
 export default function DietStatsPage() {
   const queryClient = useQueryClient();
@@ -377,12 +378,13 @@ export default function DietStatsPage() {
                   className="bg-navy-800/40 border border-navy-700/30 rounded-2xl overflow-hidden group"
                 >
                   {/* Meal Image */}
-                  <div className="relative aspect-video bg-navy-700/40">
-                    {meal.thumbnailUrl || meal.imageUrl ? (
+                  <div className="relative aspect-video bg-navy-700/40 overflow-hidden">
+                    {getMealImageUrl(meal, "card") ? (
                       <img
-                        src={meal.thumbnailUrl || meal.imageUrl}
+                        src={getMealImageUrl(meal, "card")}
                         alt={meal.name}
-                        className="w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-cover object-center"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

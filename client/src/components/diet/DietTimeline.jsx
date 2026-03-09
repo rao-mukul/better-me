@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Utensils, Clock, ImageIcon } from "lucide-react";
+import { getMealImageUrl } from "../../utils/imageHelpers";
 
 export default function DietTimeline({ logs = [], onDelete }) {
   if (logs.length === 0) {
@@ -70,11 +71,12 @@ export default function DietTimeline({ logs = [], onDelete }) {
                 className="flex-1 min-w-0 flex items-start gap-3 bg-navy-800/40 border border-navy-700/30 rounded-xl px-4 py-3 group overflow-hidden"
               >
                 {/* Image if available */}
-                {log.imageUrl && (
+                {getMealImageUrl(log, "thumbnail") && (
                   <img
-                    src={log.thumbnailUrl || log.imageUrl}
+                    src={getMealImageUrl(log, "thumbnail")}
                     alt={log.foodName}
                     className="w-16 h-16 rounded-lg object-cover shrink-0"
+                    loading="lazy"
                   />
                 )}
 

@@ -20,6 +20,7 @@ import {
   useSaveMeal,
   useLogMeal,
 } from "../../hooks/useDietData";
+import { getMealImageUrl } from "../../utils/imageHelpers";
 
 const mealCategories = [
   { value: "breakfast", label: "Breakfast", emoji: "🌅" },
@@ -602,12 +603,13 @@ export default function NewDietLogForm({ onSuccess }) {
             </div>
 
             {/* Image Preview */}
-            {(imagePreview || selectedMeal?.thumbnailUrl) && (
+            {(imagePreview || getMealImageUrl(selectedMeal, "preview")) && (
               <div className="relative">
                 <img
-                  src={imagePreview || selectedMeal.thumbnailUrl}
+                  src={imagePreview || getMealImageUrl(selectedMeal, "preview")}
                   alt="Meal"
                   className="w-full h-48 object-cover rounded-xl"
+                  loading="lazy"
                 />
               </div>
             )}
@@ -940,17 +942,20 @@ export default function NewDietLogForm({ onSuccess }) {
 
 // Meal Result Card Component
 function MealResultCard({ meal, onClick }) {
+  const imageUrl = getMealImageUrl(meal, "thumbnail");
+
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className="w-full flex items-center gap-3 p-3 rounded-xl bg-navy-800/40 border border-navy-700/30 hover:border-green-500/30 transition-all text-left"
     >
-      {meal.thumbnailUrl ? (
+      {imageUrl ? (
         <img
-          src={meal.thumbnailUrl}
+          src={imageUrl}
           alt={meal.name}
           className="w-14 h-14 rounded-lg object-cover"
+          loading="lazy"
         />
       ) : (
         <div className="w-14 h-14 rounded-lg bg-navy-700/50 flex items-center justify-center">
