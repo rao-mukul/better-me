@@ -108,30 +108,49 @@ export default function GymStatsPage() {
   const getSortedExercises = (muscleGroup, workoutId) => {
     const allMuscleExercises = getExercisesByMuscle(muscleGroup);
     const selectedExercises = programState[workoutId]?.primary || [];
+    const exerciseOrder =
+      programState[workoutId]?.exerciseOrder?.[muscleGroup] || [];
 
-    // Create a map for selected exercises with their order
-    const selectedMap = new Map();
-    selectedExercises.forEach((name, index) => {
-      selectedMap.set(name, index);
-    });
+    // Create a map for selected exercises
+    const selectedSet = new Set(selectedExercises);
 
     // Separate selected and unselected
     const selected = [];
     const unselected = [];
 
     allMuscleExercises.forEach((exercise) => {
-      if (selectedMap.has(exercise.name)) {
-        selected.push({
-          ...exercise,
-          order: selectedMap.get(exercise.name),
-        });
+      if (selectedSet.has(exercise.name)) {
+        selected.push(exercise);
       } else {
         unselected.push(exercise);
       }
     });
 
-    // Sort selected by their order in the program
-    selected.sort((a, b) => a.order - b.order);
+    // Sort selected by their order in programState.primary
+    const selectedOrderMap = new Map();
+    selectedExercises.forEach((name, index) => {
+      selectedOrderMap.set(name, index);
+    });
+    selected.sort((a, b) => {
+      const orderA = selectedOrderMap.get(a.name) ?? 999;
+      const orderB = selectedOrderMap.get(b.name) ?? 999;
+      return orderA - orderB;
+    });
+
+    // Sort unselected by exerciseOrder if available, otherwise alphabetically
+    if (exerciseOrder.length > 0) {
+      const unselectedOrderMap = new Map();
+      exerciseOrder.forEach((name, index) => {
+        if (!selectedSet.has(name)) {
+          unselectedOrderMap.set(name, index);
+        }
+      });
+      unselected.sort((a, b) => {
+        const orderA = unselectedOrderMap.get(a.name) ?? 999;
+        const orderB = unselectedOrderMap.get(b.name) ?? 999;
+        return orderA - orderB;
+      });
+    }
 
     // Return selected first, then unselected
     return [...selected, ...unselected];
@@ -160,54 +179,59 @@ export default function GymStatsPage() {
 
     if (data.workoutId !== workoutId) return;
 
+    const muscleGroup = data.muscleGroup;
+    const sourceExerciseName = data.exerciseName;
+    const targetExerciseName = targetExercise.name;
+
     setProgramState((prev) => {
-      const workout = prev[workoutId] || { primary: [], secondary: [] };
-      const exercises = [...(workout.primary || [])];
+      const workout = prev[workoutId] || {
+        primary: [],
+        secondary: [],
+        exerciseOrder: {},
+      };
+      const selectedExercises = [...(workout.primary || [])];
+      const isSourceSelected = selectedExercises.includes(sourceExerciseName);
+      const isTargetSelected = selectedExercises.includes(targetExerciseName);
 
-      const sourceIndex = exercises.indexOf(data.exerciseName);
-      const targetIndex = exercises.indexOf(targetExercise.name);
+      // Get all exercises for this muscle group to maintain full order
+      const allMuscleExercises = exercises
+        .filter((ex) => ex.muscleGroup === muscleGroup)
+        .map((ex) => ex.name);
 
-      // Both exercises must be in the selected list to reorder
+      const exerciseOrder = workout.exerciseOrder || {};
+      const currentOrder = exerciseOrder[muscleGroup] || allMuscleExercises;
+
+      const sourceIndex = currentOrder.indexOf(sourceExerciseName);
+      const targetIndex = currentOrder.indexOf(targetExerciseName);
+
       if (sourceIndex === -1 || targetIndex === -1) return prev;
 
-      // Remove source and insert at target position
-      exercises.splice(sourceIndex, 1);
-      exercises.splice(targetIndex, 0, data.exerciseName);
+      // Update full exercise order
+      const newOrder = [...currentOrder];
+      newOrder.splice(sourceIndex, 1);
+      newOrder.splice(targetIndex, 0, sourceExerciseName);
+
+      // If both are selected, also update selected order
+      let newSelectedExercises = selectedExercises;
+      if (isSourceSelected && isTargetSelected) {
+        const selectedSourceIndex =
+          selectedExercises.indexOf(sourceExerciseName);
+        const selectedTargetIndex =
+          selectedExercises.indexOf(targetExerciseName);
+        newSelectedExercises = [...selectedExercises];
+        newSelectedExercises.splice(selectedSourceIndex, 1);
+        newSelectedExercises.splice(selectedTargetIndex, 0, sourceExerciseName);
+      }
 
       return {
         ...prev,
         [workoutId]: {
           ...workout,
-          primary: exercises,
-        },
-      };
-    });
-  };
-
-  const moveExercise = (workoutId, exerciseName, direction) => {
-    setProgramState((prev) => {
-      const workout = prev[workoutId] || { primary: [], secondary: [] };
-      const exercises = [...(workout.primary || [])];
-
-      const currentIndex = exercises.indexOf(exerciseName);
-      if (currentIndex === -1) return prev;
-
-      const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-
-      // Check bounds
-      if (newIndex < 0 || newIndex >= exercises.length) return prev;
-
-      // Swap elements
-      [exercises[currentIndex], exercises[newIndex]] = [
-        exercises[newIndex],
-        exercises[currentIndex],
-      ];
-
-      return {
-        ...prev,
-        [workoutId]: {
-          ...workout,
-          primary: exercises,
+          primary: newSelectedExercises,
+          exerciseOrder: {
+            ...exerciseOrder,
+            [muscleGroup]: newOrder,
+          },
         },
       };
     });
@@ -280,23 +304,62 @@ export default function GymStatsPage() {
       targetExerciseName &&
       targetExerciseName !== touchDragData.exerciseName
     ) {
-      setProgramState((prev) => {
-        const workout = prev[workoutId] || { primary: [], secondary: [] };
-        const exercises = [...(workout.primary || [])];
+      const muscleGroup = touchDragData.muscleGroup;
+      const sourceExerciseName = touchDragData.exerciseName;
 
-        const sourceIndex = exercises.indexOf(touchDragData.exerciseName);
-        const targetIndex = exercises.indexOf(targetExerciseName);
+      setProgramState((prev) => {
+        const workout = prev[workoutId] || {
+          primary: [],
+          secondary: [],
+          exerciseOrder: {},
+        };
+        const selectedExercises = [...(workout.primary || [])];
+        const isSourceSelected = selectedExercises.includes(sourceExerciseName);
+        const isTargetSelected = selectedExercises.includes(targetExerciseName);
+
+        // Get all exercises for this muscle group to maintain full order
+        const allMuscleExercises = exercises
+          .filter((ex) => ex.muscleGroup === muscleGroup)
+          .map((ex) => ex.name);
+
+        const exerciseOrder = workout.exerciseOrder || {};
+        const currentOrder = exerciseOrder[muscleGroup] || allMuscleExercises;
+
+        const sourceIndex = currentOrder.indexOf(sourceExerciseName);
+        const targetIndex = currentOrder.indexOf(targetExerciseName);
 
         if (sourceIndex === -1 || targetIndex === -1) return prev;
 
-        exercises.splice(sourceIndex, 1);
-        exercises.splice(targetIndex, 0, touchDragData.exerciseName);
+        // Update full exercise order
+        const newOrder = [...currentOrder];
+        newOrder.splice(sourceIndex, 1);
+        newOrder.splice(targetIndex, 0, sourceExerciseName);
+
+        // If both are selected, also update selected order
+        let newSelectedExercises = selectedExercises;
+        if (isSourceSelected && isTargetSelected) {
+          const selectedSourceIndex =
+            selectedExercises.indexOf(sourceExerciseName);
+          const selectedTargetIndex =
+            selectedExercises.indexOf(targetExerciseName);
+          newSelectedExercises = [...selectedExercises];
+          newSelectedExercises.splice(selectedSourceIndex, 1);
+          newSelectedExercises.splice(
+            selectedTargetIndex,
+            0,
+            sourceExerciseName,
+          );
+        }
 
         return {
           ...prev,
           [workoutId]: {
             ...workout,
-            primary: exercises,
+            primary: newSelectedExercises,
+            exerciseOrder: {
+              ...exerciseOrder,
+              [muscleGroup]: newOrder,
+            },
           },
         };
       });
@@ -566,8 +629,8 @@ export default function GymStatsPage() {
                                 return (
                                   <div
                                     key={exercise._id}
-                                    className={`relative group ${touchDragData?.exerciseName === exercise.name ? "opacity-50" : ""} ${isSelected && isEditMode ? "touch-none" : ""}`}
-                                    draggable={isSelected && isEditMode}
+                                    className={`relative group ${touchDragData?.exerciseName === exercise.name ? "opacity-50" : ""} ${isEditMode ? "touch-none" : ""}`}
+                                    draggable={isEditMode}
                                     onDragStart={(e) =>
                                       handleDragStart(
                                         e,
@@ -576,17 +639,12 @@ export default function GymStatsPage() {
                                         workout.primary,
                                       )
                                     }
-                                    onDragOver={
-                                      isSelected ? handleDragOver : undefined
-                                    }
-                                    onDrop={
-                                      isSelected
-                                        ? (e) =>
-                                            handleDrop(e, exercise, workout.id)
-                                        : undefined
+                                    onDragOver={handleDragOver}
+                                    onDrop={(e) =>
+                                      handleDrop(e, exercise, workout.id)
                                     }
                                     onTouchStart={
-                                      isSelected && isEditMode
+                                      isEditMode
                                         ? (e) =>
                                             handleTouchStart(
                                               e,
@@ -597,19 +655,17 @@ export default function GymStatsPage() {
                                         : undefined
                                     }
                                     onTouchMove={
-                                      isSelected && isEditMode
+                                      isEditMode
                                         ? (e) => handleTouchMove(e, workout.id)
                                         : undefined
                                     }
                                     onTouchEnd={
-                                      isSelected && isEditMode
+                                      isEditMode
                                         ? (e) => handleTouchEnd(e, workout.id)
                                         : undefined
                                     }
                                     onTouchCancel={
-                                      isSelected && isEditMode
-                                        ? cancelTouchDrag
-                                        : undefined
+                                      isEditMode ? cancelTouchDrag : undefined
                                     }
                                   >
                                     <motion.button
@@ -628,7 +684,7 @@ export default function GymStatsPage() {
                                           : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
                                       }`}
                                     >
-                                      {isSelected && isEditMode && (
+                                      {isEditMode && (
                                         <GripVertical
                                           size={14}
                                           className="cursor-grab active:cursor-grabbing opacity-70"
@@ -636,65 +692,6 @@ export default function GymStatsPage() {
                                       )}
                                       {exercise.name}
                                     </motion.button>
-
-                                    {/* Reorder buttons - only for selected exercises in edit mode */}
-                                    {isSelected && isEditMode && (
-                                      <>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            moveExercise(
-                                              workout.id,
-                                              exercise.name,
-                                              "up",
-                                            );
-                                          }}
-                                          disabled={
-                                            workoutProgram.primary.indexOf(
-                                              exercise.name,
-                                            ) === 0
-                                          }
-                                          className={`absolute -top-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
-                                            isEditMode
-                                              ? "opacity-100"
-                                              : "opacity-0 pointer-events-none"
-                                          }`}
-                                          title="Move up"
-                                        >
-                                          <ChevronUp
-                                            size={12}
-                                            className="text-white"
-                                          />
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            moveExercise(
-                                              workout.id,
-                                              exercise.name,
-                                              "down",
-                                            );
-                                          }}
-                                          disabled={
-                                            workoutProgram.primary.indexOf(
-                                              exercise.name,
-                                            ) ===
-                                            workoutProgram.primary.length - 1
-                                          }
-                                          className={`absolute -bottom-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
-                                            isEditMode
-                                              ? "opacity-100"
-                                              : "opacity-0 pointer-events-none"
-                                          }`}
-                                          title="Move down"
-                                        >
-                                          <ChevronDown
-                                            size={12}
-                                            className="text-white"
-                                          />
-                                        </button>
-                                      </>
-                                    )}
 
                                     <button
                                       onClick={(e) => {
@@ -768,8 +765,8 @@ export default function GymStatsPage() {
                               return (
                                 <div
                                   key={exercise._id}
-                                  className={`relative group ${touchDragData?.exerciseName === exercise.name ? "opacity-50" : ""} ${isSelected && isEditMode ? "touch-none" : ""}`}
-                                  draggable={isSelected && isEditMode}
+                                  className={`relative group ${touchDragData?.exerciseName === exercise.name ? "opacity-50" : ""} ${isEditMode ? "touch-none" : ""}`}
+                                  draggable={isEditMode}
                                   onDragStart={(e) =>
                                     handleDragStart(
                                       e,
@@ -778,17 +775,12 @@ export default function GymStatsPage() {
                                       workout.secondary,
                                     )
                                   }
-                                  onDragOver={
-                                    isSelected ? handleDragOver : undefined
-                                  }
-                                  onDrop={
-                                    isSelected
-                                      ? (e) =>
-                                          handleDrop(e, exercise, workout.id)
-                                      : undefined
+                                  onDragOver={handleDragOver}
+                                  onDrop={(e) =>
+                                    handleDrop(e, exercise, workout.id)
                                   }
                                   onTouchStart={
-                                    isSelected && isEditMode
+                                    isEditMode
                                       ? (e) =>
                                           handleTouchStart(
                                             e,
@@ -799,19 +791,17 @@ export default function GymStatsPage() {
                                       : undefined
                                   }
                                   onTouchMove={
-                                    isSelected && isEditMode
+                                    isEditMode
                                       ? (e) => handleTouchMove(e, workout.id)
                                       : undefined
                                   }
                                   onTouchEnd={
-                                    isSelected && isEditMode
+                                    isEditMode
                                       ? (e) => handleTouchEnd(e, workout.id)
                                       : undefined
                                   }
                                   onTouchCancel={
-                                    isSelected && isEditMode
-                                      ? cancelTouchDrag
-                                      : undefined
+                                    isEditMode ? cancelTouchDrag : undefined
                                   }
                                 >
                                   <motion.button
@@ -830,7 +820,7 @@ export default function GymStatsPage() {
                                         : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
                                     }`}
                                   >
-                                    {isSelected && isEditMode && (
+                                    {isEditMode && (
                                       <GripVertical
                                         size={14}
                                         className="cursor-grab active:cursor-grabbing opacity-70"
@@ -838,65 +828,6 @@ export default function GymStatsPage() {
                                     )}
                                     {exercise.name}
                                   </motion.button>
-
-                                  {/* Reorder buttons - only for selected exercises in edit mode */}
-                                  {isSelected && isEditMode && (
-                                    <>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          moveExercise(
-                                            workout.id,
-                                            exercise.name,
-                                            "up",
-                                          );
-                                        }}
-                                        disabled={
-                                          workoutProgram.primary.indexOf(
-                                            exercise.name,
-                                          ) === 0
-                                        }
-                                        className={`absolute -top-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
-                                          isEditMode
-                                            ? "opacity-100"
-                                            : "opacity-0 pointer-events-none"
-                                        }`}
-                                        title="Move up"
-                                      >
-                                        <ChevronUp
-                                          size={12}
-                                          className="text-white"
-                                        />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          moveExercise(
-                                            workout.id,
-                                            exercise.name,
-                                            "down",
-                                          );
-                                        }}
-                                        disabled={
-                                          workoutProgram.primary.indexOf(
-                                            exercise.name,
-                                          ) ===
-                                          workoutProgram.primary.length - 1
-                                        }
-                                        className={`absolute -bottom-1 -left-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed ${
-                                          isEditMode
-                                            ? "opacity-100"
-                                            : "opacity-0 pointer-events-none"
-                                        }`}
-                                        title="Move down"
-                                      >
-                                        <ChevronDown
-                                          size={12}
-                                          className="text-white"
-                                        />
-                                      </button>
-                                    </>
-                                  )}
 
                                   <button
                                     onClick={(e) => {

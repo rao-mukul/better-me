@@ -184,7 +184,7 @@ export default function NewGymLogForm({
       (ex) => ex.muscleGroup === muscleGroup,
     );
 
-    // Sort exercises: program exercises first in their saved order, then others
+    // Sort exercises: selected exercises first in their saved order, then unselected in custom order
     if (userProgram && selectedWorkout) {
       const timesThisWeek = weekHistory.filter(
         (log) => log.workoutType === selectedWorkout.id,
@@ -207,31 +207,53 @@ export default function NewGymLogForm({
 
       const mapping = configMapping[selectedWorkout.id];
       const configKey = timesThisWeek === 0 ? mapping.first : mapping.second;
-      const programExercises = userProgram[configKey]?.primary || [];
+      const programConfig = userProgram[configKey] || {};
+      const selectedExercises = programConfig.primary || [];
+      const exerciseOrder = programConfig.exerciseOrder?.[muscleGroup] || [];
 
-      // Create order map from program
-      const orderMap = new Map();
-      programExercises.forEach((name, index) => {
-        orderMap.set(name, index);
-      });
+      // Create set for selected exercises
+      const selectedSet = new Set(selectedExercises);
 
-      // Separate exercises into program (with order) and non-program
-      const inProgram = [];
-      const notInProgram = [];
+      // Separate exercises into selected and unselected
+      const selected = [];
+      const unselected = [];
 
       filtered.forEach((ex) => {
-        if (orderMap.has(ex.name)) {
-          inProgram.push({ ...ex, order: orderMap.get(ex.name) });
+        if (selectedSet.has(ex.name)) {
+          selected.push(ex);
         } else {
-          notInProgram.push(ex);
+          unselected.push(ex);
         }
       });
 
-      // Sort program exercises by their saved order
-      inProgram.sort((a, b) => a.order - b.order);
+      // Sort selected exercises by their order in programConfig.primary
+      const selectedOrderMap = new Map();
+      selectedExercises.forEach((name, index) => {
+        selectedOrderMap.set(name, index);
+      });
+      selected.sort((a, b) => {
+        const orderA = selectedOrderMap.get(a.name) ?? 999;
+        const orderB = selectedOrderMap.get(b.name) ?? 999;
+        return orderA - orderB;
+      });
 
-      // Return program exercises first, then others
-      return [...inProgram, ...notInProgram];
+      // Sort unselected by exerciseOrder if available
+      if (exerciseOrder.length > 0) {
+        const unselectedOrderMap = new Map();
+        exerciseOrder.forEach((name, index) => {
+          if (!selectedSet.has(name)) {
+            unselectedOrderMap.set(name, index);
+          }
+        });
+        unselected.sort((a, b) => {
+          const orderA = unselectedOrderMap.get(a.name) ?? 999;
+          const orderB = unselectedOrderMap.get(b.name) ?? 999;
+          return orderA - orderB;
+        });
+      }
+
+      // Return selected exercises first, then unselected
+      return [...selected, ...unselected];
     }
 
     return filtered;

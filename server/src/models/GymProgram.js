@@ -12,26 +12,56 @@ const gymProgramSchema = new mongoose.Schema({
     chestTriceps: {
       primary: [String], // Exercises (chest + triceps) - chest focus
       secondary: [String], // Not used
+      exerciseOrder: {
+        type: Map,
+        of: [String],
+        default: {},
+      }, // Custom display order per muscle group
     },
     tricepsChest: {
       primary: [String], // Exercises (triceps + chest) - triceps focus
       secondary: [String], // Not used
+      exerciseOrder: {
+        type: Map,
+        of: [String],
+        default: {},
+      },
     },
     backBiceps: {
       primary: [String], // Exercises (back + biceps) - back focus
       secondary: [String], // Not used
+      exerciseOrder: {
+        type: Map,
+        of: [String],
+        default: {},
+      },
     },
     bicepsBack: {
       primary: [String], // Exercises (biceps + back) - biceps focus
       secondary: [String], // Not used
+      exerciseOrder: {
+        type: Map,
+        of: [String],
+        default: {},
+      },
     },
     legsShoulders: {
       primary: [String], // Exercises (legs + shoulders) - legs focus
       secondary: [String], // Not used
+      exerciseOrder: {
+        type: Map,
+        of: [String],
+        default: {},
+      },
     },
     shouldersLegs: {
       primary: [String], // Exercises (shoulders + legs) - shoulders focus
       secondary: [String], // Not used
+      exerciseOrder: {
+        type: Map,
+        of: [String],
+        default: {},
+      },
     },
   },
   createdAt: {
