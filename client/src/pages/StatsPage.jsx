@@ -33,29 +33,30 @@ export default function StatsPage() {
       className="flex flex-col gap-4"
     >
       {/* View Toggle */}
-      <div className="flex items-center gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1.5 w-fit">
+      <div className="flex items-center gap-1.5 sm:gap-2 bg-navy-800/40 border border-navy-700/30 rounded-xl p-1 sm:p-1.5 w-fit">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setView("today")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
             view === "today"
               ? "bg-primary text-white"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          <ListOrdered size={18} />
-          Today's Log
+          <ListOrdered size={16} className="sm:w-4.5 sm:h-4.5" />
+          <span className="hidden xs:inline">Today's Log</span>
+          <span className="xs:hidden">Today</span>
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setView("calendar")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
             view === "calendar"
               ? "bg-primary text-white"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          <Calendar size={18} />
+          <Calendar size={16} className="sm:w-4.5 sm:h-4.5" />
           Calendar
         </motion.button>
       </div>
@@ -65,9 +66,9 @@ export default function StatsPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-6"
+          className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-3 sm:p-6"
         >
-          <h3 className="text-lg font-semibold text-text-primary mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-4 sm:mb-6">
             Intake Timeline
           </h3>
           <WaterTimeline logs={logs} onDelete={handleDelete} />

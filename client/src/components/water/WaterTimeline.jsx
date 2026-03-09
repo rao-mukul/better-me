@@ -41,7 +41,7 @@ export default function WaterTimeline({ logs = [], onDelete }) {
   return (
     <div className="relative">
       {/* Timeline vertical line */}
-      <div className="absolute left-8 sm:left-13 top-4 bottom-4 w-0.5 bg-linear-to-b from-primary/50 via-primary/30 to-transparent" />
+      <div className="absolute left-8 sm:left-13 top-3 sm:top-4 bottom-3 sm:bottom-4 w-0.5 bg-linear-to-b from-primary/50 via-primary/30 to-transparent" />
 
       <AnimatePresence mode="popLayout">
         {logs.map((log, index) => {
@@ -67,23 +67,23 @@ export default function WaterTimeline({ logs = [], onDelete }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20, height: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className={`relative flex items-start gap-2 sm:gap-4 ${!isLast ? "mb-6" : ""}`}
+              className={`relative flex items-start gap-2 sm:gap-4 ${!isLast ? "mb-3 sm:mb-6" : ""}`}
             >
               {/* Time */}
-              <div className="w-8 sm:w-12 pt-2 text-right shrink-0">
-                <span className="text-xs font-medium text-text-secondary tabular-nums">
+              <div className="w-8 sm:w-12 pt-1.5 sm:pt-2 text-right shrink-0">
+                <span className="text-[10px] sm:text-xs font-medium text-text-secondary tabular-nums">
                   {time}
                 </span>
               </div>
 
               {/* Timeline dot */}
-              <div className="relative z-10 mt-2 shrink-0">
+              <div className="relative z-10 mt-1.5 sm:mt-2 shrink-0">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className={`w-3 h-3 rounded-full ${
+                  className={`w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full ${
                     index === 0
-                      ? "bg-primary ring-4 ring-primary/20"
+                      ? "bg-primary ring-2 sm:ring-4 ring-primary/20"
                       : "bg-primary/60"
                   }`}
                 />
@@ -92,26 +92,26 @@ export default function WaterTimeline({ logs = [], onDelete }) {
               {/* Content Card */}
               <motion.div
                 whileHover={{ x: 4 }}
-                className="flex-1 flex items-center gap-2 sm:gap-3 bg-navy-800/40 border border-navy-700/30 rounded-xl px-2 sm:px-4 py-3 group min-w-0"
+                className="flex-1 flex items-center gap-2 sm:gap-3 bg-navy-800/40 border border-navy-700/30 rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 group min-w-0"
               >
                 <div
-                  className={`p-2 sm:p-2.5 rounded-lg ${bgColor} ${color} shrink-0`}
+                  className={`p-1.5 sm:p-2.5 rounded-lg ${bgColor} ${color} shrink-0`}
                 >
-                  <Icon size={18} className="sm:w-5 sm:h-5" />
+                  <Icon size={16} className="sm:w-5 sm:h-5" />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-semibold text-text-primary truncate">
                     {displayLabel}
                   </p>
-                  <p className="text-xs text-text-secondary mt-0.5 hidden sm:block">
+                  <p className="text-[10px] sm:text-xs text-text-secondary mt-0.5 hidden sm:block">
                     {log.amount} ml added
                   </p>
                 </div>
 
-                <span className="text-base sm:text-lg font-bold text-primary tabular-nums shrink-0">
+                <span className="text-sm sm:text-lg font-bold text-primary tabular-nums shrink-0">
                   {log.amount}
-                  <span className="text-xs font-normal text-text-secondary ml-1">
+                  <span className="text-[10px] sm:text-xs font-normal text-text-secondary ml-0.5 sm:ml-1">
                     ml
                   </span>
                 </span>
@@ -120,7 +120,7 @@ export default function WaterTimeline({ logs = [], onDelete }) {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => onDelete(log._id)}
-                  className="p-1.5 sm:p-2 rounded-lg text-text-secondary/50 hover:text-danger hover:bg-danger/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                  className="p-1.5 sm:p-2 rounded-lg text-text-secondary/50 hover:text-danger hover:bg-danger/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
                 >
                   <Trash2 size={14} className="sm:w-4 sm:h-4" />
                 </motion.button>
@@ -136,17 +136,17 @@ export default function WaterTimeline({ logs = [], onDelete }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-8 pt-6 border-t border-navy-700/30"
+          className="mt-4 sm:mt-8 pt-4 sm:pt-6 border-t border-navy-700/30"
         >
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
             <span className="text-text-secondary">Total entries today</span>
             <span className="font-semibold text-text-primary">
               {logs.length}
             </span>
           </div>
-          <div className="flex items-center justify-between text-sm mt-2">
+          <div className="flex items-center justify-between text-xs sm:text-sm mt-1.5 sm:mt-2">
             <span className="text-text-secondary">Total intake</span>
-            <span className="font-bold text-primary text-lg">
+            <span className="font-bold text-primary text-base sm:text-lg">
               {logs.reduce((sum, log) => sum + log.amount, 0)} ml
             </span>
           </div>

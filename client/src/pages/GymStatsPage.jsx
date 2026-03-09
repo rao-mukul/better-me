@@ -505,17 +505,17 @@ export default function GymStatsPage() {
         /* Training Program View */
         <>
           {/* Header */}
-          <div className="flex items-center justify-between bg-navy-800/40 border border-navy-700/30 rounded-xl p-3 sm:p-4">
-            <h2 className="text-base sm:text-xl font-bold text-text-primary">
+          <div className="flex items-center justify-between bg-navy-800/40 border border-navy-700/30 rounded-xl p-2.5 sm:p-4">
+            <h2 className="text-sm sm:text-xl font-bold text-text-primary">
               Select Exercises
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 onClick={() => setIsEditMode(!isEditMode)}
                 variant={isEditMode ? "primary" : "secondary"}
-                className="flex items-center gap-1.5 text-sm"
+                className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
               >
-                <Edit3 size={16} />
+                <Edit3 size={14} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">
                   {isEditMode ? "Done" : "Edit"}
                 </span>
@@ -523,12 +523,12 @@ export default function GymStatsPage() {
               <Button
                 onClick={handleSave}
                 disabled={updateProgram.isPending}
-                className="flex items-center gap-1.5 text-sm"
+                className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
               >
                 {updateProgram.isPending ? (
-                  <Loader className="animate-spin" size={16} />
+                  <Loader size={14} className="animate-spin sm:w-4 sm:h-4" />
                 ) : (
-                  <Save size={16} />
+                  <Save size={14} className="sm:w-4 sm:h-4" />
                 )}
                 Save
               </Button>
@@ -536,7 +536,7 @@ export default function GymStatsPage() {
           </div>
 
           {/* Workout Types */}
-          <div className="space-y-4">
+          <div className="space-y-2.5 sm:space-y-4">
             {workoutTypes.map((workout) => {
               const isExpanded = expandedWorkout === workout.id;
               const workoutProgram = programState[workout.id] || {
@@ -562,30 +562,33 @@ export default function GymStatsPage() {
                     onClick={() =>
                       setExpandedWorkout(isExpanded ? null : workout.id)
                     }
-                    className="w-full flex items-center justify-between p-4 sm:p-6 hover:bg-navy-800/60 transition-colors"
+                    className="w-full flex items-center justify-between p-2.5 sm:p-6 hover:bg-navy-800/60 transition-colors"
                   >
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                       <div
-                        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-linear-to-br ${workout.color} flex items-center justify-center text-xl sm:text-2xl shrink-0`}
+                        className={`w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-linear-to-br ${workout.color} flex items-center justify-center text-lg sm:text-2xl shrink-0`}
                       >
                         {workout.icon}
                       </div>
                       <div className="text-left flex-1 min-w-0">
-                        <h3 className="text-base sm:text-lg font-semibold text-text-primary truncate">
+                        <h3 className="text-sm sm:text-lg font-semibold text-text-primary truncate">
                           {workout.name}
                         </h3>
-                        <p className="text-xs sm:text-sm text-text-secondary">
+                        <p className="text-[10px] sm:text-sm text-text-secondary">
                           {workoutProgram.primary.length} exercises
                         </p>
                       </div>
                     </div>
                     <div className="shrink-0">
                       {isExpanded ? (
-                        <ChevronUp className="text-text-secondary" size={20} />
+                        <ChevronUp
+                          size={18}
+                          className="text-text-secondary sm:w-5 sm:h-5"
+                        />
                       ) : (
                         <ChevronDown
-                          className="text-text-secondary"
-                          size={20}
+                          size={18}
+                          className="text-text-secondary sm:w-5 sm:h-5"
                         />
                       )}
                     </div>
@@ -593,13 +596,13 @@ export default function GymStatsPage() {
 
                   {/* Expanded Content */}
                   {isExpanded && (
-                    <div className="border-t border-navy-700/30 p-4 sm:p-6 space-y-4 sm:space-y-6">
+                    <div className="border-t border-navy-700/30 p-2.5 sm:p-6 space-y-3 sm:space-y-6">
                       {/* Primary Muscle Group Section */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                          <h4 className="text-[10px] sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">
                             {workout.primary}
-                            <span className="ml-2 text-[10px] normal-case opacity-70">
+                            <span className="ml-1 sm:ml-2 text-[9px] sm:text-[10px] normal-case opacity-70">
                               ({workoutProgram.primary.length} selected)
                             </span>
                           </h4>
@@ -607,13 +610,13 @@ export default function GymStatsPage() {
                             onClick={() =>
                               openAddExerciseModal(workout.primary)
                             }
-                            className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                            className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-orange-400 hover:text-orange-300 transition-colors"
                           >
-                            <Plus size={14} />
+                            <Plus size={12} className="sm:w-3.5 sm:h-3.5" />
                             <span className="hidden sm:inline">Add</span>
                           </button>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           {getSortedExercises(workout.primary, workout.id)
                             .length === 0 ? (
                             <p className="text-sm text-text-secondary">
@@ -678,7 +681,7 @@ export default function GymStatsPage() {
                                         )
                                       }
                                       whileTap={{ scale: 0.95 }}
-                                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
+                                      className={`px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[10px] sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-1.5 ${
                                         isSelected
                                           ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
                                           : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
@@ -686,8 +689,8 @@ export default function GymStatsPage() {
                                     >
                                       {isEditMode && (
                                         <GripVertical
-                                          size={14}
-                                          className="cursor-grab active:cursor-grabbing opacity-70"
+                                          size={12}
+                                          className="sm:w-3.5 sm:h-3.5 cursor-grab active:cursor-grabbing opacity-70"
                                         />
                                       )}
                                       {exercise.name}
@@ -701,14 +704,17 @@ export default function GymStatsPage() {
                                           exercise.name,
                                         );
                                       }}
-                                      className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
+                                      className={`absolute -top-0.5 sm:-top-1 -right-0.5 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
                                         isEditMode
                                           ? "opacity-100"
                                           : "opacity-0 pointer-events-none"
                                       }`}
                                       title="Delete exercise"
                                     >
-                                      <X size={12} className="text-white" />
+                                      <X
+                                        size={10}
+                                        className="sm:w-3 sm:h-3 text-white"
+                                      />
                                     </button>
                                   </div>
                                 );
@@ -719,14 +725,14 @@ export default function GymStatsPage() {
                       </div>
 
                       {/* Divider */}
-                      <div className="border-t border-navy-700/20" />
+                      <div className="border-t border-navy-700/20 my-2 sm:my-0" />
 
                       {/* Secondary Muscle Group Section */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                          <h4 className="text-[10px] sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">
                             {workout.secondary}
-                            <span className="ml-2 text-[10px] normal-case opacity-70">
+                            <span className="ml-1 sm:ml-2 text-[9px] sm:text-[10px] normal-case opacity-70">
                               (
                               {
                                 workoutProgram.primary.filter((ex) =>
@@ -743,13 +749,13 @@ export default function GymStatsPage() {
                             onClick={() =>
                               openAddExerciseModal(workout.secondary)
                             }
-                            className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                            className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-orange-400 hover:text-orange-300 transition-colors"
                           >
-                            <Plus size={14} />
+                            <Plus size={12} className="sm:w-3.5 sm:h-3.5" />
                             <span className="hidden sm:inline">Add</span>
                           </button>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           {getSortedExercises(workout.secondary, workout.id)
                             .length === 0 ? (
                             <p className="text-sm text-text-secondary">
@@ -814,7 +820,7 @@ export default function GymStatsPage() {
                                       )
                                     }
                                     whileTap={{ scale: 0.95 }}
-                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
+                                    className={`px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[10px] sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-1.5 ${
                                       isSelected
                                         ? `bg-linear-to-r ${workout.color} text-white shadow-lg`
                                         : "bg-navy-700/50 text-text-secondary hover:bg-navy-700 border border-navy-600"
@@ -822,8 +828,8 @@ export default function GymStatsPage() {
                                   >
                                     {isEditMode && (
                                       <GripVertical
-                                        size={14}
-                                        className="cursor-grab active:cursor-grabbing opacity-70"
+                                        size={12}
+                                        className="sm:w-3.5 sm:h-3.5 cursor-grab active:cursor-grabbing opacity-70"
                                       />
                                     )}
                                     {exercise.name}
@@ -837,14 +843,17 @@ export default function GymStatsPage() {
                                         exercise.name,
                                       );
                                     }}
-                                    className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
+                                    className={`absolute -top-0.5 sm:-top-1 -right-0.5 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-opacity ${
                                       isEditMode
                                         ? "opacity-100"
                                         : "opacity-0 pointer-events-none"
                                     }`}
                                     title="Delete exercise"
                                   >
-                                    <X size={12} className="text-white" />
+                                    <X
+                                      size={10}
+                                      className="sm:w-3 sm:h-3 text-white"
+                                    />
                                   </button>
                                 </div>
                               );

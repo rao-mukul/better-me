@@ -74,20 +74,26 @@ export default function SleepTimeline({ logs = [], onDelete }) {
   return (
     <div className="relative">
       {/* Timeline vertical line */}
-      <div className="absolute left-13 top-4 bottom-4 w-0.5 bg-linear-to-b from-purple-500/50 via-purple-500/30 to-transparent" />
+      <div className="absolute left-10 sm:left-13 top-3 sm:top-4 bottom-3 sm:bottom-4 w-0.5 bg-linear-to-b from-purple-500/50 via-purple-500/30 to-transparent" />
 
       <AnimatePresence mode="popLayout">
         {groupedLogs.map((group, groupIndex) => (
-          <div key={group.date} className={groupIndex > 0 ? "mt-8" : ""}>
+          <div
+            key={group.date}
+            className={groupIndex > 0 ? "mt-4 sm:mt-8" : ""}
+          >
             {/* Date Separator */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 mb-6"
+              className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-6"
             >
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-navy-800/60 border border-navy-700/40 rounded-lg">
-                <Calendar size={14} className="text-purple-400" />
-                <span className="text-sm font-semibold text-text-primary">
+              <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-navy-800/60 border border-navy-700/40 rounded-lg">
+                <Calendar
+                  size={12}
+                  className="text-purple-400 sm:w-3.5 sm:h-3.5"
+                />
+                <span className="text-xs sm:text-sm font-semibold text-text-primary">
                   {getDateLabel(group.date)}
                 </span>
               </div>
@@ -112,23 +118,23 @@ export default function SleepTimeline({ logs = [], onDelete }) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20, height: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className={`relative flex items-start gap-4 ${!isLastInGroup ? "mb-6" : ""}`}
+                  className={`relative flex items-start gap-2 sm:gap-4 ${!isLastInGroup ? "mb-3 sm:mb-6" : ""}`}
                 >
                   {/* Wake Time */}
-                  <div className="w-12 pt-2 text-right">
-                    <span className="text-xs font-semibold text-purple-400 tabular-nums">
+                  <div className="w-9 sm:w-12 pt-1.5 sm:pt-2 text-right shrink-0">
+                    <span className="text-[10px] sm:text-xs font-semibold text-purple-400 tabular-nums">
                       {wokeTime}
                     </span>
                   </div>
 
                   {/* Timeline dot */}
-                  <div className="relative z-10 mt-2">
+                  <div className="relative z-10 mt-1.5 sm:mt-2 shrink-0">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className={`w-3 h-3 rounded-full ${
+                      className={`w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full ${
                         groupIndex === 0 && logIndex === 0
-                          ? "bg-purple-500 ring-4 ring-purple-500/20"
+                          ? "bg-purple-500 ring-2 sm:ring-4 ring-purple-500/20"
                           : "bg-purple-500/60"
                       }`}
                     />
@@ -137,24 +143,26 @@ export default function SleepTimeline({ logs = [], onDelete }) {
                   {/* Content Card */}
                   <motion.div
                     whileHover={{ x: 4 }}
-                    className="flex-1 bg-navy-800/40 border border-navy-700/30 rounded-xl p-4 group"
+                    className="flex-1 bg-navy-800/40 border border-navy-700/30 rounded-lg sm:rounded-xl p-2.5 sm:p-4 group min-w-0"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-lg bg-purple-500/20 text-purple-400">
-                          <Moon size={20} />
+                    <div className="flex items-start justify-between mb-2 sm:mb-3">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        <div className="p-1.5 sm:p-2.5 rounded-lg bg-purple-500/20 text-purple-400 shrink-0">
+                          <Moon size={16} className="sm:w-5 sm:h-5" />
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-text-primary">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-semibold text-text-primary">
                             {hours}h {minutes > 0 && `${minutes}m`}
                           </p>
-                          <p className="text-xs text-text-secondary flex items-center gap-2 mt-1">
-                            <span className="flex items-center gap-1">
-                              <Moon size={12} /> {sleptTime}
+                          <p className="text-[10px] sm:text-xs text-text-secondary flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+                            <span className="flex items-center gap-0.5 sm:gap-1">
+                              <Moon size={10} className="sm:w-3 sm:h-3" />{" "}
+                              {sleptTime}
                             </span>
-                            <span>→</span>
-                            <span className="flex items-center gap-1">
-                              <Sunrise size={12} /> {wokeTime}
+                            <span className="text-[8px] sm:text-xs">→</span>
+                            <span className="flex items-center gap-0.5 sm:gap-1">
+                              <Sunrise size={10} className="sm:w-3 sm:h-3" />{" "}
+                              {wokeTime}
                             </span>
                           </p>
                         </div>
@@ -164,18 +172,18 @@ export default function SleepTimeline({ logs = [], onDelete }) {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => onDelete(log._id)}
-                        className="p-2 rounded-lg text-text-secondary/50 hover:text-danger hover:bg-danger/10 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1.5 sm:p-2 rounded-lg text-text-secondary/50 hover:text-danger hover:bg-danger/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} className="sm:w-4 sm:h-4" />
                       </motion.button>
                     </div>
 
                     {/* Quality Badge */}
                     <div className="flex items-center gap-2">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${qualityColor}`}
+                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border ${qualityColor}`}
                       >
-                        <span className="text-sm">
+                        <span className="text-xs sm:text-sm">
                           {qualityEmojis[log.quality]}
                         </span>
                         {qualityLabels[log.quality]} Sleep
@@ -184,8 +192,8 @@ export default function SleepTimeline({ logs = [], onDelete }) {
 
                     {/* Notes (if any) */}
                     {log.notes && (
-                      <div className="mt-3 pt-3 border-t border-navy-700/30">
-                        <p className="text-xs text-text-secondary italic">
+                      <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-navy-700/30">
+                        <p className="text-[10px] sm:text-xs text-text-secondary italic line-clamp-2">
                           "{log.notes}"
                         </p>
                       </div>
