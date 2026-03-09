@@ -13,6 +13,8 @@ import {
   Sparkles,
   Clock,
   Plus,
+  RotateCcw,
+  Edit3,
 } from "lucide-react";
 import {
   useSearchMeals,
@@ -56,6 +58,17 @@ export default function NewDietLogForm({ onSuccess }) {
   const [servingSize, setServingSize] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [newIngredient, setNewIngredient] = useState("");
+  const [showIngredientInput, setShowIngredientInput] = useState(false);
+
+  // Track which fields were AI-filled for user control
+  const [aiFilledFields, setAiFilledFields] = useState({
+    name: false,
+    description: false,
+    category: false,
+    servingSize: false,
+    ingredients: false,
+    nutrition: false,
+  });
 
   // Refs
   const fileInputRef = useRef(null);
@@ -91,6 +104,20 @@ export default function NewDietLogForm({ onSuccess }) {
     setServingSize("");
     setIngredients([]);
     setNewIngredient("");
+    setShowIngredientInput(false);
+    setAiFilledFields({
+      name: false,
+      description: false,
+      category: false,
+      servingSize: false,
+      ingredients: false,
+      nutrition: false,
+    });
+  };
+
+  // Handle manual entry (skip AI analysis)
+  const handleManualEntry = () => {
+    setStep("approve");
   };
 
   // Handle meal selection from search
@@ -324,6 +351,16 @@ export default function NewDietLogForm({ onSuccess }) {
       setServingSize(result.analysis.portionSize || "");
       setIngredients(result.analysis.ingredients || []);
 
+      // Mark fields as AI-filled
+      setAiFilledFields({
+        name: !!result.analysis.name,
+        description: !!result.analysis.description,
+        category: !!result.analysis.category,
+        servingSize: !!result.analysis.portionSize,
+        ingredients: result.analysis.ingredients?.length > 0,
+        nutrition: false,
+      });
+
       setStep("approve");
     } catch (error) {
       console.error("Analysis failed:", error);
@@ -379,6 +416,14 @@ export default function NewDietLogForm({ onSuccess }) {
       }
 
       setNutritionData(result);
+
+      // Mark nutrition fields as AI-filled
+      setAiFilledFields((prev) => ({
+        ...prev,
+        nutrition: true,
+        servingSize: prev.servingSize || !!result.servingSize,
+      }));
+
       setStep("nutrition");
     } catch (error) {
       console.error("Nutrition fetch failed:", error);
@@ -426,10 +471,10 @@ export default function NewDietLogForm({ onSuccess }) {
         selectedMeal: selectedMeal?._id,
       });
 
-      // Save to library first (if AI analyzed or has image)
+      // Save to library first (if it's a new meal, not from library)
       let mealId = selectedMeal?._id;
 
-      if (!selectedMeal && (aiAnalysis || imageData)) {
+      if (!selectedMeal) {
         console.log("Saving new meal to library...");
         const savedMeal = await saveMeal.mutateAsync({
           name: mealName,
@@ -481,6 +526,39 @@ export default function NewDietLogForm({ onSuccess }) {
     }
   };
 
+  // Clear individual AI-filled fields
+  const clearField = (fieldName) => {
+    switch (fieldName) {
+      case "name":
+        setMealName("");
+        setAiFilledFields((prev) => ({ ...prev, name: false }));
+        break;
+      case "description":
+        setMealDescription("");
+        setAiFilledFields((prev) => ({ ...prev, description: false }));
+        break;
+      case "category":
+        setCategory("other");
+        setAiFilledFields((prev) => ({ ...prev, category: false }));
+        break;
+      case "servingSize":
+        setServingSize("");
+        setAiFilledFields((prev) => ({ ...prev, servingSize: false }));
+        break;
+      case "ingredients":
+        setIngredients([]);
+        setAiFilledFields((prev) => ({ ...prev, ingredients: false }));
+        break;
+      case "nutrition":
+        setCalories("");
+        setProtein("");
+        setCarbs("");
+        setFat("");
+        setAiFilledFields((prev) => ({ ...prev, nutrition: false }));
+        break;
+    }
+  };
+
   // Trigger analysis when image is captured
   useEffect(() => {
     if (step === "analyze" && capturedImage) {
@@ -510,14 +588,14 @@ export default function NewDietLogForm({ onSuccess }) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search meals or scan food..."
+                placeholder="Search meals..."
                 className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-navy-800/40 border border-navy-700/30 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                 autoFocus
               />
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => cameraInputRef.current?.click()}
@@ -537,6 +615,17 @@ export default function NewDietLogForm({ onSuccess }) {
                 <ImageIcon size={20} className="sm:w-6 sm:h-6 text-blue-400" />
                 <span className="text-xs sm:text-sm font-medium text-text-primary">
                   Upload Image
+                </span>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleManualEntry}
+                className="flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-linear-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 hover:border-purple-500/50 transition-colors"
+              >
+                <Edit3 size={20} className="sm:w-6 sm:h-6 text-purple-400" />
+                <span className="text-xs sm:text-sm font-medium text-text-primary">
+                  Manual Entry
                 </span>
               </motion.button>
             </div>
@@ -582,7 +671,7 @@ export default function NewDietLogForm({ onSuccess }) {
                   <div className="text-center py-6 sm:py-8 text-text-secondary text-xs sm:text-sm">
                     <p>No meals found</p>
                     <p className="text-[10px] sm:text-xs mt-1">
-                      Try taking a photo instead
+                      Try scanning a photo or manual entry
                     </p>
                   </div>
                 )}
@@ -703,9 +792,22 @@ export default function NewDietLogForm({ onSuccess }) {
 
             {/* Meal Name */}
             <div>
-              <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                Meal Name *
-              </label>
+              <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                <label className="text-[10px] sm:text-xs text-text-secondary">
+                  Meal Name *
+                </label>
+                {aiFilledFields.name && (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => clearField("name")}
+                    className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] sm:text-[10px] border border-amber-500/20 transition-colors"
+                    title="Clear AI suggestion"
+                  >
+                    <RotateCcw size={10} className="sm:w-3 sm:h-3" />
+                    Clear
+                  </motion.button>
+                )}
+              </div>
               <input
                 type="text"
                 value={mealName}
@@ -717,9 +819,22 @@ export default function NewDietLogForm({ onSuccess }) {
 
             {/* Description */}
             <div>
-              <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                Description
-              </label>
+              <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                <label className="text-[10px] sm:text-xs text-text-secondary">
+                  Description
+                </label>
+                {aiFilledFields.description && (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => clearField("description")}
+                    className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] sm:text-[10px] border border-amber-500/20 transition-colors"
+                    title="Clear AI suggestion"
+                  >
+                    <RotateCcw size={10} className="sm:w-3 sm:h-3" />
+                    Clear
+                  </motion.button>
+                )}
+              </div>
               <textarea
                 value={mealDescription}
                 onChange={(e) => setMealDescription(e.target.value)}
@@ -750,9 +865,21 @@ export default function NewDietLogForm({ onSuccess }) {
               </div>
 
               <div>
-                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                  Serving Size
-                </label>
+                <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                  <label className="text-[10px] sm:text-xs text-text-secondary">
+                    Serving Size
+                  </label>
+                  {aiFilledFields.servingSize && servingSize && (
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => clearField("servingSize")}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] border border-amber-500/20 transition-colors"
+                      title="Clear AI suggestion"
+                    >
+                      <RotateCcw size={10} />
+                    </motion.button>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={servingSize}
@@ -770,9 +897,22 @@ export default function NewDietLogForm({ onSuccess }) {
                   Ingredients{" "}
                   {ingredients.length > 0 && `(${ingredients.length})`}
                 </label>
-                <span className="text-[9px] sm:text-[10px] text-text-secondary/70">
-                  Used for nutrition calculation
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] sm:text-[10px] text-text-secondary/70">
+                    Used for nutrition calculation
+                  </span>
+                  {aiFilledFields.ingredients && ingredients.length > 0 && (
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => clearField("ingredients")}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] border border-amber-500/20 transition-colors"
+                      title="Clear all AI-suggested ingredients"
+                    >
+                      <RotateCcw size={10} />
+                      Clear All
+                    </motion.button>
+                  )}
+                </div>
               </div>
 
               {/* Ingredient chips */}
@@ -799,26 +939,49 @@ export default function NewDietLogForm({ onSuccess }) {
                 </div>
               )}
 
-              {/* Add ingredient input */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newIngredient}
-                  onChange={(e) => setNewIngredient(e.target.value)}
-                  onKeyPress={handleIngredientKeyPress}
-                  placeholder="Add ingredient (e.g., chicken, rice)"
-                  className="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                />
+              {/* Add ingredient input - show button or input field */}
+              {!showIngredientInput ? (
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  onClick={handleAddIngredient}
-                  disabled={!newIngredient.trim()}
-                  type="button"
-                  className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={() => setShowIngredientInput(true)}
+                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition-colors text-xs sm:text-sm"
                 >
-                  <Plus size={16} className="sm:w-5 sm:h-5" />
+                  <Plus size={14} className="sm:w-4 sm:h-4" />
+                  <span>Add Ingredient</span>
                 </motion.button>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newIngredient}
+                    onChange={(e) => setNewIngredient(e.target.value)}
+                    onKeyPress={handleIngredientKeyPress}
+                    placeholder="Add ingredient (e.g., paneer, rice)"
+                    autoFocus
+                    className="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  />
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleAddIngredient}
+                    disabled={!newIngredient.trim()}
+                    type="button"
+                    className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={16} className="sm:w-5 sm:h-5" />
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setShowIngredientInput(false);
+                      setNewIngredient("");
+                    }}
+                    type="button"
+                    className="px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 hover:bg-navy-700 text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    <X size={16} className="sm:w-5 sm:h-5" />
+                  </motion.button>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
@@ -919,65 +1082,84 @@ export default function NewDietLogForm({ onSuccess }) {
             </div>
 
             {/* Macros Grid */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div>
-                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                  Calories *
-                </label>
-                <input
-                  type="number"
-                  value={calories}
-                  onChange={(e) => setCalories(e.target.value)}
-                  placeholder="200"
-                  min="0"
-                  step="1"
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                />
-              </div>
+            <div>
+              {aiFilledFields.nutrition &&
+                (calories || protein || carbs || fat) && (
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] sm:text-xs text-text-secondary">
+                      Nutrition values from AI
+                    </span>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => clearField("nutrition")}
+                      className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] sm:text-[10px] border border-amber-500/20 transition-colors"
+                      title="Clear all AI nutrition values"
+                    >
+                      <RotateCcw size={10} className="sm:w-3 sm:h-3" />
+                      Clear All
+                    </motion.button>
+                  </div>
+                )}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div>
+                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
+                    Calories *
+                  </label>
+                  <input
+                    type="number"
+                    value={calories}
+                    onChange={(e) => setCalories(e.target.value)}
+                    placeholder="200"
+                    min="0"
+                    step="1"
+                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  />
+                </div>
 
-              <div>
-                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                  Protein (g) *
-                </label>
-                <input
-                  type="number"
-                  value={protein}
-                  onChange={(e) => setProtein(e.target.value)}
-                  placeholder="25"
-                  min="0"
-                  step="0.1"
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                />
-              </div>
+                <div>
+                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
+                    Protein (g) *
+                  </label>
+                  <input
+                    type="number"
+                    value={protein}
+                    onChange={(e) => setProtein(e.target.value)}
+                    placeholder="25"
+                    min="0"
+                    step="0.1"
+                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  />
+                </div>
 
-              <div>
-                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                  Carbs (g) *
-                </label>
-                <input
-                  type="number"
-                  value={carbs}
-                  onChange={(e) => setCarbs(e.target.value)}
-                  placeholder="30"
-                  min="0"
-                  step="0.1"
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                />
-              </div>
+                <div>
+                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
+                    Carbs (g) *
+                  </label>
+                  <input
+                    type="number"
+                    value={carbs}
+                    onChange={(e) => setCarbs(e.target.value)}
+                    placeholder="30"
+                    min="0"
+                    step="0.1"
+                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  />
+                </div>
 
-              <div>
-                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                  Fat (g) *
-                </label>
-                <input
-                  type="number"
-                  value={fat}
-                  onChange={(e) => setFat(e.target.value)}
-                  placeholder="10"
-                  min="0"
-                  step="0.1"
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                />
+                <div>
+                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
+                    Fat (g) *
+                  </label>
+                  <input
+                    type="number"
+                    value={fat}
+                    onChange={(e) => setFat(e.target.value)}
+                    placeholder="10"
+                    min="0"
+                    step="0.1"
+                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  />
+                </div>
               </div>
             </div>
 
