@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 import waterRoutes from "./routes/water.js";
 import sleepRoutes from "./routes/sleep.js";
@@ -80,16 +81,24 @@ app.get("/api/health", (req, res) => {
 
 app.use(errorHandler);
 
-// Initialize DB connection
-connectDB();
-
 // Validate environment variables
 validateEnv();
 
-// Only start server if not running in Vercel (serverless environment)
+// Initialize DB connection and start server
 if (process.env.VERCEL !== "1") {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  // Local development - connect DB then start server
+  connectDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  });
+} else {
+  // Serverless - connect on first request (cached for subsequent requests)
+  app.use(async (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+    next();
   });
 }
 
