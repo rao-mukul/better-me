@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { Droplets, Moon, Dumbbell, Utensils, ChevronDown } from "lucide-react";
 import Card from "../components/ui/Card";
-import { CardSkeleton } from "../components/ui/Skeleton";
 import ServerWakeupAnimation from "../components/ui/ServerWakeupAnimation";
 import WaterRing from "../components/water/WaterRing";
 import QuickAddBar from "../components/water/QuickAddBar";
@@ -219,36 +218,27 @@ export default function TodayPage() {
     });
   };
 
-  // Show cold start indicator when ALL are loading for the first time (no cached data)
-  const isInitialLoad =
-    waterLoading &&
-    sleepLoading &&
-    gymLoading &&
-    dietLoading &&
-    !waterData &&
-    !sleepData &&
-    !gymData &&
-    !dietData;
+  // Show loading animation when ANY data is still loading
+  const isAnyLoading =
+    waterLoading || sleepLoading || gymLoading || dietLoading;
 
   return (
     <>
       <WaterAnimation show={showAnimation} />
 
-      {/* Cold Start Loading Animation */}
+      {/* Loading Animation */}
       <AnimatePresence>
-        {isInitialLoad && <ServerWakeupAnimation />}
+        {isAnyLoading && <ServerWakeupAnimation />}
       </AnimatePresence>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex flex-col gap-8"
-      >
-        {/* Diet Section */}
-        {dietLoading && !dietData ? (
-          <CardSkeleton />
-        ) : (
+      {!isAnyLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col gap-8"
+        >
+          {/* Diet Section */}
           <Card ref={dietRef}>
             <button
               onClick={() => toggleSection("diet")}
@@ -295,12 +285,8 @@ export default function TodayPage() {
               )}
             </AnimatePresence>
           </Card>
-        )}
 
-        {/* Water Section */}
-        {waterLoading && !waterData ? (
-          <CardSkeleton />
-        ) : (
+          {/* Water Section */}
           <Card ref={waterRef}>
             <button
               onClick={() => toggleSection("water")}
@@ -364,12 +350,8 @@ export default function TodayPage() {
               )}
             </AnimatePresence>
           </Card>
-        )}
 
-        {/* Gym Section */}
-        {gymLoading && !gymData ? (
-          <CardSkeleton />
-        ) : (
+          {/* Gym Section */}
           <Card ref={gymRef}>
             <button
               onClick={() => toggleSection("gym")}
@@ -519,12 +501,8 @@ export default function TodayPage() {
               )}
             </AnimatePresence>
           </Card>
-        )}
 
-        {/* Sleep Section */}
-        {sleepLoading && !sleepData ? (
-          <CardSkeleton />
-        ) : (
+          {/* Sleep Section */}
           <Card ref={sleepRef}>
             <button
               onClick={() => toggleSection("sleep")}
@@ -575,8 +553,8 @@ export default function TodayPage() {
               )}
             </AnimatePresence>
           </Card>
-        )}
-      </motion.div>
+        </motion.div>
+      )}
     </>
   );
 }

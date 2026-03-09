@@ -134,7 +134,7 @@ export default function ServerWakeupAnimation() {
             }}
             className="text-2xl font-bold text-text-primary mb-2"
           >
-            LifeTracker
+            BetterMe
           </motion.h2>
 
           {/* Animated dots */}
