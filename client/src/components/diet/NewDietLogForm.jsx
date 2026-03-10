@@ -60,6 +60,7 @@ export default function NewDietLogForm({ onSuccess }) {
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
+  const [fiber, setFiber] = useState("");
   const [servingSize, setServingSize] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [newIngredient, setNewIngredient] = useState("");
@@ -123,6 +124,7 @@ export default function NewDietLogForm({ onSuccess }) {
     setProtein("");
     setCarbs("");
     setFat("");
+    setFiber("");
     setServingSize("");
     setIngredients([]);
     setNewIngredient("");
@@ -168,6 +170,7 @@ export default function NewDietLogForm({ onSuccess }) {
     setProtein(meal.protein);
     setCarbs(meal.carbs);
     setFat(meal.fat);
+    setFiber(meal.fiber || "");
     setServingSize(meal.servingSize || "");
     setCategory(meal.category || "other");
 
@@ -466,6 +469,7 @@ export default function NewDietLogForm({ onSuccess }) {
       setProtein(result.protein);
       setCarbs(result.carbs);
       setFat(result.fat);
+      setFiber(result.fiber || "");
       if (result.servingSize) {
         setServingSize(result.servingSize);
       }
@@ -543,6 +547,7 @@ export default function NewDietLogForm({ onSuccess }) {
           protein: parseFloat(protein),
           carbs: parseFloat(carbs),
           fat: parseFloat(fat),
+          fiber: parseFloat(fiber) || 0,
           servingSize,
           category,
           tags: aiAnalysis?.tags || [],
@@ -554,6 +559,24 @@ export default function NewDietLogForm({ onSuccess }) {
         // Image is now saved with the meal, no need to cleanup
         needsCleanup.current = false;
         console.log("Image saved with meal, cleanup flag cleared");
+      } else {
+        // Update library entry with any user-corrected nutrition values
+        await saveMeal.mutateAsync({
+          name: mealName,
+          description: mealDescription,
+          imageUrl: selectedMeal.imageUrl || "",
+          imageId: selectedMeal.imageId || "",
+          thumbnailUrl: selectedMeal.thumbnailUrl || "",
+          calories: parseFloat(calories),
+          protein: parseFloat(protein),
+          carbs: parseFloat(carbs),
+          fat: parseFloat(fat),
+          fiber: parseFloat(fiber) || 0,
+          servingSize,
+          category,
+          tags: selectedMeal.tags || [],
+          isAIAnalyzed: selectedMeal.isAIAnalyzed,
+        });
       }
 
       // Log the meal with current time in ISO format (includes timezone)
@@ -564,6 +587,7 @@ export default function NewDietLogForm({ onSuccess }) {
         protein: parseFloat(protein),
         carbs: parseFloat(carbs),
         fat: parseFloat(fat),
+        fiber: parseFloat(fiber) || 0,
         servingSize,
         category,
         eatenAt: new Date().toISOString(),
@@ -614,6 +638,7 @@ export default function NewDietLogForm({ onSuccess }) {
         setProtein("");
         setCarbs("");
         setFat("");
+        setFiber("");
         setAiFilledFields((prev) => ({ ...prev, nutrition: false }));
         break;
     }
@@ -1220,6 +1245,21 @@ export default function NewDietLogForm({ onSuccess }) {
                     className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
                   />
                 </div>
+
+                <div>
+                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
+                    Fiber (g)
+                  </label>
+                  <input
+                    type="number"
+                    value={fiber}
+                    onChange={(e) => setFiber(e.target.value)}
+                    placeholder="3"
+                    min="0"
+                    step="0.1"
+                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1236,6 +1276,7 @@ export default function NewDietLogForm({ onSuccess }) {
                   <span>P: {protein}g</span>
                   <span>C: {carbs}g</span>
                   <span>F: {fat}g</span>
+                  {fiber && <span>Fiber: {fiber}g</span>}
                 </div>
               </div>
             )}

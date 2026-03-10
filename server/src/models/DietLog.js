@@ -37,6 +37,11 @@ const dietLogSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
+  fiber: {
+    type: Number, // grams
+    default: 0,
+    min: 0,
+  },
   servingSize: {
     type: String,
     default: "",

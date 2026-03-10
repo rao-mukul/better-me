@@ -46,9 +46,10 @@ export const getTodayData = async (req, res, next) => {
         protein: acc.protein + log.protein,
         carbs: acc.carbs + log.carbs,
         fat: acc.fat + log.fat,
+        fiber: acc.fiber + (log.fiber || 0),
         count: acc.count + 1,
       }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 },
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, count: 0 },
     );
 
     res.json({ logs, totals });
@@ -76,7 +77,7 @@ export const searchMeals = async (req, res, next) => {
       .sort({ timesLogged: -1, lastLoggedAt: -1 })
       .limit(10)
       .select(
-        "name description imageUrl thumbnailUrl calories protein carbs fat servingSize category timesLogged",
+        "name description imageUrl thumbnailUrl calories protein carbs fat fiber servingSize category timesLogged",
       );
 
     res.json(meals);
@@ -94,7 +95,7 @@ export const getPopularMeals = async (req, res, next) => {
       .sort({ timesLogged: -1, lastLoggedAt: -1 })
       .limit(20)
       .select(
-        "name description imageUrl thumbnailUrl calories protein carbs fat servingSize category timesLogged lastLoggedAt",
+        "name description imageUrl thumbnailUrl calories protein carbs fat fiber servingSize category timesLogged lastLoggedAt",
       );
 
     res.json(meals);
@@ -196,6 +197,7 @@ export const saveMealToLibrary = async (req, res, next) => {
       protein,
       carbs,
       fat,
+      fiber,
       servingSize,
       servingUnit,
       category,
@@ -243,6 +245,7 @@ export const saveMealToLibrary = async (req, res, next) => {
       existingMeal.protein = protein;
       existingMeal.carbs = carbs;
       existingMeal.fat = fat;
+      existingMeal.fiber = fiber ?? existingMeal.fiber;
       existingMeal.servingSize = servingSize || existingMeal.servingSize;
       existingMeal.servingUnit = servingUnit || existingMeal.servingUnit;
       existingMeal.category = validCategory;
@@ -290,6 +293,7 @@ export const saveMealToLibrary = async (req, res, next) => {
       protein,
       carbs,
       fat,
+      fiber: fiber ?? 0,
       servingSize: servingSize || "",
       servingUnit: servingUnit || "",
       category: validCategory,
@@ -314,6 +318,7 @@ export const logMeal = async (req, res, next) => {
       protein,
       carbs,
       fat,
+      fiber,
       servingSize,
       category,
       eatenAt,
@@ -355,6 +360,7 @@ export const logMeal = async (req, res, next) => {
       protein,
       carbs,
       fat,
+      fiber: fiber ?? 0,
       servingSize: servingSize || "",
       category: normalizeCategory(category),
       eatenAt: eatenAtDate,

@@ -60,6 +60,11 @@ const mealLibrarySchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
+  fiber: {
+    type: Number, // grams
+    default: 0,
+    min: 0,
+  },
   // Serving information
   servingSize: {
     type: String,
