@@ -10,6 +10,15 @@ export function useDietToday() {
   });
 }
 
+export function useDietDay(date) {
+  return useQuery({
+    queryKey: ["diet", "day", date],
+    queryFn: () => dietApi.getToday(date),
+    enabled: !!date,
+    staleTime: 30000,
+  });
+}
+
 export function useDietMonth(year, month) {
   return useQuery({
     queryKey: ["diet", "month", year, month],
@@ -65,6 +74,8 @@ export function useLogMeal() {
     mutationFn: dietApi.logMeal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["diet", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "day"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "month"] });
       queryClient.invalidateQueries({ queryKey: ["diet", "popular"] });
     },
   });
@@ -77,6 +88,9 @@ export function useDeleteDietLog() {
     mutationFn: dietApi.deleteLog,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["diet", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "day"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "month"] });
+      queryClient.invalidateQueries({ queryKey: ["diet", "popular"] });
     },
   });
 }

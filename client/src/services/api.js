@@ -100,10 +100,8 @@ export const cleanTimerApi = {
 
 export const dietApi = {
   // Today's logs
-  getToday: () =>
-    api
-      .get("/diet/today", { params: { date: getTodayDate() } })
-      .then((r) => r.data),
+  getToday: (date = getTodayDate()) =>
+    api.get("/diet/today", { params: { date } }).then((r) => r.data),
 
   // Month data for calendar
   getMonth: (year, month) =>
