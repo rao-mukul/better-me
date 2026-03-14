@@ -11,6 +11,8 @@ import {
   endOfWeek,
   eachMonthOfInterval,
   isSameMonth,
+  subDays,
+  startOfDay,
 } from "date-fns";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -20,10 +22,30 @@ export default function CalendarView({ timer, stats }) {
   if (!timer) return null;
 
   const now = new Date();
-  const startDate = new Date(timer.startedAt);
+  const today = startOfDay(now);
+  const currentStreakStart = startOfDay(new Date(timer.startedAt));
+
+  const sortedResets = [...(timer.resetHistory || [])].sort(
+    (a, b) => new Date(a.resetAt) - new Date(b.resetAt),
+  );
+
+  // Reconstruct the earliest streak start from reset history so previous months stay visible.
+  const firstRecordedStart =
+    sortedResets.length > 0
+      ? startOfDay(
+          subDays(
+            new Date(sortedResets[0].resetAt),
+            Number(sortedResets[0].daysClean || 0),
+          ),
+        )
+      : currentStreakStart;
+
+  const historyStart = isBefore(firstRecordedStart, currentStreakStart)
+    ? firstRecordedStart
+    : currentStreakStart;
 
   // Get all months from start to now
-  const allMonths = eachMonthOfInterval({ start: startDate, end: now });
+  const allMonths = eachMonthOfInterval({ start: historyStart, end: now });
   const [currentMonthIndex, setCurrentMonthIndex] = useState(
     allMonths.length - 1,
   );
@@ -47,15 +69,16 @@ export default function CalendarView({ timer, stats }) {
   }
 
   const getDayStatus = (day) => {
+    const dayStart = startOfDay(day);
     const dayStr = format(day, "yyyy-MM-dd");
 
     // Future date
-    if (isAfter(day, now)) {
+    if (isAfter(dayStart, today)) {
       return { type: "future", label: "" };
     }
 
-    // Before timer started
-    if (isBefore(day, startDate)) {
+    // Before first known streak started
+    if (isBefore(dayStart, historyStart)) {
       return { type: "before", label: "" };
     }
 
@@ -65,45 +88,38 @@ export default function CalendarView({ timer, stats }) {
       return { type: "reset", label: "R", reason: reset.reason };
     }
 
-    // Check if day is in a clean period
-    // Find if this day falls in a period between resets
     let isClean = false;
 
-    if (timer.resetHistory && timer.resetHistory.length > 0) {
-      // Sort reset history by date
-      const sortedResets = [...timer.resetHistory].sort(
-        (a, b) => new Date(a.resetAt) - new Date(b.resetAt),
-      );
+    if (sortedResets.length > 0) {
+      // Build historical streak windows: [streakStart, resetDate)
+      let streakStart = historyStart;
 
-      // Check if day is after the last reset
-      const lastReset = sortedResets[sortedResets.length - 1];
-      const lastResetDate = new Date(lastReset.resetAt);
-
-      if (isAfter(day, lastResetDate) || isSameDay(day, lastResetDate)) {
-        isClean = true;
-      } else {
-        // Check if day falls between any reset periods
-        for (let i = 0; i < sortedResets.length - 1; i++) {
-          const resetStart = new Date(sortedResets[i].resetAt);
-          const resetEnd = new Date(sortedResets[i + 1].resetAt);
-
-          if (
-            (isAfter(day, resetStart) || isSameDay(day, resetStart)) &&
-            isBefore(day, resetEnd)
-          ) {
-            isClean = true;
-            break;
-          }
+      for (const reset of sortedResets) {
+        const resetDate = startOfDay(new Date(reset.resetAt));
+        if (
+          (isAfter(dayStart, streakStart) ||
+            isSameDay(dayStart, streakStart)) &&
+          isBefore(dayStart, resetDate)
+        ) {
+          isClean = true;
+          break;
         }
+        streakStart = resetDate;
       }
-    } else {
-      // No resets, so all days since start are clean
+    }
+
+    // Current streak window: [startedAt, today]
+    if (
+      !isClean &&
+      (isAfter(dayStart, currentStreakStart) ||
+        isSameDay(dayStart, currentStreakStart))
+    ) {
       isClean = true;
     }
 
     if (isClean) {
       // Don't mark today as clean until the day is over
-      if (isToday(day)) {
+      if (isToday(dayStart)) {
         return { type: "today", label: "•" };
       }
       return { type: "clean", label: "✓" };
