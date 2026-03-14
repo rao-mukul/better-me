@@ -14,10 +14,20 @@ export function useAddGymLog() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: gymApi.logWorkout,
+    mutationFn: (payload) => {
+      if (payload?.data) {
+        return gymApi.logWorkout(payload.data, payload.date);
+      }
+      return gymApi.logWorkout(payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gym", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "day"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "month"] });
       queryClient.invalidateQueries({ queryKey: ["gym", "week-history"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "week"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "insights"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "streak"] });
     },
   });
 }
@@ -29,8 +39,22 @@ export function useDeleteWorkout() {
     mutationFn: gymApi.deleteWorkout,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gym", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "day"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "month"] });
       queryClient.invalidateQueries({ queryKey: ["gym", "week-history"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "week"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "insights"] });
+      queryClient.invalidateQueries({ queryKey: ["gym", "streak"] });
     },
+  });
+}
+
+export function useGymDay(date) {
+  return useQuery({
+    queryKey: ["gym", "day", date],
+    queryFn: () => gymApi.getLogByDate(date),
+    enabled: !!date,
+    staleTime: 30000,
   });
 }
 

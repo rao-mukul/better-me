@@ -64,14 +64,12 @@ export const sleepApi = {
 };
 
 export const gymApi = {
-  getTodayLog: () =>
-    api
-      .get("/gym/today", { params: { date: getTodayDate() } })
-      .then((r) => r.data),
-  logWorkout: (data) =>
-    api
-      .post("/gym/log", data, { params: { date: getTodayDate() } })
-      .then((r) => r.data),
+  getTodayLog: (date = getTodayDate()) =>
+    api.get("/gym/today", { params: { date } }).then((r) => r.data),
+  getLogByDate: (date) =>
+    api.get("/gym/today", { params: { date } }).then((r) => r.data),
+  logWorkout: (data, date = getTodayDate()) =>
+    api.post("/gym/log", data, { params: { date } }).then((r) => r.data),
   deleteWorkout: (id) => api.delete(`/gym/workout/${id}`).then((r) => r.data),
   getExercises: () => api.get("/gym/exercises").then((r) => r.data),
   addExercise: (data) => api.post("/gym/exercises", data).then((r) => r.data),
