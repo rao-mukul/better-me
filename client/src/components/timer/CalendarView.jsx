@@ -74,18 +74,18 @@ export default function CalendarView({ timer, stats }) {
 
     // Future date
     if (isAfter(dayStart, today)) {
-      return { type: "future", label: "" };
+      return { type: "future" };
     }
 
     // Before first known streak started
     if (isBefore(dayStart, historyStart)) {
-      return { type: "before", label: "" };
+      return { type: "before" };
     }
 
     // Reset day
     if (resetDates.has(dayStr)) {
       const reset = resetDates.get(dayStr);
-      return { type: "reset", label: "R", reason: reset.reason };
+      return { type: "reset", reason: reset.reason };
     }
 
     let isClean = false;
@@ -120,12 +120,12 @@ export default function CalendarView({ timer, stats }) {
     if (isClean) {
       // Don't mark today as clean until the day is over
       if (isToday(dayStart)) {
-        return { type: "today", label: "•" };
+        return { type: "today" };
       }
-      return { type: "clean", label: "✓" };
+      return { type: "clean" };
     }
 
-    return { type: "normal", label: "" };
+    return { type: "normal" };
   };
 
   const getColorClass = (status) => {
@@ -210,9 +210,6 @@ export default function CalendarView({ timer, stats }) {
               title={status.reason || ""}
             >
               <span className="text-xs font-medium">{format(day, "d")}</span>
-              {status.label && (
-                <span className="text-xs mt-0.5">{status.label}</span>
-              )}
             </motion.div>
           );
         })}

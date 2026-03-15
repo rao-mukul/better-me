@@ -43,7 +43,7 @@ export default function TimerAnalytics({ timer, stats }) {
       unit: currentDays === 1 ? "day" : "days",
       color: "text-primary",
       bgColor: "bg-primary/20",
-      highlight: isNewRecord ? "🔥 New Record!" : null,
+      highlight: isNewRecord ? "ðŸ”¥ New Record!" : null,
     },
     {
       icon: Award,
@@ -129,84 +129,6 @@ export default function TimerAnalytics({ timer, stats }) {
           </motion.div>
         ))}
       </div>
-
-      {/* Insights */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-5"
-      >
-        <h3 className="text-lg font-semibold text-text-primary mb-4">
-          Insights
-        </h3>
-        <div className="space-y-3">
-          {currentDays >= 7 && (
-            <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
-              <p className="text-sm text-text-primary">
-                🎉 <strong>Great job!</strong> You've been clean for{" "}
-                {Math.floor(currentDays / 7)} week
-                {Math.floor(currentDays / 7) !== 1 ? "s" : ""}!
-              </p>
-            </div>
-          )}
-
-          {isNewRecord && currentDays > 0 && (
-            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-sm text-text-primary">
-                🏆 <strong>New personal record!</strong> You're on your longest
-                streak yet!
-              </p>
-            </div>
-          )}
-
-          {successRate >= 90 && (
-            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <p className="text-sm text-text-primary">
-                ⭐ <strong>Outstanding!</strong> Your {successRate}% success
-                rate is incredible!
-              </p>
-            </div>
-          )}
-
-          {totalResets === 0 && currentDays >= 30 && (
-            <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-              <p className="text-sm text-text-primary">
-                💎 <strong>Perfect streak!</strong> No resets for {currentDays}{" "}
-                days!
-              </p>
-            </div>
-          )}
-
-          {totalResets > 0 && averageStreak > currentDays && (
-            <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-              <p className="text-sm text-text-primary">
-                💪 <strong>Keep pushing!</strong> You've done {averageStreak}{" "}
-                days before - you can beat that!
-              </p>
-            </div>
-          )}
-
-          {currentDays >= 100 && (
-            <div className="p-3 bg-pink-500/10 border border-pink-500/30 rounded-lg">
-              <p className="text-sm text-text-primary">
-                🚀 <strong>Triple digits!</strong> {currentDays} days is an
-                amazing milestone!
-              </p>
-            </div>
-          )}
-
-          {/* Default encouragement if no special insights */}
-          {!isNewRecord && currentDays < 7 && successRate < 90 && (
-            <div className="p-3 bg-bg-secondary rounded-lg">
-              <p className="text-sm text-text-secondary">
-                💡 <strong>Keep going!</strong> Every day counts. Stay focused
-                on your goal.
-              </p>
-            </div>
-          )}
-        </div>
-      </motion.div>
     </>
   );
 }
