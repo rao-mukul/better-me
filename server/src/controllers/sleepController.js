@@ -26,20 +26,26 @@ const getToday = (req) => {
   return `${year}-${month}-${day}`;
 };
 
+const applyTimezoneOffset = (date, timezoneOffsetMinutes) => {
+  if (!Number.isFinite(timezoneOffsetMinutes)) return date;
+  return new Date(date.getTime() - timezoneOffsetMinutes * 60000);
+};
+
 // Helper to determine the date for a sleep log (use wake-up date)
-// Use UTC to avoid timezone issues
-const getSleepDate = (wokeUpAt) => {
-  const date = new Date(wokeUpAt);
+// Use timezone offset from client to keep dates aligned with user's local day
+const getSleepDate = (value, timezoneOffsetMinutes) => {
+  const date = applyTimezoneOffset(new Date(value), timezoneOffsetMinutes);
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
-// Helper to format time as HH:mm using UTC
-const formatTime = (date) => {
-  const hours = date.getUTCHours().toString().padStart(2, "0");
-  const minutes = date.getUTCMinutes().toString().padStart(2, "0");
+// Helper to format time as HH:mm using user's local offset when provided
+const formatTime = (date, timezoneOffsetMinutes) => {
+  const shifted = applyTimezoneOffset(date, timezoneOffsetMinutes);
+  const hours = shifted.getUTCHours().toString().padStart(2, "0");
+  const minutes = shifted.getUTCMinutes().toString().padStart(2, "0");
   return `${hours}:${minutes}`;
 };
 
@@ -47,6 +53,14 @@ const formatTime = (date) => {
 const timeToMinutes = (timeStr) => {
   const [hours, minutes] = timeStr.split(":").map(Number);
   return hours * 60 + minutes;
+};
+
+const minutesToTime = (minutes) => {
+  const hours = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const mins = (minutes % 60).toString().padStart(2, "0");
+  return `${hours}:${mins}`;
 };
 
 // Helper to calculate average time and consistency
@@ -92,9 +106,27 @@ const calculateTimeMetrics = (times) => {
   return { average, consistency, earliest, latest };
 };
 
+const shiftTimeString = (timeStr, timezoneOffsetMinutes) => {
+  if (!timeStr || !Number.isFinite(timezoneOffsetMinutes)) return timeStr;
+  const minutes = timeToMinutes(timeStr);
+  const shifted = (minutes - timezoneOffsetMinutes + 1440) % 1440;
+  return minutesToTime(shifted);
+};
+
+const normalizeTimeForClient = (
+  timeStr,
+  statsTimezoneOffsetMinutes,
+  requestTimezoneOffsetMinutes,
+) => {
+  if (!timeStr) return timeStr;
+  if (Number.isFinite(statsTimezoneOffsetMinutes)) return timeStr;
+  return shiftTimeString(timeStr, requestTimezoneOffsetMinutes);
+};
+
 export const getTodayData = async (req, res, next) => {
   try {
     const date = getToday(req);
+    const requestTimezoneOffsetMinutes = Number(req?.query?.tzOffset);
 
     // Get completed logs for today
     const completedLogs = await SleepLog.find({
@@ -111,10 +143,46 @@ export const getTodayData = async (req, res, next) => {
 
     const stats = await SleepStats.findOne({ userId: DEFAULT_USER_ID, date });
 
+    const responseStats = stats
+      ? {
+          ...stats.toObject(),
+          averageBedTime: normalizeTimeForClient(
+            stats.averageBedTime,
+            stats.timezoneOffsetMinutes,
+            requestTimezoneOffsetMinutes,
+          ),
+          averageWakeTime: normalizeTimeForClient(
+            stats.averageWakeTime,
+            stats.timezoneOffsetMinutes,
+            requestTimezoneOffsetMinutes,
+          ),
+          earliestBedTime: normalizeTimeForClient(
+            stats.earliestBedTime,
+            stats.timezoneOffsetMinutes,
+            requestTimezoneOffsetMinutes,
+          ),
+          latestBedTime: normalizeTimeForClient(
+            stats.latestBedTime,
+            stats.timezoneOffsetMinutes,
+            requestTimezoneOffsetMinutes,
+          ),
+          earliestWakeTime: normalizeTimeForClient(
+            stats.earliestWakeTime,
+            stats.timezoneOffsetMinutes,
+            requestTimezoneOffsetMinutes,
+          ),
+          latestWakeTime: normalizeTimeForClient(
+            stats.latestWakeTime,
+            stats.timezoneOffsetMinutes,
+            requestTimezoneOffsetMinutes,
+          ),
+        }
+      : null;
+
     res.json({
       logs: completedLogs,
       activeSleepLog: activeSleepLog || null,
-      stats: stats || {
+      stats: responseStats || {
         totalMinutes: 0,
         targetHours: DEFAULT_SLEEP_TARGET,
         targetMet: false,
@@ -175,6 +243,8 @@ export const getWeekLogs = async (req, res, next) => {
 export const startSleep = async (req, res, next) => {
   try {
     const { sleptAt, notes } = req.body;
+    const timezoneOffsetMinutes = Number(req.body.timezoneOffsetMinutes);
+    const hasTimezoneOffset = Number.isFinite(timezoneOffsetMinutes);
 
     if (!sleptAt) {
       return res.status(400).json({ error: "Sleep time is required" });
@@ -198,7 +268,8 @@ export const startSleep = async (req, res, next) => {
       userId: DEFAULT_USER_ID,
       sleptAt: sleptAtDate,
       notes: notes || "",
-      date: getSleepDate(sleptAt), // Use UTC-based date calculation
+      date: getSleepDate(sleptAt, timezoneOffsetMinutes),
+      timezoneOffsetMinutes: hasTimezoneOffset ? timezoneOffsetMinutes : null,
       isComplete: false,
     });
 
@@ -212,6 +283,8 @@ export const completeSleep = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { wokeUpAt, quality, notes } = req.body;
+    const timezoneOffsetMinutes = Number(req.body.timezoneOffsetMinutes);
+    const hasTimezoneOffset = Number.isFinite(timezoneOffsetMinutes);
 
     if (!wokeUpAt) {
       return res.status(400).json({ error: "Wake time is required" });
@@ -250,11 +323,14 @@ export const completeSleep = async (req, res, next) => {
     }
 
     // Update log with completion data
-    const date = getSleepDate(wokeUpAt);
+    const date = getSleepDate(wokeUpAt, timezoneOffsetMinutes);
     log.wokeUpAt = wokeUpAtDate;
     log.duration = duration;
     log.quality = quality;
     log.date = date; // Update to wake-up date
+    if (hasTimezoneOffset) {
+      log.timezoneOffsetMinutes = timezoneOffsetMinutes;
+    }
     log.isComplete = true;
     if (notes) log.notes = notes;
     await log.save();
@@ -289,33 +365,45 @@ export const completeSleep = async (req, res, next) => {
     const targetMet = newTotalMinutes / 60 >= targetHours;
 
     // Calculate time metrics from all completed logs for this date
-    const bedTimes = completedLogs.map((l) => formatTime(new Date(l.sleptAt)));
+    const bedTimes = completedLogs.map((l) =>
+      formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes),
+    );
     const wakeTimes = completedLogs.map((l) =>
-      formatTime(new Date(l.wokeUpAt)),
+      formatTime(new Date(l.wokeUpAt), l.timezoneOffsetMinutes),
     );
 
     const bedTimeMetrics = calculateTimeMetrics(bedTimes);
     const wakeTimeMetrics = calculateTimeMetrics(wakeTimes);
 
     // Atomic upsert
+    const statsTimezoneOffsetMinutes =
+      completedLogs.find((l) => Number.isFinite(l.timezoneOffsetMinutes))
+        ?.timezoneOffsetMinutes ?? (hasTimezoneOffset ? timezoneOffsetMinutes : null);
+
+    const statsUpdate = {
+      totalMinutes: newTotalMinutes,
+      entryCount: newEntryCount,
+      averageQuality,
+      targetMet,
+      averageBedTime: bedTimeMetrics.average,
+      bedtimeConsistency: bedTimeMetrics.consistency,
+      earliestBedTime: bedTimeMetrics.earliest,
+      latestBedTime: bedTimeMetrics.latest,
+      averageWakeTime: wakeTimeMetrics.average,
+      wakeTimeConsistency: wakeTimeMetrics.consistency,
+      earliestWakeTime: wakeTimeMetrics.earliest,
+      latestWakeTime: wakeTimeMetrics.latest,
+      updatedAt: new Date(),
+    };
+
+    if (Number.isFinite(statsTimezoneOffsetMinutes)) {
+      statsUpdate.timezoneOffsetMinutes = statsTimezoneOffsetMinutes;
+    }
+
     stats = await SleepStats.findOneAndUpdate(
       { userId: DEFAULT_USER_ID, date },
       {
-        $set: {
-          totalMinutes: newTotalMinutes,
-          entryCount: newEntryCount,
-          averageQuality,
-          targetMet,
-          averageBedTime: bedTimeMetrics.average,
-          bedtimeConsistency: bedTimeMetrics.consistency,
-          earliestBedTime: bedTimeMetrics.earliest,
-          latestBedTime: bedTimeMetrics.latest,
-          averageWakeTime: wakeTimeMetrics.average,
-          wakeTimeConsistency: wakeTimeMetrics.consistency,
-          earliestWakeTime: wakeTimeMetrics.earliest,
-          latestWakeTime: wakeTimeMetrics.latest,
-          updatedAt: new Date(),
-        },
+        $set: statsUpdate,
         $setOnInsert: { targetHours: DEFAULT_SLEEP_TARGET },
       },
       { upsert: true, new: true },
@@ -331,6 +419,8 @@ export const completeSleep = async (req, res, next) => {
 export const logCompleteSleep = async (req, res, next) => {
   try {
     const { sleptAt, wokeUpAt, quality, notes } = req.body;
+    const timezoneOffsetMinutes = Number(req.body.timezoneOffsetMinutes);
+    const hasTimezoneOffset = Number.isFinite(timezoneOffsetMinutes);
 
     if (!sleptAt || !wokeUpAt) {
       return res
@@ -354,7 +444,7 @@ export const logCompleteSleep = async (req, res, next) => {
     }
 
     const duration = differenceInMinutes(wokeUpAtDate, sleptAtDate);
-    const date = getSleepDate(wokeUpAt); // Use wake-up date
+    const date = getSleepDate(wokeUpAt, timezoneOffsetMinutes); // Use wake-up date
 
     // Create completed log directly
     const log = await SleepLog.create({
@@ -365,6 +455,7 @@ export const logCompleteSleep = async (req, res, next) => {
       quality,
       notes: notes || "",
       date,
+      timezoneOffsetMinutes: hasTimezoneOffset ? timezoneOffsetMinutes : null,
       isComplete: true,
     });
 
@@ -390,9 +481,11 @@ export const logCompleteSleep = async (req, res, next) => {
     else averageQuality = "poor";
 
     // Calculate time metrics
-    const bedTimes = completedLogs.map((l) => formatTime(new Date(l.sleptAt)));
+    const bedTimes = completedLogs.map((l) =>
+      formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes),
+    );
     const wakeTimes = completedLogs.map((l) =>
-      formatTime(new Date(l.wokeUpAt)),
+      formatTime(new Date(l.wokeUpAt), l.timezoneOffsetMinutes),
     );
 
     const bedTimeMetrics = calculateTimeMetrics(bedTimes);
@@ -407,24 +500,34 @@ export const logCompleteSleep = async (req, res, next) => {
     const targetMet = totalMinutes / 60 >= targetHours;
 
     // Update stats
+    const statsTimezoneOffsetMinutes =
+      completedLogs.find((l) => Number.isFinite(l.timezoneOffsetMinutes))
+        ?.timezoneOffsetMinutes ?? (hasTimezoneOffset ? timezoneOffsetMinutes : null);
+
+    const statsUpdate = {
+      totalMinutes,
+      entryCount: completedLogs.length,
+      averageQuality,
+      targetMet,
+      averageBedTime: bedTimeMetrics.average,
+      bedtimeConsistency: bedTimeMetrics.consistency,
+      earliestBedTime: bedTimeMetrics.earliest,
+      latestBedTime: bedTimeMetrics.latest,
+      averageWakeTime: wakeTimeMetrics.average,
+      wakeTimeConsistency: wakeTimeMetrics.consistency,
+      earliestWakeTime: wakeTimeMetrics.earliest,
+      latestWakeTime: wakeTimeMetrics.latest,
+      updatedAt: new Date(),
+    };
+
+    if (Number.isFinite(statsTimezoneOffsetMinutes)) {
+      statsUpdate.timezoneOffsetMinutes = statsTimezoneOffsetMinutes;
+    }
+
     const stats = await SleepStats.findOneAndUpdate(
       { userId: DEFAULT_USER_ID, date },
       {
-        $set: {
-          totalMinutes,
-          entryCount: completedLogs.length,
-          averageQuality,
-          targetMet,
-          averageBedTime: bedTimeMetrics.average,
-          bedtimeConsistency: bedTimeMetrics.consistency,
-          earliestBedTime: bedTimeMetrics.earliest,
-          latestBedTime: bedTimeMetrics.latest,
-          averageWakeTime: wakeTimeMetrics.average,
-          wakeTimeConsistency: wakeTimeMetrics.consistency,
-          earliestWakeTime: wakeTimeMetrics.earliest,
-          latestWakeTime: wakeTimeMetrics.latest,
-          updatedAt: new Date(),
-        },
+        $set: statsUpdate,
         $setOnInsert: { targetHours: DEFAULT_SLEEP_TARGET },
       },
       { upsert: true, new: true },
@@ -478,6 +581,7 @@ export const deleteSleepLog = async (req, res, next) => {
             wakeTimeConsistency: 0,
             earliestWakeTime: null,
             latestWakeTime: null,
+            timezoneOffsetMinutes: null,
             updatedAt: new Date(),
           },
         },
@@ -517,32 +621,44 @@ export const deleteSleepLog = async (req, res, next) => {
     const targetMet = totalMinutes / 60 >= targetHours;
 
     // Calculate time metrics from remaining logs
-    const bedTimes = remainingLogs.map((l) => formatTime(new Date(l.sleptAt)));
+    const bedTimes = remainingLogs.map((l) =>
+      formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes),
+    );
     const wakeTimes = remainingLogs.map((l) =>
-      formatTime(new Date(l.wokeUpAt)),
+      formatTime(new Date(l.wokeUpAt), l.timezoneOffsetMinutes),
     );
 
     const bedTimeMetrics = calculateTimeMetrics(bedTimes);
     const wakeTimeMetrics = calculateTimeMetrics(wakeTimes);
 
+    const statsTimezoneOffsetMinutes =
+      remainingLogs.find((l) => Number.isFinite(l.timezoneOffsetMinutes))
+        ?.timezoneOffsetMinutes ?? null;
+
+    const statsUpdate = {
+      totalMinutes,
+      entryCount: remainingLogs.length,
+      averageQuality,
+      targetMet,
+      averageBedTime: bedTimeMetrics.average,
+      bedtimeConsistency: bedTimeMetrics.consistency,
+      earliestBedTime: bedTimeMetrics.earliest,
+      latestBedTime: bedTimeMetrics.latest,
+      averageWakeTime: wakeTimeMetrics.average,
+      wakeTimeConsistency: wakeTimeMetrics.consistency,
+      earliestWakeTime: wakeTimeMetrics.earliest,
+      latestWakeTime: wakeTimeMetrics.latest,
+      updatedAt: new Date(),
+    };
+
+    if (Number.isFinite(statsTimezoneOffsetMinutes)) {
+      statsUpdate.timezoneOffsetMinutes = statsTimezoneOffsetMinutes;
+    }
+
     const updatedStats = await SleepStats.findOneAndUpdate(
       { userId: DEFAULT_USER_ID, date: log.date },
       {
-        $set: {
-          totalMinutes,
-          entryCount: remainingLogs.length,
-          averageQuality,
-          targetMet,
-          averageBedTime: bedTimeMetrics.average,
-          bedtimeConsistency: bedTimeMetrics.consistency,
-          earliestBedTime: bedTimeMetrics.earliest,
-          latestBedTime: bedTimeMetrics.latest,
-          averageWakeTime: wakeTimeMetrics.average,
-          wakeTimeConsistency: wakeTimeMetrics.consistency,
-          earliestWakeTime: wakeTimeMetrics.earliest,
-          latestWakeTime: wakeTimeMetrics.latest,
-          updatedAt: new Date(),
-        },
+        $set: statsUpdate,
       },
       { new: true },
     );
@@ -557,6 +673,7 @@ export const getWeekData = async (req, res, next) => {
   try {
     // Use client's date if provided, otherwise use server's date
     const clientDate = req.query.date;
+    const requestTimezoneOffsetMinutes = Number(req.query.tzOffset);
     // Parse client date explicitly as UTC to avoid timezone issues
     const today = clientDate ? parseISO(`${clientDate}T00:00:00Z`) : new Date();
     const monday = startOfWeek(today, { weekStartsOn: 1 });
@@ -588,8 +705,16 @@ export const getWeekData = async (req, res, next) => {
         targetMet: existing?.targetMet || false,
         averageQuality: existing?.averageQuality || "none",
         entryCount: existing?.entryCount || 0,
-        averageBedTime: existing?.averageBedTime || null,
-        averageWakeTime: existing?.averageWakeTime || null,
+        averageBedTime: normalizeTimeForClient(
+          existing?.averageBedTime || null,
+          existing?.timezoneOffsetMinutes,
+          requestTimezoneOffsetMinutes,
+        ),
+        averageWakeTime: normalizeTimeForClient(
+          existing?.averageWakeTime || null,
+          existing?.timezoneOffsetMinutes,
+          requestTimezoneOffsetMinutes,
+        ),
         bedtimeConsistency: existing?.bedtimeConsistency || 0,
         wakeTimeConsistency: existing?.wakeTimeConsistency || 0,
       };
@@ -604,6 +729,7 @@ export const getWeekData = async (req, res, next) => {
 export const getMonthData = async (req, res, next) => {
   try {
     const { year, month } = req.query;
+    const requestTimezoneOffsetMinutes = Number(req.query.tzOffset);
 
     let targetDate;
     if (year && month) {
@@ -659,8 +785,18 @@ export const getMonthData = async (req, res, next) => {
         targetMet: existing?.targetMet || false,
         averageQuality: existing?.averageQuality || "none",
         entryCount: existing?.entryCount || 0,
-        averageBedTime: existing?.averageBedTime || null,
-        averageWakeTime: existing?.averageWakeTime || null,
+        averageBedTime: normalizeTimeForClient(
+          existing?.averageBedTime || null,
+          existing?.timezoneOffsetMinutes,
+          requestTimezoneOffsetMinutes,
+        ),
+        averageWakeTime: normalizeTimeForClient(
+          existing?.averageWakeTime || null,
+          existing?.timezoneOffsetMinutes,
+          requestTimezoneOffsetMinutes,
+        ),
+        bedtimeConsistency: existing?.bedtimeConsistency || 0,
+        wakeTimeConsistency: existing?.wakeTimeConsistency || 0,
       };
     });
 

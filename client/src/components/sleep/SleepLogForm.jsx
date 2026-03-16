@@ -32,8 +32,10 @@ export default function SleepLogForm({
 
     if (!sleptAt) return;
 
+    const sleptAtDate = new Date(sleptAt);
     onStartSleep({
-      sleptAt: new Date(sleptAt).toISOString(),
+      sleptAt: sleptAtDate.toISOString(),
+      timezoneOffsetMinutes: sleptAtDate.getTimezoneOffset(),
       notes: "",
     });
 
@@ -47,10 +49,12 @@ export default function SleepLogForm({
 
     if (!wokeUpAt || !activeSleepLog) return;
 
+    const wokeUpAtDate = new Date(wokeUpAt);
     onCompleteSleep({
       id: activeSleepLog._id,
       data: {
-        wokeUpAt: new Date(wokeUpAt).toISOString(),
+        wokeUpAt: wokeUpAtDate.toISOString(),
+        timezoneOffsetMinutes: wokeUpAtDate.getTimezoneOffset(),
         quality,
         notes: "",
       },

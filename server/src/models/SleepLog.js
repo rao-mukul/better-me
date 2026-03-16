@@ -35,6 +35,10 @@ const sleepLogSchema = new mongoose.Schema({
     type: String, // yyyy-MM-dd format
     required: true,
   },
+  timezoneOffsetMinutes: {
+    type: Number,
+    default: null,
+  },
   loggedAt: {
     type: Date,
     default: Date.now,

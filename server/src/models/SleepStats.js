@@ -47,6 +47,10 @@ const sleepStatsSchema = new mongoose.Schema({
     type: Number, // 0-100 (higher is better)
     default: 0,
   },
+  timezoneOffsetMinutes: {
+    type: Number,
+    default: null,
+  },
   earliestBedTime: {
     type: String,
     default: null,

@@ -14,6 +14,8 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getTimezoneOffsetMinutes = () => new Date().getTimezoneOffset();
+
 export const waterApi = {
   getToday: () =>
     api
@@ -36,7 +38,9 @@ export const waterApi = {
 export const sleepApi = {
   getToday: () =>
     api
-      .get("/sleep/today", { params: { date: getTodayDate() } })
+      .get("/sleep/today", {
+        params: { date: getTodayDate(), tzOffset: getTimezoneOffsetMinutes() },
+      })
       .then((r) => r.data),
   getWeekLogs: () =>
     api
@@ -49,10 +53,16 @@ export const sleepApi = {
   deleteSleepLog: (id) => api.delete(`/sleep/log/${id}`).then((r) => r.data),
   getWeek: () =>
     api
-      .get("/sleep/week", { params: { date: getTodayDate() } })
+      .get("/sleep/week", {
+        params: { date: getTodayDate(), tzOffset: getTimezoneOffsetMinutes() },
+      })
       .then((r) => r.data),
   getMonth: (year, month) =>
-    api.get("/sleep/month", { params: { year, month } }).then((r) => r.data),
+    api
+      .get("/sleep/month", {
+        params: { year, month, tzOffset: getTimezoneOffsetMinutes() },
+      })
+      .then((r) => r.data),
   updateTarget: (targetHours) =>
     api
       .put(

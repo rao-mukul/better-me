@@ -1,14 +1,16 @@
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sunrise, Clock } from "lucide-react";
 import { useState } from "react";
 import { useSleepMonth } from "../../hooks/useSleepData";
 
-const qualityColors = {
-  poor: "bg-red-400/80",
-  fair: "bg-orange-400/80",
-  good: "bg-primary",
-  excellent: "bg-success",
-  none: "bg-navy-700/20",
+const wakeTimeColors = {
+  before6: "bg-emerald-500/80 text-emerald-950",
+  sixTo7: "bg-emerald-400/80 text-emerald-950",
+  sevenTo8: "bg-emerald-300/80 text-emerald-950",
+  eightTo9: "bg-yellow-200/85 text-yellow-950",
+  nineTo10: "bg-rose-300/80 text-rose-950",
+  after10: "bg-rose-400/85 text-rose-950",
+  none: "bg-slate-900/30 text-text-secondary",
 };
 
 export default function SleepCalendar() {
@@ -65,15 +67,56 @@ export default function SleepCalendar() {
   const firstDayOfMonth =
     (new Date(currentYear, currentMonth - 1, 1).getDay() + 6) % 7;
 
-  // Determine color based on sleep quality
-  const getSleepColor = (totalMinutes, quality) => {
-    if (totalMinutes === 0) return "bg-navy-700/20";
-    if (quality !== "none") {
-      return qualityColors[quality];
-    }
-    // Fallback to neutral color if no quality is set
-    return "bg-primary/50";
+  // Determine color based on wake time (matrix view)
+  const getWakeColor = (averageWakeTime) => {
+    if (!averageWakeTime) return wakeTimeColors.none;
+    const minutes = timeToMinutes(averageWakeTime);
+    if (minutes <= 6 * 60) return wakeTimeColors.before6;
+    if (minutes <= 7 * 60) return wakeTimeColors.sixTo7;
+    if (minutes <= 8 * 60) return wakeTimeColors.sevenTo8;
+    if (minutes <= 9 * 60) return wakeTimeColors.eightTo9;
+    if (minutes <= 10 * 60) return wakeTimeColors.nineTo10;
+    return wakeTimeColors.after10;
   };
+
+  // Helper: convert HH:mm to minutes since midnight
+  const timeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const minutesToTime = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
+  };
+
+  const formatTime12Hour = (timeStr) => {
+    if (!timeStr) return "-";
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHour = hours % 12 || 12;
+    return `${displayHour}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+
+
+  const wakeDays = data.filter((d) => d.averageWakeTime);
+  const wakeTimes = wakeDays.map((d) => timeToMinutes(d.averageWakeTime));
+  const hasWakeData = wakeTimes.length > 0;
+  const avgWakeMinutes = hasWakeData
+    ? Math.round(wakeTimes.reduce((a, b) => a + b, 0) / wakeTimes.length)
+    : null;
+  const avgWakeTime = hasWakeData ? minutesToTime(avgWakeMinutes) : null;
+  const earliestWake = hasWakeData ? minutesToTime(Math.min(...wakeTimes)) : null;
+  const latestWake = hasWakeData ? minutesToTime(Math.max(...wakeTimes)) : null;
+
+  const wakeGoalMinutes = 7 * 60;
+  const wakeBadge =
+    hasWakeData && avgWakeMinutes <= wakeGoalMinutes
+      ? "Early start"
+      : hasWakeData && avgWakeMinutes <= 8 * 60
+        ? "On track"
+        : "Late start";
 
   const isToday = (day) => {
     return (
@@ -141,80 +184,122 @@ export default function SleepCalendar() {
 
         {/* Days of month */}
         {data.map((dayData) => {
-          const {
-            day,
-            totalMinutes,
-            totalHours,
-            targetHours,
-            averageQuality,
-            targetMet,
-          } = dayData;
+          const { day, totalMinutes, totalHours, averageWakeTime } = dayData;
           const isTodayDate = isToday(day);
 
           return (
             <motion.div
               key={day}
               whileHover={{ scale: 1.05 }}
-              className={`aspect-square rounded-lg ${getSleepColor(
-                totalMinutes,
-                averageQuality,
+              className={`aspect-square rounded-lg ${getWakeColor(
+                averageWakeTime,
               )} relative cursor-pointer transition-all ${
                 isTodayDate ? "ring-2 ring-accent" : ""
               }`}
               title={
-                totalMinutes > 0
-                  ? `${totalHours}h sleep\nQuality: ${averageQuality}`
+                averageWakeTime
+                  ? `Wake: ${formatTime12Hour(averageWakeTime)}\nSleep: ${totalHours}h`
                   : "No data"
               }
             >
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span
                   className={`text-sm font-medium ${
-                    totalMinutes > 0
-                      ? "text-text-primary"
-                      : "text-text-secondary"
+                    averageWakeTime ? "text-text-primary" : "text-text-secondary"
                   }`}
                 >
                   {day}
                 </span>
-                {averageQuality === "excellent" && (
-                  <Star
-                    size={10}
-                    className="text-yellow-300 absolute top-1 right-1"
-                    fill="currentColor"
-                  />
-                )}
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Legend */}
-      <div className="mt-6 pt-4 border-t border-navy-700/30">
-        <div className="flex items-center justify-center gap-4 text-xs text-text-secondary flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-navy-700/20" />
-            <span>No data</span>
+      {hasWakeData && (
+        <div className="mt-6">
+          <div className="mb-4">
+            <div className="flex items-center justify-center gap-4 text-xs text-text-secondary flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-slate-900/30" />
+                <span>No data</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-emerald-500/80" />
+                <span>Before 6 AM</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-emerald-400/80" />
+                <span>6–7 AM</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-emerald-300/80" />
+                <span>7–8 AM</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-yellow-200/85" />
+                <span>8–9 AM</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-rose-300/80" />
+                <span>9–10 AM</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-rose-400/85" />
+                <span>After 10 AM</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-400/80" />
-            <span>Poor</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-orange-400/80" />
-            <span>Fair</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-primary" />
-            <span>Good</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-success" />
-            <span>Excellent</span>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 bg-gradient-to-br from-sky-500/10 via-navy-800/20 to-emerald-500/10 border border-navy-700/30 rounded-xl p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-sky-500/15">
+                    <Sunrise size={18} className="text-sky-300" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-secondary">
+                      Average Wake Time
+                    </p>
+                    <p className="text-2xl font-bold text-text-primary">
+                      {formatTime12Hour(avgWakeTime)}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-sky-900 bg-sky-200/70 px-2.5 py-1 rounded-full">
+                  {wakeBadge}
+                </span>
+              </div>
+
+            </div>
+
+            <div className="bg-navy-700/20 border border-navy-700/30 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock size={16} className="text-sky-300" />
+                <p className="text-sm font-semibold text-text-primary">
+                  Wake Snapshot
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-navy-800/50 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary">Earliest</p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {formatTime12Hour(earliestWake)}
+                  </p>
+                </div>
+                <div className="bg-navy-800/50 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary">Latest</p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {formatTime12Hour(latestWake)}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
     </motion.div>
   );
 }
