@@ -131,17 +131,17 @@ export default function CalendarView({ timer, stats }) {
   const getColorClass = (status) => {
     switch (status.type) {
       case "clean":
-        return "bg-green-500/80 text-white hover:bg-green-500";
+        return "bg-gradient-to-br from-emerald-200/80 to-emerald-400/80 text-emerald-950 hover:from-emerald-300 hover:to-emerald-500";
       case "today":
-        return "bg-blue-500/80 text-white hover:bg-blue-500";
+        return "bg-gradient-to-br from-sky-200/80 to-sky-400/80 text-sky-950 hover:from-sky-300 hover:to-sky-500";
       case "reset":
-        return "bg-red-500/80 text-white hover:bg-red-500 cursor-help";
+        return "bg-gradient-to-br from-rose-200/80 to-rose-400/80 text-rose-950 hover:from-rose-300 hover:to-rose-500 cursor-help";
       case "future":
-        return "bg-navy-700/20 text-text-secondary/30";
+        return "bg-slate-900/20 text-text-secondary/40";
       case "before":
-        return "bg-navy-800/20 text-text-secondary/20";
+        return "bg-slate-900/25 text-text-secondary/35";
       default:
-        return "bg-bg-secondary text-text-secondary";
+        return "bg-slate-800/50 text-text-secondary";
     }
   };
 
