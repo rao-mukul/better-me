@@ -430,15 +430,16 @@ export const getTodayLog = async (req, res, next) => {
   try {
     const date = getToday(req);
 
-    const log = await GymLog.findOne({
-      userId: DEFAULT_USER_ID,
-      date,
-    });
-
-    const stats = await GymStats.findOne({
-      userId: DEFAULT_USER_ID,
-      date,
-    });
+    const [log, stats] = await Promise.all([
+      GymLog.findOne({
+        userId: DEFAULT_USER_ID,
+        date,
+      }).lean(),
+      GymStats.findOne({
+        userId: DEFAULT_USER_ID,
+        date,
+      }).lean(),
+    ]);
 
     res.json({
       log: log || null,

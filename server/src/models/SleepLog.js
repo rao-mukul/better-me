@@ -46,5 +46,6 @@ const sleepLogSchema = new mongoose.Schema({
 });
 
 sleepLogSchema.index({ userId: 1, date: 1 });
+sleepLogSchema.index({ userId: 1, isComplete: 1, sleptAt: -1 });
 
 export default mongoose.model("SleepLog", sleepLogSchema);

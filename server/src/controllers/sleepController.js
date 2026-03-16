@@ -26,6 +26,9 @@ const getToday = (req) => {
   return `${year}-${month}-${day}`;
 };
 
+const isSummaryRequest = (req) =>
+  req?.query?.summary === "1" || req?.query?.summary === "true";
+
 const applyTimezoneOffset = (date, timezoneOffsetMinutes) => {
   if (!Number.isFinite(timezoneOffsetMinutes)) return date;
   return new Date(date.getTime() - timezoneOffsetMinutes * 60000);
@@ -127,53 +130,59 @@ export const getTodayData = async (req, res, next) => {
   try {
     const date = getToday(req);
     const requestTimezoneOffsetMinutes = Number(req?.query?.tzOffset);
+    const summary = isSummaryRequest(req);
 
-    // Get completed logs for today
-    const completedLogs = await SleepLog.find({
-      userId: DEFAULT_USER_ID,
-      date,
-      isComplete: true,
-    }).sort({ wokeUpAt: -1 });
+    const [completedLogs, activeSleepLog, stats] = await Promise.all([
+      summary
+        ? Promise.resolve([])
+        : SleepLog.find({
+            userId: DEFAULT_USER_ID,
+            date,
+            isComplete: true,
+          })
+            .sort({ wokeUpAt: -1 })
+            .lean(),
+      SleepLog.findOne({
+        userId: DEFAULT_USER_ID,
+        isComplete: false,
+      })
+        .sort({ sleptAt: -1 })
+        .lean(),
+      SleepStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
+    ]);
 
-    // Check for active (incomplete) sleep log
-    const activeSleepLog = await SleepLog.findOne({
-      userId: DEFAULT_USER_ID,
-      isComplete: false,
-    }).sort({ sleptAt: -1 });
-
-    const stats = await SleepStats.findOne({ userId: DEFAULT_USER_ID, date });
-
-    const responseStats = stats
+    const statsObj = stats?.toObject ? stats.toObject() : stats;
+    const responseStats = statsObj
       ? {
-          ...stats.toObject(),
+          ...statsObj,
           averageBedTime: normalizeTimeForClient(
-            stats.averageBedTime,
-            stats.timezoneOffsetMinutes,
+            statsObj.averageBedTime,
+            statsObj.timezoneOffsetMinutes,
             requestTimezoneOffsetMinutes,
           ),
           averageWakeTime: normalizeTimeForClient(
-            stats.averageWakeTime,
-            stats.timezoneOffsetMinutes,
+            statsObj.averageWakeTime,
+            statsObj.timezoneOffsetMinutes,
             requestTimezoneOffsetMinutes,
           ),
           earliestBedTime: normalizeTimeForClient(
-            stats.earliestBedTime,
-            stats.timezoneOffsetMinutes,
+            statsObj.earliestBedTime,
+            statsObj.timezoneOffsetMinutes,
             requestTimezoneOffsetMinutes,
           ),
           latestBedTime: normalizeTimeForClient(
-            stats.latestBedTime,
-            stats.timezoneOffsetMinutes,
+            statsObj.latestBedTime,
+            statsObj.timezoneOffsetMinutes,
             requestTimezoneOffsetMinutes,
           ),
           earliestWakeTime: normalizeTimeForClient(
-            stats.earliestWakeTime,
-            stats.timezoneOffsetMinutes,
+            statsObj.earliestWakeTime,
+            statsObj.timezoneOffsetMinutes,
             requestTimezoneOffsetMinutes,
           ),
           latestWakeTime: normalizeTimeForClient(
-            stats.latestWakeTime,
-            stats.timezoneOffsetMinutes,
+            statsObj.latestWakeTime,
+            statsObj.timezoneOffsetMinutes,
             requestTimezoneOffsetMinutes,
           ),
         }

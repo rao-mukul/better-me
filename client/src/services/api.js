@@ -21,6 +21,12 @@ export const waterApi = {
     api
       .get("/water/today", { params: { date: getTodayDate() } })
       .then((r) => r.data),
+  getTodaySummary: () =>
+    api
+      .get("/water/today", {
+        params: { date: getTodayDate(), summary: "1" },
+      })
+      .then((r) => r.data),
   addLog: (data) =>
     api
       .post("/water/log", data, { params: { date: getTodayDate() } })
@@ -40,6 +46,16 @@ export const sleepApi = {
     api
       .get("/sleep/today", {
         params: { date: getTodayDate(), tzOffset: getTimezoneOffsetMinutes() },
+      })
+      .then((r) => r.data),
+  getTodaySummary: () =>
+    api
+      .get("/sleep/today", {
+        params: {
+          date: getTodayDate(),
+          tzOffset: getTimezoneOffsetMinutes(),
+          summary: "1",
+        },
       })
       .then((r) => r.data),
   getWeekLogs: () =>
@@ -112,6 +128,10 @@ export const dietApi = {
   // Today's logs
   getToday: (date = getTodayDate()) =>
     api.get("/diet/today", { params: { date } }).then((r) => r.data),
+  getTodaySummary: (date = getTodayDate()) =>
+    api
+      .get("/diet/today", { params: { date, summary: "1" } })
+      .then((r) => r.data),
 
   // Month data for calendar
   getMonth: (year, month) =>
@@ -143,6 +163,18 @@ export const dietApi = {
   // Log meal
   logMeal: (data) => api.post("/diet/log", data).then((r) => r.data),
   deleteLog: (id) => api.delete(`/diet/log/${id}`).then((r) => r.data),
+};
+
+export const todayApi = {
+  getOverview: () =>
+    api
+      .get("/today/overview", {
+        params: {
+          date: getTodayDate(),
+          tzOffset: getTimezoneOffsetMinutes(),
+        },
+      })
+      .then((r) => r.data),
 };
 
 export default api;

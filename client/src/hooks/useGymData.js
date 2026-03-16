@@ -28,6 +28,7 @@ export function useAddGymLog() {
       queryClient.invalidateQueries({ queryKey: ["gym", "week"] });
       queryClient.invalidateQueries({ queryKey: ["gym", "insights"] });
       queryClient.invalidateQueries({ queryKey: ["gym", "streak"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -45,6 +46,7 @@ export function useDeleteWorkout() {
       queryClient.invalidateQueries({ queryKey: ["gym", "week"] });
       queryClient.invalidateQueries({ queryKey: ["gym", "insights"] });
       queryClient.invalidateQueries({ queryKey: ["gym", "streak"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -58,11 +60,13 @@ export function useGymDay(date) {
   });
 }
 
-export function useGymExercises() {
+export function useGymExercises(options = {}) {
+  const { enabled = true } = options;
   return useQuery({
     queryKey: ["gym", "exercises"],
     queryFn: gymApi.getExercises,
     staleTime: 300000, // Consider data fresh for 5min (rarely changes)
+    enabled,
   });
 }
 
@@ -88,10 +92,12 @@ export function useDeleteExercise() {
   });
 }
 
-export function useGymProgram() {
+export function useGymProgram(options = {}) {
+  const { enabled = true } = options;
   return useQuery({
     queryKey: ["gym", "program"],
     queryFn: gymApi.getProgram,
+    enabled,
   });
 }
 

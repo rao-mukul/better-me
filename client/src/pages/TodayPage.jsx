@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { Droplets, Moon, Dumbbell, Utensils, ChevronDown } from "lucide-react";
@@ -11,33 +10,27 @@ import GoalSetter from "../components/water/GoalSetter";
 import WaterAnimation from "../components/water/WaterAnimation";
 import SleepLogForm from "../components/sleep/SleepLogForm";
 import NewGymLogForm from "../components/gym/NewGymLogForm";
-import GymLogList from "../components/gym/GymLogList";
 import GymCard from "../components/gym/GymCard";
 import NewDietLogForm from "../components/diet/NewDietLogForm";
 import {
-  useWaterToday,
   useAddWaterLog,
   useDeleteWaterLog,
   useUpdateGoal,
 } from "../hooks/useWaterData";
 import {
-  useSleepToday,
   useStartSleep,
   useCompleteSleep,
 } from "../hooks/useSleepData";
 import {
-  useGymToday,
   useAddGymLog,
   useDeleteWorkout,
   useGymExercises,
   useAddExercise,
   useGymProgram,
-  useGymWeekHistory,
 } from "../hooks/useGymData";
-import { useDietToday } from "../hooks/useDietData";
+import { useTodayOverview } from "../hooks/useTodayOverview";
 
 export default function TodayPage() {
-  const navigate = useNavigate();
   // Refs for each section card to enable scrolling
   const dietRef = useRef(null);
   const waterRef = useRef(null);
@@ -84,7 +77,8 @@ export default function TodayPage() {
   };
 
   // Water tracking
-  const { data: waterData, isLoading: waterLoading } = useWaterToday();
+  const { data: overview, isLoading: overviewLoading } = useTodayOverview();
+  const waterData = overview?.water || null;
   const addLog = useAddWaterLog();
   const deleteLog = useDeleteWaterLog();
   const updateGoal = useUpdateGoal();
@@ -100,7 +94,7 @@ export default function TodayPage() {
   };
 
   // Sleep tracking
-  const { data: sleepData, isLoading: sleepLoading } = useSleepToday();
+  const sleepData = overview?.sleep || null;
   const startSleep = useStartSleep();
   const completeSleep = useCompleteSleep();
   const activeSleepLog = sleepData?.activeSleepLog || null;
@@ -113,13 +107,19 @@ export default function TodayPage() {
   };
 
   // Gym tracking
-  const { data: gymData, isLoading: gymLoading } = useGymToday();
+  const gymData = overview?.gym || null;
   const addGymLog = useAddGymLog();
   const deleteWorkout = useDeleteWorkout();
-  const { data: gymExercises } = useGymExercises();
+  const hasGymData = !!gymData;
+  const hasGymLog = !!gymData?.log;
+  const needsGymForm = expandedSection === "gym" && hasGymData && !hasGymLog;
+  const { data: gymExercises, isLoading: gymExercisesLoading } =
+    useGymExercises({ enabled: needsGymForm });
   const addExercise = useAddExercise();
-  const { data: gymProgram } = useGymProgram();
-  const { data: gymWeekHistory } = useGymWeekHistory();
+  const { data: gymProgram, isLoading: gymProgramLoading } = useGymProgram({
+    enabled: needsGymForm,
+  });
+  const gymWeekHistory = gymData?.weekHistory || [];
 
   const todayLog = gymData?.log || null;
   const gymStats = gymData?.stats || {
@@ -134,9 +134,10 @@ export default function TodayPage() {
   const weekWorkoutDays = gymWeekHistory
     ? new Set(gymWeekHistory.map((log) => log.date)).size
     : 0;
+  const gymFormLoading = needsGymForm && (gymExercisesLoading || gymProgramLoading);
 
   // Diet tracking
-  const { data: dietData, isLoading: dietLoading } = useDietToday();
+  const dietData = overview?.diet || null;
   const dietTotals = dietData?.totals || {
     calories: 0,
     protein: 0,
@@ -220,12 +221,10 @@ export default function TodayPage() {
 
   const hasWaterData = !!waterData;
   const hasSleepData = !!sleepData;
-  const hasGymData = !!gymData;
   const hasDietData = !!dietData;
 
   // Loading states
-  const isAnyLoading =
-    waterLoading || sleepLoading || gymLoading || dietLoading;
+  const isAnyLoading = overviewLoading;
   const isInitialLoading =
     isAnyLoading &&
     !hasWaterData &&
@@ -278,7 +277,7 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Diet</h2>
               </div>
               <div className="flex items-center gap-2">
-                {!hasDietData && dietLoading ? (
+                {!hasDietData && overviewLoading ? (
                   <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 animate-pulse">
                     <span className="text-xs font-semibold text-green-300">
                       Loading
@@ -315,7 +314,7 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  {!hasDietData && dietLoading ? (
+                  {!hasDietData && overviewLoading ? (
                     <div className="py-6 text-sm text-text-secondary">
                       Loading nutrition data...
                     </div>
@@ -340,7 +339,7 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Water</h2>
               </div>
               <div className="flex items-center gap-2">
-                {!hasWaterData && waterLoading ? (
+                {!hasWaterData && overviewLoading ? (
                   <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 animate-pulse">
                     <span className="text-xs font-semibold text-primary">
                       Loading
@@ -380,7 +379,7 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  {!hasWaterData && waterLoading ? (
+                  {!hasWaterData && overviewLoading ? (
                     <div className="py-6 text-sm text-text-secondary">
                       Loading hydration data...
                     </div>
@@ -423,7 +422,7 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Gym</h2>
               </div>
               <div className="flex items-center gap-2">
-                {!hasGymData && gymLoading ? (
+                {!hasGymData && overviewLoading ? (
                   <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 animate-pulse">
                     <span className="text-xs font-semibold text-orange-300">
                       Loading
@@ -460,7 +459,11 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  {!hasGymData && gymLoading ? (
+                  {!hasGymData && overviewLoading ? (
+                    <div className="py-6 text-sm text-text-secondary">
+                      Loading workout data...
+                    </div>
+                  ) : gymFormLoading ? (
                     <div className="py-6 text-sm text-text-secondary">
                       Loading workout data...
                     </div>
@@ -586,7 +589,7 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Sleep</h2>
               </div>
               <div className="flex items-center gap-2">
-                {!hasSleepData && sleepLoading ? (
+                {!hasSleepData && overviewLoading ? (
                   <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 animate-pulse">
                     <span className="text-xs font-semibold text-purple-300">
                       Loading
@@ -622,7 +625,7 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  {!hasSleepData && sleepLoading ? (
+                  {!hasSleepData && overviewLoading ? (
                     <div className="py-6 text-sm text-text-secondary">
                       Loading sleep data...
                     </div>

@@ -17,12 +17,37 @@ const getToday = (req) => {
   return req?.query?.date || format(new Date(), "yyyy-MM-dd");
 };
 
+const isSummaryRequest = (req) =>
+  req?.query?.summary === "1" || req?.query?.summary === "true";
+
 export const getTodayData = async (req, res, next) => {
   try {
     const date = getToday(req);
+    const summary = isSummaryRequest(req);
+
+    if (summary) {
+      const stats = await DailyStats.findOne({
+        userId: DEFAULT_USER_ID,
+        date,
+      }).lean();
+
+      res.json({
+        logs: [],
+        stats: stats || {
+          totalMl: 0,
+          goal: DEFAULT_GOAL,
+          goalMet: false,
+          entryCount: 0,
+        },
+      });
+      return;
+    }
+
     const [logs, stats] = await Promise.all([
-      IntakeLog.find({ userId: DEFAULT_USER_ID, date }).sort({ loggedAt: -1 }),
-      DailyStats.findOne({ userId: DEFAULT_USER_ID, date }),
+      IntakeLog.find({ userId: DEFAULT_USER_ID, date })
+        .sort({ loggedAt: -1 })
+        .lean(),
+      DailyStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
     ]);
 
     res.json({

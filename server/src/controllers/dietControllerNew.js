@@ -10,6 +10,9 @@ const getToday = (req) => {
   return req?.query?.date || format(new Date(), "yyyy-MM-dd");
 };
 
+const isSummaryRequest = (req) =>
+  req?.query?.summary === "1" || req?.query?.summary === "true";
+
 // Multer config for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -31,13 +34,44 @@ export const uploadMiddleware = upload.single("mealImage");
 export const getTodayData = async (req, res, next) => {
   try {
     const date = getToday(req);
+    const summary = isSummaryRequest(req);
+
+    if (summary) {
+      const totalsAgg = await DietLog.aggregate([
+        { $match: { userId: DEFAULT_USER_ID, date } },
+        {
+          $group: {
+            _id: null,
+            calories: { $sum: "$calories" },
+            protein: { $sum: "$protein" },
+            carbs: { $sum: "$carbs" },
+            fat: { $sum: "$fat" },
+            fiber: { $sum: { $ifNull: ["$fiber", 0] } },
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+
+      const totals = totalsAgg[0] || {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fiber: 0,
+        count: 0,
+      };
+
+      res.json({ logs: [], totals });
+      return;
+    }
 
     const logs = await DietLog.find({
       userId: DEFAULT_USER_ID,
       date,
     })
       .populate("mealId")
-      .sort({ eatenAt: -1 });
+      .sort({ eatenAt: -1 })
+      .lean();
 
     // Calculate daily totals
     const totals = logs.reduce(

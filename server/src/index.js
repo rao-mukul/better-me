@@ -8,6 +8,7 @@ import sleepRoutes from "./routes/sleep.js";
 import gymRoutes from "./routes/gym.js";
 import cleanTimerRoutes from "./routes/cleanTimer.js";
 import dietRoutes from "./routes/diet.js";
+import todayRoutes from "./routes/today.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 // Validate required environment variables
@@ -84,6 +85,7 @@ app.use("/api/sleep", sleepRoutes);
 app.use("/api/gym", gymRoutes);
 app.use("/api/clean-timer", cleanTimerRoutes);
 app.use("/api/diet", dietRoutes);
+app.use("/api/today", todayRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });

@@ -10,6 +10,15 @@ export function useSleepToday() {
   });
 }
 
+export function useSleepTodaySummary() {
+  return useQuery({
+    queryKey: ["sleep", "today", "summary"],
+    queryFn: sleepApi.getTodaySummary,
+    staleTime: 30000, // Consider data fresh for 30s
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function useSleepWeekLogs() {
   return useQuery({
     queryKey: ["sleep", "week-logs"],
@@ -26,6 +35,7 @@ export function useStartSleep() {
     mutationFn: sleepApi.startSleep,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sleep"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -37,6 +47,7 @@ export function useCompleteSleep() {
     mutationFn: ({ id, data }) => sleepApi.completeSleep(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sleep"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -48,6 +59,7 @@ export function useLogCompleteSleep() {
     mutationFn: sleepApi.logCompleteSleep,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sleep"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -59,6 +71,7 @@ export function useDeleteSleepLog() {
     mutationFn: sleepApi.deleteSleepLog,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sleep"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -85,6 +98,7 @@ export function useUpdateTarget() {
     mutationFn: sleepApi.updateTarget,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sleep"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }

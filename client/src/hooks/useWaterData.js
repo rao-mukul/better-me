@@ -10,6 +10,15 @@ export function useWaterToday() {
   });
 }
 
+export function useWaterTodaySummary() {
+  return useQuery({
+    queryKey: ["water", "today", "summary"],
+    queryFn: waterApi.getTodaySummary,
+    staleTime: 30000, // Consider data fresh for 30s
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function useAddWaterLog() {
   const queryClient = useQueryClient();
 
@@ -17,6 +26,7 @@ export function useAddWaterLog() {
     mutationFn: waterApi.addLog,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["water"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -28,6 +38,7 @@ export function useDeleteWaterLog() {
     mutationFn: waterApi.deleteLog,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["water"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
@@ -55,6 +66,7 @@ export function useUpdateGoal() {
     mutationFn: waterApi.updateGoal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["water"] });
+      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
     },
   });
 }
