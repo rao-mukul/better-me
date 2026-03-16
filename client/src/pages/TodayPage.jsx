@@ -218,9 +218,37 @@ export default function TodayPage() {
     });
   };
 
-  // Show loading animation when ANY data is still loading
+  const hasWaterData = !!waterData;
+  const hasSleepData = !!sleepData;
+  const hasGymData = !!gymData;
+  const hasDietData = !!dietData;
+
+  // Loading states
   const isAnyLoading =
     waterLoading || sleepLoading || gymLoading || dietLoading;
+  const isInitialLoading =
+    isAnyLoading &&
+    !hasWaterData &&
+    !hasSleepData &&
+    !hasGymData &&
+    !hasDietData;
+
+  // Only show the full-screen wakeup animation briefly on cold starts
+  const [showWakeup, setShowWakeup] = useState(false);
+  useEffect(() => {
+    if (!isInitialLoading) {
+      setShowWakeup(false);
+      return;
+    }
+
+    const delayId = setTimeout(() => setShowWakeup(true), 250);
+    const maxId = setTimeout(() => setShowWakeup(false), 1200);
+
+    return () => {
+      clearTimeout(delayId);
+      clearTimeout(maxId);
+    };
+  }, [isInitialLoading]);
 
   return (
     <>
@@ -228,16 +256,15 @@ export default function TodayPage() {
 
       {/* Loading Animation */}
       <AnimatePresence>
-        {isAnyLoading && <ServerWakeupAnimation />}
+        {showWakeup && <ServerWakeupAnimation />}
       </AnimatePresence>
 
-      {!isAnyLoading && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex flex-col gap-8"
-        >
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col gap-8"
+      >
           {/* Diet Section */}
           <Card ref={dietRef}>
             <button
@@ -251,14 +278,22 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Diet</h2>
               </div>
               <div className="flex items-center gap-2">
-                <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-                  <span className="text-sm font-bold text-green-400">
-                    {dietTotals.calories}
-                  </span>
-                  <span className="text-xs text-text-secondary ml-0.5">
-                    cal
-                  </span>
-                </div>
+                {!hasDietData && dietLoading ? (
+                  <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 animate-pulse">
+                    <span className="text-xs font-semibold text-green-300">
+                      Loading
+                    </span>
+                  </div>
+                ) : (
+                  <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                    <span className="text-sm font-bold text-green-400">
+                      {dietTotals.calories}
+                    </span>
+                    <span className="text-xs text-text-secondary ml-0.5">
+                      cal
+                    </span>
+                  </div>
+                )}
                 <motion.div
                   animate={{ rotate: expandedSection === "diet" ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -280,7 +315,13 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  <NewDietLogForm onSuccess={handleDietSuccess} />
+                  {!hasDietData && dietLoading ? (
+                    <div className="py-6 text-sm text-text-secondary">
+                      Loading nutrition data...
+                    </div>
+                  ) : (
+                    <NewDietLogForm onSuccess={handleDietSuccess} />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -299,15 +340,25 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Water</h2>
               </div>
               <div className="flex items-center gap-2">
-                <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                  <span className="text-sm font-bold text-primary">
-                    {waterStats.totalMl}
-                  </span>
-                  <span className="text-xs text-text-secondary mx-0.5">/</span>
-                  <span className="text-xs text-text-secondary">
-                    {waterStats.goal}ml
-                  </span>
-                </div>
+                {!hasWaterData && waterLoading ? (
+                  <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 animate-pulse">
+                    <span className="text-xs font-semibold text-primary">
+                      Loading
+                    </span>
+                  </div>
+                ) : (
+                  <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                    <span className="text-sm font-bold text-primary">
+                      {waterStats.totalMl}
+                    </span>
+                    <span className="text-xs text-text-secondary mx-0.5">
+                      /
+                    </span>
+                    <span className="text-xs text-text-secondary">
+                      {waterStats.goal}ml
+                    </span>
+                  </div>
+                )}
                 <motion.div
                   animate={{ rotate: expandedSection === "water" ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -329,23 +380,31 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  <WaterRing
-                    totalMl={waterStats.totalMl}
-                    goal={waterStats.goal}
-                  />
+                  {!hasWaterData && waterLoading ? (
+                    <div className="py-6 text-sm text-text-secondary">
+                      Loading hydration data...
+                    </div>
+                  ) : (
+                    <>
+                      <WaterRing
+                        totalMl={waterStats.totalMl}
+                        goal={waterStats.goal}
+                      />
 
-                  <GoalSetter
-                    goal={waterStats.goal}
-                    onUpdate={handleGoalUpdate}
-                    disabled={updateGoal.isPending}
-                  />
+                      <GoalSetter
+                        goal={waterStats.goal}
+                        onUpdate={handleGoalUpdate}
+                        disabled={updateGoal.isPending}
+                      />
 
-                  <div className="mt-6">
-                    <QuickAddBar
-                      onAdd={handleWaterAdd}
-                      disabled={addLog.isPending}
-                    />
-                  </div>
+                      <div className="mt-6">
+                        <QuickAddBar
+                          onAdd={handleWaterAdd}
+                          disabled={addLog.isPending}
+                        />
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -364,14 +423,22 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Gym</h2>
               </div>
               <div className="flex items-center gap-2">
-                <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
-                  <span className="text-sm font-bold text-orange-400">
-                    {weekWorkoutDays}
-                  </span>
-                  <span className="text-xs text-text-secondary ml-1">
-                    {weekWorkoutDays === 1 ? "day" : "days"} this week
-                  </span>
-                </div>
+                {!hasGymData && gymLoading ? (
+                  <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 animate-pulse">
+                    <span className="text-xs font-semibold text-orange-300">
+                      Loading
+                    </span>
+                  </div>
+                ) : (
+                  <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                    <span className="text-sm font-bold text-orange-400">
+                      {weekWorkoutDays}
+                    </span>
+                    <span className="text-xs text-text-secondary ml-1">
+                      {weekWorkoutDays === 1 ? "day" : "days"} this week
+                    </span>
+                  </div>
+                )}
                 <motion.div
                   animate={{ rotate: expandedSection === "gym" ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -393,7 +460,11 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  {!todayLog ? (
+                  {!hasGymData && gymLoading ? (
+                    <div className="py-6 text-sm text-text-secondary">
+                      Loading workout data...
+                    </div>
+                  ) : !todayLog ? (
                     <div className="mb-6">
                       <NewGymLogForm
                         onSubmit={handleGymLogSubmit}
@@ -515,12 +586,20 @@ export default function TodayPage() {
                 <h2 className="text-xl font-bold text-text-primary">Sleep</h2>
               </div>
               <div className="flex items-center gap-2">
-                {sleepStats.totalMinutes > 0 && (
-                  <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
-                    <span className="text-sm font-bold text-purple-400">
-                      {(sleepStats.totalMinutes / 60).toFixed(1)}h
+                {!hasSleepData && sleepLoading ? (
+                  <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 animate-pulse">
+                    <span className="text-xs font-semibold text-purple-300">
+                      Loading
                     </span>
                   </div>
+                ) : (
+                  sleepStats.totalMinutes > 0 && (
+                    <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                      <span className="text-sm font-bold text-purple-400">
+                        {(sleepStats.totalMinutes / 60).toFixed(1)}h
+                      </span>
+                    </div>
+                  )
                 )}
                 <motion.div
                   animate={{ rotate: expandedSection === "sleep" ? 180 : 0 }}
@@ -543,18 +622,23 @@ export default function TodayPage() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  <SleepLogForm
-                    activeSleepLog={activeSleepLog}
-                    onStartSleep={handleStartSleep}
-                    onCompleteSleep={handleCompleteSleep}
-                    disabled={startSleep.isPending || completeSleep.isPending}
-                  />
+                  {!hasSleepData && sleepLoading ? (
+                    <div className="py-6 text-sm text-text-secondary">
+                      Loading sleep data...
+                    </div>
+                  ) : (
+                    <SleepLogForm
+                      activeSleepLog={activeSleepLog}
+                      onStartSleep={handleStartSleep}
+                      onCompleteSleep={handleCompleteSleep}
+                      disabled={startSleep.isPending || completeSleep.isPending}
+                    />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
           </Card>
-        </motion.div>
-      )}
+      </motion.div>
     </>
   );
 }
