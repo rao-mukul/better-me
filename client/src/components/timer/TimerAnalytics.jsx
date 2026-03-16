@@ -7,7 +7,7 @@ import {
   Calendar,
   Clock,
 } from "lucide-react";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, isBefore, startOfDay, subDays } from "date-fns";
 
 export default function TimerAnalytics({ timer, stats }) {
   if (!timer || !stats) {
@@ -16,17 +16,35 @@ export default function TimerAnalytics({ timer, stats }) {
 
   const { currentDays, bestStreak, totalResets, averageStreak } = stats;
 
+  const now = new Date();
+  const today = startOfDay(now);
+  const currentStreakStart = startOfDay(new Date(timer.startedAt));
+
+  const sortedResets = [...(timer.resetHistory || [])].sort(
+    (a, b) => new Date(a.resetAt) - new Date(b.resetAt),
+  );
+
+  const firstRecordedStart =
+    sortedResets.length > 0
+      ? startOfDay(
+          subDays(
+            new Date(sortedResets[0].resetAt),
+            Number(sortedResets[0].daysClean || 0),
+          ),
+        )
+      : currentStreakStart;
+
+  const historyStart = isBefore(firstRecordedStart, currentStreakStart)
+    ? firstRecordedStart
+    : currentStreakStart;
+
   // Calculate total clean days (all days from all streaks)
   const totalCleanDays = timer.resetHistory
     ? timer.resetHistory.reduce((sum, r) => sum + r.daysClean, 0) + currentDays
     : currentDays;
 
   // Calculate success rate (days clean / total days since first start)
-  const totalDaysSinceStart =
-    differenceInDays(new Date(), new Date(timer.startedAt)) +
-    (timer.resetHistory
-      ? timer.resetHistory.reduce((sum, r) => sum + r.daysClean, 0)
-      : 0);
+  const totalDaysSinceStart = differenceInDays(today, historyStart);
   const successRate =
     totalDaysSinceStart > 0
       ? Math.round((totalCleanDays / totalDaysSinceStart) * 100)
