@@ -566,9 +566,6 @@ export default function TodayPage() {
                         </div>
                       </div>
 
-                      {gymStats.totalWorkouts > 0 && (
-                        <GymCard stats={gymStats} />
-                      )}
                     </div>
                   )}
                 </motion.div>

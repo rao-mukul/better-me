@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useSleepMonth } from "../../hooks/useSleepData";
 
 const wakeTimeColors = {
-  before6: "bg-emerald-500/80 text-emerald-950",
-  sixTo7: "bg-emerald-400/80 text-emerald-950",
-  sevenTo8: "bg-emerald-300/80 text-emerald-950",
-  eightTo9: "bg-yellow-200/85 text-yellow-950",
-  nineTo10: "bg-rose-300/80 text-rose-950",
-  after10: "bg-rose-400/85 text-rose-950",
-  none: "bg-slate-900/30 text-text-secondary",
+  after10: "bg-red-500/90 text-white",
+  nineTo10: "bg-orange-400/90 text-slate-900",
+  eightTo9: "bg-yellow-300/90 text-slate-900",
+  sevenTo8: "bg-green-500/90 text-slate-900",
+  sixTo7: "bg-green-300/90 text-slate-900",
+  before6: "bg-green-200/90 text-slate-900",
+  none: "bg-navy-900/40 text-text-secondary",
 };
 
 export default function SleepCalendar() {
@@ -48,11 +48,11 @@ export default function SleepCalendar() {
 
   if (isLoading) {
     return (
-      <div className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-6 animate-pulse">
+      <div className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-4 sm:p-6 animate-pulse">
         <div className="h-8 bg-navy-700/40 rounded mb-4 w-48" />
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
           {Array.from({ length: 35 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-navy-700/40 rounded-lg" />
+            <div key={i} className="aspect-square bg-navy-700/40 rounded-md sm:rounded-lg" />
           ))}
         </div>
       </div>
@@ -130,17 +130,19 @@ export default function SleepCalendar() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-6"
+      className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-4 sm:p-6"
     >
       {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-text-primary">{monthName}</h3>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 sm:mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-text-primary">
+          {monthName}
+        </h3>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleToday}
-            className="px-3 py-1.5 text-sm bg-navy-700/50 hover:bg-navy-700 text-text-secondary hover:text-text-primary rounded-lg transition-colors"
+            className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-navy-700/50 hover:bg-navy-700 text-text-secondary hover:text-text-primary rounded-lg transition-colors"
           >
             Today
           </motion.button>
@@ -164,11 +166,11 @@ export default function SleepCalendar() {
       </div>
 
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 gap-2 mb-2">
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
           <div
             key={day}
-            className="text-center text-xs font-medium text-text-secondary py-2"
+            className="text-center text-[10px] sm:text-xs font-medium text-text-secondary py-1.5 sm:py-2"
           >
             {day}
           </div>
@@ -176,7 +178,7 @@ export default function SleepCalendar() {
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {/* Empty cells for days before month starts */}
         {Array.from({ length: firstDayOfMonth }).map((_, i) => (
           <div key={`empty-${i}`} className="aspect-square" />
@@ -191,7 +193,7 @@ export default function SleepCalendar() {
             <motion.div
               key={day}
               whileHover={{ scale: 1.05 }}
-              className={`aspect-square rounded-lg ${getWakeColor(
+              className={`aspect-square rounded-md sm:rounded-lg ${getWakeColor(
                 averageWakeTime,
               )} relative cursor-pointer transition-all ${
                 isTodayDate ? "ring-2 ring-accent" : ""
@@ -203,11 +205,7 @@ export default function SleepCalendar() {
               }
             >
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span
-                  className={`text-sm font-medium ${
-                    averageWakeTime ? "text-text-primary" : "text-text-secondary"
-                  }`}
-                >
+                <span className="text-xs sm:text-sm font-medium">
                   {day}
                 </span>
               </div>
@@ -219,64 +217,64 @@ export default function SleepCalendar() {
       {hasWakeData && (
         <div className="mt-6">
           <div className="mb-4">
-            <div className="flex items-center justify-center gap-4 text-xs text-text-secondary flex-wrap">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:flex sm:flex-wrap sm:justify-center gap-x-3 gap-y-2 text-[10px] sm:text-xs text-text-secondary">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-slate-900/30" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-navy-900/40" />
                 <span>No data</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-emerald-500/80" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-200/90" />
                 <span>Before 6 AM</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-emerald-400/80" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-300/90" />
                 <span>6–7 AM</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-emerald-300/80" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-500/90" />
                 <span>7–8 AM</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-yellow-200/85" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-yellow-300/90" />
                 <span>8–9 AM</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-rose-300/80" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-orange-400/90" />
                 <span>9–10 AM</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-rose-400/85" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-red-500/90" />
                 <span>After 10 AM</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 bg-gradient-to-br from-sky-500/10 via-navy-800/20 to-emerald-500/10 border border-navy-700/30 rounded-xl p-5">
-              <div className="flex items-center justify-between gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="lg:col-span-2 bg-gradient-to-br from-cyan-500/15 via-navy-800/20 to-lime-500/10 border border-navy-700/30 rounded-xl p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-sky-500/15">
-                    <Sunrise size={18} className="text-sky-300" />
+                  <div className="p-2 rounded-lg bg-cyan-500/20">
+                    <Sunrise size={18} className="text-cyan-300" />
                   </div>
                   <div>
                     <p className="text-xs text-text-secondary">
                       Average Wake Time
                     </p>
-                    <p className="text-2xl font-bold text-text-primary">
+                    <p className="text-xl sm:text-2xl font-bold text-text-primary">
                       {formatTime12Hour(avgWakeTime)}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-sky-900 bg-sky-200/70 px-2.5 py-1 rounded-full">
+                <span className="self-start sm:self-auto text-[10px] sm:text-xs text-slate-900 bg-cyan-300/80 px-2.5 py-1 rounded-full whitespace-nowrap">
                   {wakeBadge}
                 </span>
               </div>
 
             </div>
 
-            <div className="bg-navy-700/20 border border-navy-700/30 rounded-xl p-5">
+            <div className="bg-navy-700/20 border border-navy-700/30 rounded-xl p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Clock size={16} className="text-sky-300" />
+                <Clock size={16} className="text-cyan-300" />
                 <p className="text-sm font-semibold text-text-primary">
                   Wake Snapshot
                 </p>

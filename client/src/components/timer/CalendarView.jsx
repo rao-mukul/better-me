@@ -131,11 +131,11 @@ export default function CalendarView({ timer, stats }) {
   const getColorClass = (status) => {
     switch (status.type) {
       case "clean":
-        return "bg-emerald-300/70 text-emerald-950 hover:bg-emerald-300";
+        return "bg-green-400/90 text-emerald-950 hover:bg-green-400";
       case "today":
-        return "bg-sky-300/75 text-sky-950 hover:bg-sky-300";
+        return "bg-slate-800/60 text-text-primary hover:bg-slate-800/80";
       case "reset":
-        return "bg-rose-300/75 text-rose-950 hover:bg-rose-300 cursor-help";
+        return "bg-red-400/90 text-red-950 hover:bg-red-400 cursor-help";
       case "future":
         return "bg-slate-900/20 text-text-secondary/40";
       case "before":
@@ -205,7 +205,7 @@ export default function CalendarView({ timer, stats }) {
                 transition-colors relative
                 ${getColorClass(status)}
                 ${!isInViewMonth && "opacity-40"}
-                ${isTodayDate && "ring-2 ring-primary"}
+                ${isTodayDate && "ring-2 ring-sky-400"}
               `}
               title={status.reason || ""}
             >
