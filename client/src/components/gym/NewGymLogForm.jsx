@@ -64,13 +64,26 @@ export default function NewGymLogForm({
   const [newExerciseName, setNewExerciseName] = useState("");
   const [addingForMuscle, setAddingForMuscle] = useState(null);
 
-  const handleWorkoutSelect = (workout) => {
-    setSelectedWorkout(workout);
+  const getTimesThisWeek = (workoutId) =>
+    weekHistory.filter((log) => log.workoutType === workoutId).length;
 
+  const getEffectiveWorkout = (workout, timesThisWeek) => {
+    if (timesThisWeek === 0) return workout;
+    return {
+      ...workout,
+      primary: workout.secondary,
+      secondary: workout.primary,
+      primaryMuscle: workout.secondaryMuscle,
+      secondaryMuscle: workout.primaryMuscle,
+    };
+  };
+
+  const handleWorkoutSelect = (workout) => {
     // Check if this workout type was done this week
-    const timesThisWeek = weekHistory.filter(
-      (log) => log.workoutType === workout.id,
-    ).length;
+    const timesThisWeek = getTimesThisWeek(workout.id);
+    const effectiveWorkout = getEffectiveWorkout(workout, timesThisWeek);
+
+    setSelectedWorkout(effectiveWorkout);
 
     // Smart exercise pre-selection: map to correct workout configuration
     if (userProgram) {
@@ -101,9 +114,11 @@ export default function NewGymLogForm({
       exerciseSet.forEach((exerciseName) => {
         const exercise = allExercises.find((ex) => ex.name === exerciseName);
         if (exercise) {
-          if (exercise.muscleGroup === workout.primaryMuscle) {
+          if (exercise.muscleGroup === effectiveWorkout.primaryMuscle) {
             primaryMuscleExercises.push(exerciseName);
-          } else if (exercise.muscleGroup === workout.secondaryMuscle) {
+          } else if (
+            exercise.muscleGroup === effectiveWorkout.secondaryMuscle
+          ) {
             secondaryMuscleExercises.push(exerciseName);
           }
         }
@@ -299,6 +314,12 @@ export default function NewGymLogForm({
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {workoutTypes.map((workout) => {
+                const timesThisWeek = getTimesThisWeek(workout.id);
+                const effectiveWorkout = getEffectiveWorkout(
+                  workout,
+                  timesThisWeek,
+                );
+                const displayLabel = `${effectiveWorkout.primary} & ${effectiveWorkout.secondary}`;
                 return (
                   <motion.button
                     key={workout.id}
@@ -314,11 +335,11 @@ export default function NewGymLogForm({
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm sm:text-base font-bold text-text-primary">
-                          {workout.label}
+                          {displayLabel}
                         </p>
                         <p className="text-xs sm:text-sm text-text-secondary mt-0.5 sm:mt-1">
                           <span className="font-semibold">
-                            {workout.primary}
+                            {effectiveWorkout.primary}
                           </span>{" "}
                           focus
                         </p>
