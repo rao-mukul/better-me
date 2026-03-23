@@ -164,18 +164,8 @@ export function useAssistantSession(audioPlayback) {
           });
           break;
 
-        case "turn_complete":
-          // Voice turn finished — increment turn count, no text to show
-          dispatch({ type: "FINALIZE_ASSISTANT_TURN", turn_id: msg.turn_id });
-          break;
-
         case "text_done":
-          // Text chat turn finished
           dispatch({ type: "FINALIZE_ASSISTANT_TURN", turn_id: msg.turn_id });
-          break;
-
-        case "input_transcription":
-          // No longer sent — transcription disabled for low latency
           break;
 
         case "interrupted":
@@ -261,10 +251,9 @@ export function useAssistantSession(audioPlayback) {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(buffer);
-    } else {
-      console.warn("[useAssistantSession] sendAudioChunk: WS not open, state=", ws?.readyState);
     }
   }, []);
+
   // ---------------------------------------------------------------------------
   // toggleMute
   // ---------------------------------------------------------------------------

@@ -49,15 +49,16 @@ async def browser_to_gemini(
     stop_event: asyncio.Event,
 ) -> None:
     """Forward browser messages to the Gemini Live session."""
-    audio_chunk_count = 0
     try:
         while not stop_event.is_set():
             try:
                 message = await asyncio.wait_for(ws.receive(), timeout=30.0)
             except asyncio.TimeoutError:
+                # Send a keepalive ping — if the WS is dead this will raise
                 logger.debug("browser_to_gemini: keepalive tick")
                 continue
 
+            # Disconnected
             if message.get("type") == "websocket.disconnect":
                 logger.info("browser_to_gemini: browser disconnected")
                 break
@@ -65,13 +66,7 @@ async def browser_to_gemini(
             # Binary frame — raw PCM audio (Int16, 16 kHz)
             raw_bytes = message.get("bytes")
             if raw_bytes is not None:
-                audio_chunk_count += 1
-                if audio_chunk_count <= 2 or audio_chunk_count % 200 == 0:
-                    logger.debug(
-                        "browser_to_gemini: audio chunk #%d %d bytes",
-                        audio_chunk_count,
-                        len(raw_bytes),
-                    )
+                logger.debug("browser_to_gemini: audio chunk %d bytes", len(raw_bytes))
                 await state.gemini_session.send_realtime_input(
                     audio=types.Blob(data=raw_bytes, mime_type="audio/pcm;rate=16000")
                 )
@@ -89,12 +84,14 @@ async def browser_to_gemini(
                 continue
 
             msg_type = msg.get("type")
+            logger.debug("browser_to_gemini: received msg type=%s", msg_type)
 
             if msg_type == "text_input":
                 text = msg.get("text", "").strip()
                 if not text:
                     continue
                 logger.info("browser_to_gemini: text_input: %r", text[:80])
+                # Use send_client_content for text — ordered, deterministic
                 await state.gemini_session.send_client_content(
                     turns=types.Content(
                         role="user",
@@ -106,16 +103,18 @@ async def browser_to_gemini(
                 state.turn_count += 1
                 truncate_history(state)
                 if should_warn_turn_limit(state):
-                    await _safe_send(ws, json.dumps(
-                        {"type": "turn_limit_warning", "turn_count": state.turn_count}
-                    ))
+                    await ws.send_text(
+                        json.dumps(
+                            {"type": "turn_limit_warning", "turn_count": state.turn_count}
+                        )
+                    )
 
             elif msg_type == "session_end":
                 logger.info("browser_to_gemini: session_end received")
                 break
 
             elif msg_type == "mute_audio":
-                pass
+                pass  # informational only
 
             else:
                 logger.debug("browser_to_gemini: ignoring unknown type=%s", msg_type)
@@ -142,14 +141,14 @@ async def gemini_to_browser(
 ) -> None:
     """Stream Gemini Live responses back to the browser.
 
-    Uses _receive() in a loop — the low-level method that returns each
-    individual server message immediately without waiting for turn_complete.
-    This is required for real-time audio streaming where we need to forward
-    audio chunks as they arrive mid-turn.
+    Uses _receive() directly (not receive()) so we get every individual
+    message — including mid-turn audio chunks — without waiting for
+    turn_complete.
     """
     try:
         while not stop_event.is_set():
             try:
+                # _receive() gives us each raw server message immediately
                 response = await asyncio.wait_for(
                     state.gemini_session._receive(), timeout=60.0
                 )
@@ -165,53 +164,54 @@ async def gemini_to_browser(
                 }))
                 break
             except Exception as exc:
-                logger.exception("gemini_to_browser: _receive error: %s", exc)
+                logger.exception("gemini_to_browser: receive error: %s", exc)
                 break
 
             sc = response.server_content
 
             if sc is not None:
-                # ── Audio output chunks ──────────────────────────────
+                # ── Audio output chunks ──────────────────────────────────
                 if sc.model_turn and sc.model_turn.parts:
                     for part in sc.model_turn.parts:
                         if part.inline_data and part.inline_data.data:
+                            logger.debug(
+                                "gemini_to_browser: audio chunk %d bytes",
+                                len(part.inline_data.data),
+                            )
                             await ws.send_bytes(part.inline_data.data)
 
-                # ── Turn complete ────────────────────────────────────
+                # ── Output transcription (text of what Gemini said) ──────
+                if sc.output_transcription and sc.output_transcription.text:
+                    text = sc.output_transcription.text
+                    logger.debug("gemini_to_browser: text_delta %r", text[:60])
+                    await _safe_send(ws, json.dumps({
+                        "type": "text_delta",
+                        "text": text,
+                        "turn_id": str(state.turn_count),
+                    }))
+
+                # ── Turn complete ────────────────────────────────────────
                 if sc.turn_complete:
                     logger.info("gemini_to_browser: turn_complete, turn=%d", state.turn_count)
                     await _safe_send(ws, json.dumps({
-                        "type": "turn_complete",
+                        "type": "text_done",
                         "turn_id": str(state.turn_count),
                     }))
                     reset_tool_call_count(state)
 
-                # ── Barge-in / interruption ──────────────────────────
+                # ── Barge-in / interruption ──────────────────────────────
                 if sc.interrupted:
                     logger.info("gemini_to_browser: interrupted")
                     await _safe_send(ws, json.dumps({"type": "interrupted"}))
                     reset_tool_call_count(state)
 
-                # ── Barge-in / interruption ──────────────────────────
-                if sc.interrupted:
-                    logger.info("gemini_to_browser: interrupted")
-                    await _safe_send(ws, json.dumps({"type": "interrupted"}))
-                    reset_tool_call_count(state)
-
-            # ── Tool calls ───────────────────────────────────────────
+            # ── Tool calls ───────────────────────────────────────────────
             if response.tool_call:
                 for fc in response.tool_call.function_calls:
                     await _handle_tool_call(ws, state, fc)
 
     except asyncio.CancelledError:
         pass
-    except APIError as exc:
-        logger.error("gemini_to_browser: Gemini API error: %s", exc)
-        await _safe_send(ws, json.dumps({
-            "type": "error",
-            "message": f"Gemini error: {exc}",
-            "code": "GEMINI_ERROR",
-        }))
     except Exception as exc:
         logger.exception("gemini_to_browser: unexpected error: %s", exc)
     finally:
@@ -243,11 +243,7 @@ async def _handle_tool_call(ws: WebSocket, state: SessionState, fc) -> None:
         try:
             args = dict(fc.args) if fc.args else {}
             result = await handler(**args)
-            logger.info(
-                "tool_call %s returned %d records",
-                fc.name,
-                len(result) if isinstance(result, list) else 1,
-            )
+            logger.info("tool_call %s returned %d records", fc.name, len(result) if isinstance(result, list) else 1)
         except Exception as exc:
             logger.exception("tool handler %s raised: %s", fc.name, exc)
             result = {"error": str(exc)}
@@ -264,6 +260,7 @@ async def _handle_tool_call(ws: WebSocket, state: SessionState, fc) -> None:
 
 
 async def _safe_send(ws: WebSocket, text: str) -> None:
+    """Send a text frame, swallowing errors if the socket is already closed."""
     try:
         await ws.send_text(text)
     except Exception as exc:
@@ -276,6 +273,7 @@ async def _safe_send(ws: WebSocket, text: str) -> None:
 
 @router.websocket("/ws/ai")
 async def ws_ai(ws: WebSocket) -> None:
+    """WebSocket endpoint: relay audio and control messages between browser and Gemini Live."""
     await ws.accept()
     logger.info("ws_ai: connection accepted from %s", ws.client)
 
@@ -314,7 +312,7 @@ async def ws_ai(ws: WebSocket) -> None:
                 system_instruction=build_system_prompt(),
                 tools=TOOL_DEFINITIONS,
                 response_modalities=["AUDIO"],
-                # No transcription — pure audio-in/audio-out for minimum latency
+                output_audio_transcription=types.AudioTranscriptionConfig(),
             ),
         ) as gemini_session:
             logger.info("ws_ai: Gemini session established")
@@ -330,6 +328,7 @@ async def ws_ai(ws: WebSocket) -> None:
                 name="gemini_to_browser",
             )
 
+            # Wait until either task signals done
             await stop_event.wait()
             logger.info("ws_ai: stop_event set, shutting down tasks")
 

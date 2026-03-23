@@ -33,19 +33,16 @@ export default function AssistantUI() {
 
   const audioCapture = useAudioCapture();
 
-  // Keep a stable ref to sendAudioChunk so the capture callback never goes stale
-  const sendAudioChunkRef = useRef(session.sendAudioChunk);
-  sendAudioChunkRef.current = session.sendAudioChunk;
-
   const handleMicToggle = useCallback(() => {
     if (audioCapture.isCapturing) {
       audioCapture.stopCapture();
     } else {
       audioCapture.startCapture((chunk) => {
-        sendAudioChunkRef.current(chunk);
+        // chunk is an Int16Array.buffer (ArrayBuffer) from pcm-processor
+        session.sendAudioChunk(chunk);
       });
     }
-  }, [audioCapture]);
+  }, [audioCapture, session]);
 
   const { status, turns, isMuted, turnCount, turnLimitWarning } = session;
   const isActive = status === "active";
