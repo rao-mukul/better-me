@@ -13,6 +13,30 @@ const wakeTimeColors = {
   none: "bg-navy-900/40 text-text-secondary",
 };
 
+const qualityEmoji = {
+  poor: "😔",
+  fair: "😐",
+  good: "🙂",
+  excellent: "😄",
+  none: "",
+};
+
+const qualityBadgeTone = {
+  poor: "bg-red-100/95 ring-red-300/70",
+  fair: "bg-amber-100/95 ring-amber-300/70",
+  good: "bg-cyan-100/95 ring-cyan-300/70",
+  excellent: "bg-emerald-100/95 ring-emerald-300/70",
+  none: "",
+};
+
+const qualityLabel = {
+  poor: "Poor",
+  fair: "Fair",
+  good: "Good",
+  excellent: "Excellent",
+  none: "No quality",
+};
+
 export default function SleepCalendar() {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -52,7 +76,10 @@ export default function SleepCalendar() {
         <div className="h-8 bg-navy-700/40 rounded mb-4 w-48" />
         <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
           {Array.from({ length: 35 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-navy-700/40 rounded-md sm:rounded-lg" />
+            <div
+              key={i}
+              className="aspect-square bg-navy-700/40 rounded-md sm:rounded-lg"
+            />
           ))}
         </div>
       </div>
@@ -99,7 +126,6 @@ export default function SleepCalendar() {
     return `${displayHour}:${minutes.toString().padStart(2, "0")} ${period}`;
   };
 
-
   const wakeDays = data.filter((d) => d.averageWakeTime);
   const wakeTimes = wakeDays.map((d) => timeToMinutes(d.averageWakeTime));
   const hasWakeData = wakeTimes.length > 0;
@@ -107,7 +133,9 @@ export default function SleepCalendar() {
     ? Math.round(wakeTimes.reduce((a, b) => a + b, 0) / wakeTimes.length)
     : null;
   const avgWakeTime = hasWakeData ? minutesToTime(avgWakeMinutes) : null;
-  const earliestWake = hasWakeData ? minutesToTime(Math.min(...wakeTimes)) : null;
+  const earliestWake = hasWakeData
+    ? minutesToTime(Math.min(...wakeTimes))
+    : null;
   const latestWake = hasWakeData ? minutesToTime(Math.max(...wakeTimes)) : null;
 
   const wakeGoalMinutes = 7 * 60;
@@ -186,8 +214,11 @@ export default function SleepCalendar() {
 
         {/* Days of month */}
         {data.map((dayData) => {
-          const { day, totalMinutes, totalHours, averageWakeTime } = dayData;
+          const { day, averageWakeTime, averageQuality } = dayData;
           const isTodayDate = isToday(day);
+          const dayQuality = averageQuality || "none";
+          const dayEmoji = qualityEmoji[dayQuality];
+          const dayBadgeTone = qualityBadgeTone[dayQuality];
 
           return (
             <motion.div
@@ -200,15 +231,25 @@ export default function SleepCalendar() {
               }`}
               title={
                 averageWakeTime
-                  ? `Wake: ${formatTime12Hour(averageWakeTime)}\nSleep: ${totalHours}h`
+                  ? `Wake: ${formatTime12Hour(averageWakeTime)}\nQuality: ${qualityLabel[averageQuality || "none"]}`
                   : "No data"
               }
             >
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xs sm:text-sm font-medium">
-                  {day}
-                </span>
+                <span className="text-xs sm:text-sm font-medium">{day}</span>
               </div>
+              {dayEmoji && (
+                <div
+                  className={`absolute right-0.5 top-0.5 sm:right-1 sm:top-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full ring-1 shadow-sm shadow-black/25 flex items-center justify-center leading-none ${dayBadgeTone}`}
+                >
+                  <span
+                    className="text-xs sm:text-sm drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]"
+                    aria-hidden="true"
+                  >
+                    {dayEmoji}
+                  </span>
+                </div>
+              )}
             </motion.div>
           );
         })}
@@ -249,27 +290,49 @@ export default function SleepCalendar() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-            <div className="lg:col-span-2 bg-gradient-to-br from-cyan-500/15 via-navy-800/20 to-lime-500/10 border border-navy-700/30 rounded-xl p-4 sm:p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-cyan-500/20">
-                    <Sunrise size={18} className="text-cyan-300" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">
-                      Average Wake Time
-                    </p>
-                    <p className="text-xl sm:text-2xl font-bold text-text-primary">
-                      {formatTime12Hour(avgWakeTime)}
-                    </p>
-                  </div>
-                </div>
-                <span className="self-start sm:self-auto text-[10px] sm:text-xs text-slate-900 bg-cyan-300/80 px-2.5 py-1 rounded-full whitespace-nowrap">
-                  {wakeBadge}
-                </span>
+          <div className="mb-4">
+            <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] sm:text-xs text-text-secondary">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm leading-none">😄</span>
+                <span>Excellent</span>
               </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm leading-none">🙂</span>
+                <span>Good</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm leading-none">😐</span>
+                <span>Fair</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm leading-none">😔</span>
+                <span>Poor</span>
+              </div>
+            </div>
+          </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="lg:col-span-2 bg-navy-700/20 border border-navy-700/30 rounded-xl p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Sunrise size={16} className="text-cyan-300" />
+                <p className="text-sm font-semibold text-text-primary">
+                  Average Wake Time
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-navy-800/50 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary">This month</p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {formatTime12Hour(avgWakeTime)}
+                  </p>
+                </div>
+                <div className="bg-navy-800/50 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary">Status</p>
+                  <p className="text-sm font-semibold text-cyan-300">
+                    {wakeBadge}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="bg-navy-700/20 border border-navy-700/30 rounded-xl p-4 sm:p-5">
@@ -297,7 +360,6 @@ export default function SleepCalendar() {
           </div>
         </div>
       )}
-
     </motion.div>
   );
 }

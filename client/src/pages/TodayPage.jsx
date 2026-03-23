@@ -17,10 +17,7 @@ import {
   useDeleteWaterLog,
   useUpdateGoal,
 } from "../hooks/useWaterData";
-import {
-  useStartSleep,
-  useCompleteSleep,
-} from "../hooks/useSleepData";
+import { useLogCompleteSleep } from "../hooks/useSleepData";
 import {
   useAddGymLog,
   useDeleteWorkout,
@@ -95,16 +92,18 @@ export default function TodayPage() {
 
   // Sleep tracking
   const sleepData = overview?.sleep || null;
-  const startSleep = useStartSleep();
-  const completeSleep = useCompleteSleep();
-  const activeSleepLog = sleepData?.activeSleepLog || null;
+  const logWakeUp = useLogCompleteSleep();
   const sleepStats = sleepData?.stats || {
     totalMinutes: 0,
     targetHours: 8,
     targetMet: false,
     entryCount: 0,
     averageQuality: "none",
+    averageWakeTime: null,
   };
+  const hasLoggedWakeToday =
+    sleepStats.entryCount > 0 && !!sleepStats.averageWakeTime;
+  const canExpandSleepSection = !hasLoggedWakeToday;
 
   // Gym tracking
   const gymData = overview?.gym || null;
@@ -134,7 +133,8 @@ export default function TodayPage() {
   const weekWorkoutDays = gymWeekHistory
     ? new Set(gymWeekHistory.map((log) => log.date)).size
     : 0;
-  const gymFormLoading = needsGymForm && (gymExercisesLoading || gymProgramLoading);
+  const gymFormLoading =
+    needsGymForm && (gymExercisesLoading || gymProgramLoading);
 
   // Diet tracking
   const dietData = overview?.diet || null;
@@ -175,20 +175,10 @@ export default function TodayPage() {
     updateGoal.mutate(goal);
   };
 
-  const handleStartSleep = (data) => {
-    startSleep.mutate(data, {
+  const handleWakeLog = (payload) => {
+    logWakeUp.mutate(payload, {
       onSuccess: () => {
-        toast.success("Sleep tracking started! Sweet dreams 🌙", {
-          duration: 2000,
-        });
-      },
-    });
-  };
-
-  const handleCompleteSleep = (payload) => {
-    completeSleep.mutate(payload, {
-      onSuccess: () => {
-        toast.success("Sleep logged successfully! Good morning ☀️", {
+        toast.success("Wake-up logged. Keep the morning streak going ☀️", {
           duration: 2000,
         });
       },
@@ -222,6 +212,15 @@ export default function TodayPage() {
   const hasWaterData = !!waterData;
   const hasSleepData = !!sleepData;
   const hasDietData = !!dietData;
+
+  const formatWakeBadgeTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return timeStr;
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHour = hours % 12 || 12;
+    return `${displayHour}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
 
   // Loading states
   const isAnyLoading = overviewLoading;
@@ -264,343 +263,343 @@ export default function TodayPage() {
         transition={{ duration: 0.3 }}
         className="flex flex-col gap-8"
       >
-          {/* Diet Section */}
-          <Card ref={dietRef}>
-            <button
-              onClick={() => toggleSection("diet")}
-              className="w-full flex items-center justify-between mb-6 cursor-pointer group"
-            >
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-green-500/20">
-                  <Utensils size={20} className="text-green-400" />
-                </div>
-                <h2 className="text-xl font-bold text-text-primary">Diet</h2>
+        {/* Diet Section */}
+        <Card ref={dietRef}>
+          <button
+            onClick={() => toggleSection("diet")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-green-500/20">
+                <Utensils size={20} className="text-green-400" />
               </div>
-              <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-text-primary">Diet</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {!hasDietData && overviewLoading ? (
+                <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 animate-pulse">
+                  <span className="text-xs font-semibold text-green-300">
+                    Loading
+                  </span>
+                </div>
+              ) : (
+                <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                  <span className="text-sm font-bold text-green-400">
+                    {dietTotals.calories}
+                  </span>
+                  <span className="text-xs text-text-secondary ml-0.5">
+                    cal
+                  </span>
+                </div>
+              )}
+              <motion.div
+                animate={{ rotate: expandedSection === "diet" ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown
+                  size={20}
+                  className="text-text-secondary group-hover:text-text-primary transition-colors"
+                />
+              </motion.div>
+            </div>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expandedSection === "diet" && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
                 {!hasDietData && overviewLoading ? (
-                  <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 animate-pulse">
-                    <span className="text-xs font-semibold text-green-300">
-                      Loading
-                    </span>
+                  <div className="py-6 text-sm text-text-secondary">
+                    Loading nutrition data...
                   </div>
                 ) : (
-                  <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-                    <span className="text-sm font-bold text-green-400">
-                      {dietTotals.calories}
-                    </span>
-                    <span className="text-xs text-text-secondary ml-0.5">
-                      cal
-                    </span>
-                  </div>
+                  <NewDietLogForm onSuccess={handleDietSuccess} />
                 )}
-                <motion.div
-                  animate={{ rotate: expandedSection === "diet" ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown
-                    size={20}
-                    className="text-text-secondary group-hover:text-text-primary transition-colors"
-                  />
-                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+
+        {/* Water Section */}
+        <Card ref={waterRef}>
+          <button
+            onClick={() => toggleSection("water")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/20">
+                <Droplets size={20} className="text-primary" />
               </div>
-            </button>
-
-            <AnimatePresence initial={false}>
-              {expandedSection === "diet" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  style={{ overflow: "hidden" }}
-                >
-                  {!hasDietData && overviewLoading ? (
-                    <div className="py-6 text-sm text-text-secondary">
-                      Loading nutrition data...
-                    </div>
-                  ) : (
-                    <NewDietLogForm onSuccess={handleDietSuccess} />
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
-
-          {/* Water Section */}
-          <Card ref={waterRef}>
-            <button
-              onClick={() => toggleSection("water")}
-              className="w-full flex items-center justify-between mb-6 cursor-pointer group"
-            >
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/20">
-                  <Droplets size={20} className="text-primary" />
+              <h2 className="text-xl font-bold text-text-primary">Water</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {!hasWaterData && overviewLoading ? (
+                <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 animate-pulse">
+                  <span className="text-xs font-semibold text-primary">
+                    Loading
+                  </span>
                 </div>
-                <h2 className="text-xl font-bold text-text-primary">Water</h2>
-              </div>
-              <div className="flex items-center gap-2">
+              ) : (
+                <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                  <span className="text-sm font-bold text-primary">
+                    {waterStats.totalMl}
+                  </span>
+                  <span className="text-xs text-text-secondary mx-0.5">/</span>
+                  <span className="text-xs text-text-secondary">
+                    {waterStats.goal}ml
+                  </span>
+                </div>
+              )}
+              <motion.div
+                animate={{ rotate: expandedSection === "water" ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown
+                  size={20}
+                  className="text-text-secondary group-hover:text-text-primary transition-colors"
+                />
+              </motion.div>
+            </div>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expandedSection === "water" && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
                 {!hasWaterData && overviewLoading ? (
-                  <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 animate-pulse">
-                    <span className="text-xs font-semibold text-primary">
-                      Loading
-                    </span>
+                  <div className="py-6 text-sm text-text-secondary">
+                    Loading hydration data...
                   </div>
                 ) : (
-                  <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                    <span className="text-sm font-bold text-primary">
-                      {waterStats.totalMl}
-                    </span>
-                    <span className="text-xs text-text-secondary mx-0.5">
-                      /
-                    </span>
-                    <span className="text-xs text-text-secondary">
-                      {waterStats.goal}ml
-                    </span>
-                  </div>
-                )}
-                <motion.div
-                  animate={{ rotate: expandedSection === "water" ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown
-                    size={20}
-                    className="text-text-secondary group-hover:text-text-primary transition-colors"
-                  />
-                </motion.div>
-              </div>
-            </button>
+                  <>
+                    <WaterRing
+                      totalMl={waterStats.totalMl}
+                      goal={waterStats.goal}
+                    />
 
-            <AnimatePresence initial={false}>
-              {expandedSection === "water" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  style={{ overflow: "hidden" }}
-                >
-                  {!hasWaterData && overviewLoading ? (
-                    <div className="py-6 text-sm text-text-secondary">
-                      Loading hydration data...
+                    <GoalSetter
+                      goal={waterStats.goal}
+                      onUpdate={handleGoalUpdate}
+                      disabled={updateGoal.isPending}
+                    />
+
+                    <div className="mt-6">
+                      <QuickAddBar
+                        onAdd={handleWaterAdd}
+                        disabled={addLog.isPending}
+                      />
                     </div>
-                  ) : (
-                    <>
-                      <WaterRing
-                        totalMl={waterStats.totalMl}
-                        goal={waterStats.goal}
-                      />
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
 
-                      <GoalSetter
-                        goal={waterStats.goal}
-                        onUpdate={handleGoalUpdate}
-                        disabled={updateGoal.isPending}
-                      />
-
-                      <div className="mt-6">
-                        <QuickAddBar
-                          onAdd={handleWaterAdd}
-                          disabled={addLog.isPending}
-                        />
-                      </div>
-                    </>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
-
-          {/* Gym Section */}
-          <Card ref={gymRef}>
-            <button
-              onClick={() => toggleSection("gym")}
-              className="w-full flex items-center justify-between mb-6 cursor-pointer group"
-            >
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-orange-500/20">
-                  <Dumbbell size={20} className="text-orange-400" />
-                </div>
-                <h2 className="text-xl font-bold text-text-primary">Gym</h2>
+        {/* Gym Section */}
+        <Card ref={gymRef}>
+          <button
+            onClick={() => toggleSection("gym")}
+            className="w-full flex items-center justify-between mb-6 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-orange-500/20">
+                <Dumbbell size={20} className="text-orange-400" />
               </div>
-              <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-text-primary">Gym</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {!hasGymData && overviewLoading ? (
+                <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 animate-pulse">
+                  <span className="text-xs font-semibold text-orange-300">
+                    Loading
+                  </span>
+                </div>
+              ) : (
+                <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                  <span className="text-sm font-bold text-orange-400">
+                    {weekWorkoutDays}
+                  </span>
+                  <span className="text-xs text-text-secondary ml-1">
+                    {weekWorkoutDays === 1 ? "day" : "days"} this week
+                  </span>
+                </div>
+              )}
+              <motion.div
+                animate={{ rotate: expandedSection === "gym" ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown
+                  size={20}
+                  className="text-text-secondary group-hover:text-text-primary transition-colors"
+                />
+              </motion.div>
+            </div>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expandedSection === "gym" && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
                 {!hasGymData && overviewLoading ? (
-                  <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 animate-pulse">
-                    <span className="text-xs font-semibold text-orange-300">
-                      Loading
-                    </span>
+                  <div className="py-6 text-sm text-text-secondary">
+                    Loading workout data...
+                  </div>
+                ) : gymFormLoading ? (
+                  <div className="py-6 text-sm text-text-secondary">
+                    Loading workout data...
+                  </div>
+                ) : !todayLog ? (
+                  <div className="mb-6">
+                    <NewGymLogForm
+                      onSubmit={handleGymLogSubmit}
+                      disabled={addGymLog.isPending}
+                      allExercises={gymExercises || []}
+                      userProgram={gymProgram?.workoutTypes || {}}
+                      weekHistory={gymWeekHistory || []}
+                      onAddExercise={handleAddExercise}
+                    />
                   </div>
                 ) : (
-                  <div className="px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
-                    <span className="text-sm font-bold text-orange-400">
-                      {weekWorkoutDays}
-                    </span>
-                    <span className="text-xs text-text-secondary ml-1">
-                      {weekWorkoutDays === 1 ? "day" : "days"} this week
-                    </span>
-                  </div>
-                )}
-                <motion.div
-                  animate={{ rotate: expandedSection === "gym" ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown
-                    size={20}
-                    className="text-text-secondary group-hover:text-text-primary transition-colors"
-                  />
-                </motion.div>
-              </div>
-            </button>
-
-            <AnimatePresence initial={false}>
-              {expandedSection === "gym" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  style={{ overflow: "hidden" }}
-                >
-                  {!hasGymData && overviewLoading ? (
-                    <div className="py-6 text-sm text-text-secondary">
-                      Loading workout data...
-                    </div>
-                  ) : gymFormLoading ? (
-                    <div className="py-6 text-sm text-text-secondary">
-                      Loading workout data...
-                    </div>
-                  ) : !todayLog ? (
-                    <div className="mb-6">
-                      <NewGymLogForm
-                        onSubmit={handleGymLogSubmit}
-                        disabled={addGymLog.isPending}
-                        allExercises={gymExercises || []}
-                        userProgram={gymProgram?.workoutTypes || {}}
-                        weekHistory={gymWeekHistory || []}
-                        onAddExercise={handleAddExercise}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div
-                        className={`bg-navy-800/40 border-l-4 ${
-                          todayLog.workoutType === "chestTriceps"
-                            ? "border-l-orange-500 border-r border-t border-b border-orange-500/30"
-                            : todayLog.workoutType === "backBiceps"
-                              ? "border-l-blue-500 border-r border-t border-b border-blue-500/30"
-                              : "border-l-purple-500 border-r border-t border-b border-purple-500/30"
-                        } rounded-xl p-4`}
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h3
-                              className={`text-lg font-semibold capitalize ${
-                                todayLog.workoutType === "chestTriceps"
-                                  ? "text-orange-400"
-                                  : todayLog.workoutType === "backBiceps"
-                                    ? "text-blue-400"
-                                    : "text-purple-400"
-                              }`}
-                            >
-                              {todayLog.workoutType
-                                .replace("chestTriceps", "Chest & Triceps")
-                                .replace("backBiceps", "Back & Biceps")
-                                .replace("legsShoulders", "Legs & Shoulders")}
-                            </h3>
-                            <p className="text-sm text-text-secondary">
-                              {todayLog.primaryMuscle} +{" "}
-                              {todayLog.secondaryMuscle}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleWorkoutDelete(todayLog._id)}
-                            disabled={deleteWorkout.isPending}
-                            className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50"
+                  <div className="space-y-4">
+                    <div
+                      className={`bg-navy-800/40 border-l-4 ${
+                        todayLog.workoutType === "chestTriceps"
+                          ? "border-l-orange-500 border-r border-t border-b border-orange-500/30"
+                          : todayLog.workoutType === "backBiceps"
+                            ? "border-l-blue-500 border-r border-t border-b border-blue-500/30"
+                            : "border-l-purple-500 border-r border-t border-b border-purple-500/30"
+                      } rounded-xl p-4`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3
+                            className={`text-lg font-semibold capitalize ${
+                              todayLog.workoutType === "chestTriceps"
+                                ? "text-orange-400"
+                                : todayLog.workoutType === "backBiceps"
+                                  ? "text-blue-400"
+                                  : "text-purple-400"
+                            }`}
                           >
-                            Delete
-                          </button>
+                            {todayLog.workoutType
+                              .replace("chestTriceps", "Chest & Triceps")
+                              .replace("backBiceps", "Back & Biceps")
+                              .replace("legsShoulders", "Legs & Shoulders")}
+                          </h3>
+                          <p className="text-sm text-text-secondary">
+                            {todayLog.primaryMuscle} +{" "}
+                            {todayLog.secondaryMuscle}
+                          </p>
                         </div>
-
-                        <div className="space-y-3">
-                          <div>
-                            <h4 className="text-sm font-medium text-text-secondary mb-1">
-                              Primary ({todayLog.primaryMuscle})
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                              {todayLog.primaryExercises.map((ex, i) => (
-                                <span
-                                  key={i}
-                                  className="px-3 py-1 text-xs bg-primary/20 text-primary rounded-full"
-                                >
-                                  {ex}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <h4 className="text-sm font-medium text-text-secondary mb-1">
-                              Secondary ({todayLog.secondaryMuscle})
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                              {todayLog.secondaryExercises.map((ex, i) => (
-                                <span
-                                  key={i}
-                                  className="px-3 py-1 text-xs bg-purple-500/20 text-purple-400 rounded-full"
-                                >
-                                  {ex}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          {todayLog.duration && (
-                            <div className="text-sm text-text-secondary">
-                              Duration: {todayLog.duration} minutes
-                            </div>
-                          )}
-
-                          {todayLog.notes && (
-                            <div className="text-sm text-text-secondary">
-                              Notes: {todayLog.notes}
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => handleWorkoutDelete(todayLog._id)}
+                          disabled={deleteWorkout.isPending}
+                          className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
                       </div>
 
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-sm font-medium text-text-secondary mb-1">
+                            Primary ({todayLog.primaryMuscle})
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {todayLog.primaryExercises.map((ex, i) => (
+                              <span
+                                key={i}
+                                className="px-3 py-1 text-xs bg-primary/20 text-primary rounded-full"
+                              >
+                                {ex}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
 
-          {/* Sleep Section */}
-          <Card ref={sleepRef}>
-            <button
-              onClick={() => toggleSection("sleep")}
-              className="w-full flex items-center justify-between mb-6 cursor-pointer group"
-            >
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-purple-500/20">
-                  <Moon size={20} className="text-purple-400" />
-                </div>
-                <h2 className="text-xl font-bold text-text-primary">Sleep</h2>
+                        <div>
+                          <h4 className="text-sm font-medium text-text-secondary mb-1">
+                            Secondary ({todayLog.secondaryMuscle})
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {todayLog.secondaryExercises.map((ex, i) => (
+                              <span
+                                key={i}
+                                className="px-3 py-1 text-xs bg-purple-500/20 text-purple-400 rounded-full"
+                              >
+                                {ex}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {todayLog.duration && (
+                          <div className="text-sm text-text-secondary">
+                            Duration: {todayLog.duration} minutes
+                          </div>
+                        )}
+
+                        {todayLog.notes && (
+                          <div className="text-sm text-text-secondary">
+                            Notes: {todayLog.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+
+        {/* Sleep Section */}
+        <Card ref={sleepRef}>
+          <button
+            onClick={() => {
+              if (canExpandSleepSection) toggleSection("sleep");
+            }}
+            className={`w-full flex items-center justify-between mb-6 ${canExpandSleepSection ? "cursor-pointer group" : "cursor-default"}`}
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-purple-500/20">
+                <Moon size={20} className="text-purple-400" />
               </div>
-              <div className="flex items-center gap-2">
-                {!hasSleepData && overviewLoading ? (
-                  <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 animate-pulse">
-                    <span className="text-xs font-semibold text-purple-300">
-                      Loading
+              <h2 className="text-xl font-bold text-text-primary">Sleep</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {!hasSleepData && overviewLoading ? (
+                <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 animate-pulse">
+                  <span className="text-xs font-semibold text-purple-300">
+                    Loading
+                  </span>
+                </div>
+              ) : (
+                sleepStats.averageWakeTime && (
+                  <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                    <span className="text-sm font-bold text-purple-400">
+                      {formatWakeBadgeTime(sleepStats.averageWakeTime)}
                     </span>
                   </div>
-                ) : (
-                  sleepStats.totalMinutes > 0 && (
-                    <div className="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
-                      <span className="text-sm font-bold text-purple-400">
-                        {(sleepStats.totalMinutes / 60).toFixed(1)}h
-                      </span>
-                    </div>
-                  )
-                )}
+                )
+              )}
+              {canExpandSleepSection && (
                 <motion.div
                   animate={{ rotate: expandedSection === "sleep" ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -610,34 +609,33 @@ export default function TodayPage() {
                     className="text-text-secondary group-hover:text-text-primary transition-colors"
                   />
                 </motion.div>
-              </div>
-            </button>
-
-            <AnimatePresence initial={false}>
-              {expandedSection === "sleep" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  style={{ overflow: "hidden" }}
-                >
-                  {!hasSleepData && overviewLoading ? (
-                    <div className="py-6 text-sm text-text-secondary">
-                      Loading sleep data...
-                    </div>
-                  ) : (
-                    <SleepLogForm
-                      activeSleepLog={activeSleepLog}
-                      onStartSleep={handleStartSleep}
-                      onCompleteSleep={handleCompleteSleep}
-                      disabled={startSleep.isPending || completeSleep.isPending}
-                    />
-                  )}
-                </motion.div>
               )}
-            </AnimatePresence>
-          </Card>
+            </div>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {canExpandSleepSection && expandedSection === "sleep" && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                {!hasSleepData && overviewLoading ? (
+                  <div className="py-6 text-sm text-text-secondary">
+                    Loading sleep data...
+                  </div>
+                ) : (
+                  <SleepLogForm
+                    onLogWake={handleWakeLog}
+                    disabled={logWakeUp.isPending}
+                  />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
       </motion.div>
     </>
   );

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, Moon, Sunrise, Clock, Calendar } from "lucide-react";
+import { Trash2, Moon, Sunrise, Calendar } from "lucide-react";
 import { format, parseISO, isToday, isYesterday } from "date-fns";
 
 const qualityColors = {
@@ -102,10 +102,7 @@ export default function SleepTimeline({ logs = [], onDelete }) {
 
             {/* Logs for this date */}
             {group.logs.map((log, logIndex) => {
-              const sleptTime = format(new Date(log.sleptAt), "h:mm a");
               const wokeTime = format(new Date(log.wokeUpAt), "h:mm a");
-              const hours = Math.floor(log.duration / 60);
-              const minutes = log.duration % 60;
               const isLastInGroup = logIndex === group.logs.length - 1;
               const qualityColor =
                 qualityColors[log.quality] || qualityColors.good;
@@ -147,23 +144,15 @@ export default function SleepTimeline({ logs = [], onDelete }) {
                   >
                     <div className="flex items-start justify-between mb-2 sm:mb-3">
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                        <div className="p-1.5 sm:p-2.5 rounded-lg bg-purple-500/20 text-purple-400 shrink-0">
-                          <Moon size={16} className="sm:w-5 sm:h-5" />
+                        <div className="p-1.5 sm:p-2.5 rounded-lg bg-orange-500/20 text-orange-400 shrink-0">
+                          <Sunrise size={16} className="sm:w-5 sm:h-5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-semibold text-text-primary">
-                            {hours}h {minutes > 0 && `${minutes}m`}
+                          <p className="text-xs sm:text-sm text-text-secondary">
+                            Wake-up time
                           </p>
-                          <p className="text-[10px] sm:text-xs text-text-secondary flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
-                            <span className="flex items-center gap-0.5 sm:gap-1">
-                              <Moon size={10} className="sm:w-3 sm:h-3" />{" "}
-                              {sleptTime}
-                            </span>
-                            <span className="text-[8px] sm:text-xs">→</span>
-                            <span className="flex items-center gap-0.5 sm:gap-1">
-                              <Sunrise size={10} className="sm:w-3 sm:h-3" />{" "}
-                              {wokeTime}
-                            </span>
+                          <p className="text-base sm:text-lg font-semibold text-text-primary mt-0.5">
+                            {wokeTime}
                           </p>
                         </div>
                       </div>
@@ -186,7 +175,7 @@ export default function SleepTimeline({ logs = [], onDelete }) {
                         <span className="text-xs sm:text-sm">
                           {qualityEmojis[log.quality]}
                         </span>
-                        {qualityLabels[log.quality]} Sleep
+                        {qualityLabels[log.quality]} quality
                       </span>
                     </div>
 

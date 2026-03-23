@@ -28,30 +28,6 @@ export function useSleepWeekLogs() {
   });
 }
 
-export function useStartSleep() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: sleepApi.startSleep,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sleep"] });
-      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
-    },
-  });
-}
-
-export function useCompleteSleep() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }) => sleepApi.completeSleep(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sleep"] });
-      queryClient.invalidateQueries({ queryKey: ["today", "overview"] });
-    },
-  });
-}
-
 export function useLogCompleteSleep() {
   const queryClient = useQueryClient();
 

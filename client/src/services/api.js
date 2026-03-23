@@ -62,9 +62,6 @@ export const sleepApi = {
     api
       .get("/sleep/week-logs", { params: { date: getTodayDate() } })
       .then((r) => r.data),
-  startSleep: (data) => api.post("/sleep/start", data).then((r) => r.data),
-  completeSleep: (id, data) =>
-    api.put(`/sleep/complete/${id}`, data).then((r) => r.data),
   logCompleteSleep: (data) => api.post("/sleep/log", data).then((r) => r.data),
   deleteSleepLog: (id) => api.delete(`/sleep/log/${id}`).then((r) => r.data),
   getWeek: () =>

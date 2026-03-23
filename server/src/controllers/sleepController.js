@@ -1,11 +1,4 @@
-import {
-  format,
-  subDays,
-  parseISO,
-  differenceInMinutes,
-  startOfWeek,
-  addDays,
-} from "date-fns";
+import { format, subDays, parseISO, startOfWeek, addDays } from "date-fns";
 import SleepLog from "../models/SleepLog.js";
 import SleepStats from "../models/SleepStats.js";
 import {
@@ -132,7 +125,7 @@ export const getTodayData = async (req, res, next) => {
     const requestTimezoneOffsetMinutes = Number(req?.query?.tzOffset);
     const summary = isSummaryRequest(req);
 
-    const [completedLogs, activeSleepLog, stats] = await Promise.all([
+    const [completedLogs, stats] = await Promise.all([
       summary
         ? Promise.resolve([])
         : SleepLog.find({
@@ -142,12 +135,6 @@ export const getTodayData = async (req, res, next) => {
           })
             .sort({ wokeUpAt: -1 })
             .lean(),
-      SleepLog.findOne({
-        userId: DEFAULT_USER_ID,
-        isComplete: false,
-      })
-        .sort({ sleptAt: -1 })
-        .lean(),
       SleepStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
     ]);
 
@@ -190,7 +177,6 @@ export const getTodayData = async (req, res, next) => {
 
     res.json({
       logs: completedLogs,
-      activeSleepLog: activeSleepLog || null,
       stats: responseStats || {
         totalMinutes: 0,
         targetHours: DEFAULT_SLEEP_TARGET,
@@ -232,15 +218,8 @@ export const getWeekLogs = async (req, res, next) => {
       isComplete: true,
     }).sort({ wokeUpAt: -1 }); // Sort by wake time, most recent first
 
-    // Check for active (incomplete) sleep log
-    const activeSleepLog = await SleepLog.findOne({
-      userId: DEFAULT_USER_ID,
-      isComplete: false,
-    }).sort({ sleptAt: -1 });
-
     res.json({
       logs,
-      activeSleepLog: activeSleepLog || null,
       startDate,
       endDate,
     });
@@ -249,48 +228,9 @@ export const getWeekLogs = async (req, res, next) => {
   }
 };
 
-export const startSleep = async (req, res, next) => {
+// Morning-first endpoint: log wake-up time and quality.
+export const logCompleteSleep = async (req, res, next) => {
   try {
-    const { sleptAt, notes } = req.body;
-    const timezoneOffsetMinutes = Number(req.body.timezoneOffsetMinutes);
-    const hasTimezoneOffset = Number.isFinite(timezoneOffsetMinutes);
-
-    if (!sleptAt) {
-      return res.status(400).json({ error: "Sleep time is required" });
-    }
-
-    // Check if there's already an active sleep log
-    const existingActiveSleep = await SleepLog.findOne({
-      userId: DEFAULT_USER_ID,
-      isComplete: false,
-    });
-
-    if (existingActiveSleep) {
-      return res.status(400).json({
-        error: "You already have an active sleep log. Complete it first.",
-      });
-    }
-
-    const sleptAtDate = new Date(sleptAt);
-
-    const log = await SleepLog.create({
-      userId: DEFAULT_USER_ID,
-      sleptAt: sleptAtDate,
-      notes: notes || "",
-      date: getSleepDate(sleptAt, timezoneOffsetMinutes),
-      timezoneOffsetMinutes: hasTimezoneOffset ? timezoneOffsetMinutes : null,
-      isComplete: false,
-    });
-
-    res.status(201).json({ log });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const completeSleep = async (req, res, next) => {
-  try {
-    const { id } = req.params;
     const { wokeUpAt, quality, notes } = req.body;
     const timezoneOffsetMinutes = Number(req.body.timezoneOffsetMinutes);
     const hasTimezoneOffset = Number.isFinite(timezoneOffsetMinutes);
@@ -305,162 +245,27 @@ export const completeSleep = async (req, res, next) => {
         .json({ error: "Quality must be poor, fair, good, or excellent" });
     }
 
-    const log = await SleepLog.findById(id);
-
-    if (!log) {
-      return res.status(404).json({ error: "Sleep log not found" });
-    }
-
-    if (log.isComplete) {
-      return res.status(400).json({ error: "Sleep log already completed" });
-    }
-
     const wokeUpAtDate = new Date(wokeUpAt);
+    const date = getSleepDate(wokeUpAt, timezoneOffsetMinutes); // Use wake-up date
 
-    if (wokeUpAtDate <= log.sleptAt) {
-      return res
-        .status(400)
-        .json({ error: "Wake time must be after sleep time" });
-    }
-
-    const duration = differenceInMinutes(wokeUpAtDate, log.sleptAt);
-
-    if (duration < 1 || duration > 1440) {
-      return res.status(400).json({
-        error: "Sleep duration must be between 1 minute and 24 hours",
-      });
-    }
-
-    // Update log with completion data
-    const date = getSleepDate(wokeUpAt, timezoneOffsetMinutes);
-    log.wokeUpAt = wokeUpAtDate;
-    log.duration = duration;
-    log.quality = quality;
-    log.date = date; // Update to wake-up date
-    if (hasTimezoneOffset) {
-      log.timezoneOffsetMinutes = timezoneOffsetMinutes;
-    }
-    log.isComplete = true;
-    if (notes) log.notes = notes;
-    await log.save();
-
-    // Fetch current stats to calculate new average
-    let stats = await SleepStats.findOne({ userId: DEFAULT_USER_ID, date });
-
-    const targetHours = stats?.targetHours || DEFAULT_SLEEP_TARGET;
-    const newTotalMinutes = (stats?.totalMinutes || 0) + duration;
-    const newEntryCount = (stats?.entryCount || 0) + 1;
-
-    // Calculate average quality from all completed logs for this date
-    const completedLogs = await SleepLog.find({
+    const existingLogForDate = await SleepLog.findOne({
       userId: DEFAULT_USER_ID,
       date,
       isComplete: true,
-    });
-    const qualityValues = completedLogs.map((l) => l.quality);
-    const qualityScoreSum = qualityValues.reduce(
-      (sum, q) => sum + SLEEP_QUALITY_SCORES[q],
-      0,
-    );
-    const avgQualityScore = qualityScoreSum / qualityValues.length;
+    }).lean();
 
-    // Map average score back to quality category
-    let averageQuality = "fair";
-    if (avgQualityScore >= 1.125) averageQuality = "excellent";
-    else if (avgQualityScore >= 0.875) averageQuality = "good";
-    else if (avgQualityScore >= 0.625) averageQuality = "fair";
-    else averageQuality = "poor";
-
-    const targetMet = newTotalMinutes / 60 >= targetHours;
-
-    // Calculate time metrics from all completed logs for this date
-    const bedTimes = completedLogs.map((l) =>
-      formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes),
-    );
-    const wakeTimes = completedLogs.map((l) =>
-      formatTime(new Date(l.wokeUpAt), l.timezoneOffsetMinutes),
-    );
-
-    const bedTimeMetrics = calculateTimeMetrics(bedTimes);
-    const wakeTimeMetrics = calculateTimeMetrics(wakeTimes);
-
-    // Atomic upsert
-    const statsTimezoneOffsetMinutes =
-      completedLogs.find((l) => Number.isFinite(l.timezoneOffsetMinutes))
-        ?.timezoneOffsetMinutes ?? (hasTimezoneOffset ? timezoneOffsetMinutes : null);
-
-    const statsUpdate = {
-      totalMinutes: newTotalMinutes,
-      entryCount: newEntryCount,
-      averageQuality,
-      targetMet,
-      averageBedTime: bedTimeMetrics.average,
-      bedtimeConsistency: bedTimeMetrics.consistency,
-      earliestBedTime: bedTimeMetrics.earliest,
-      latestBedTime: bedTimeMetrics.latest,
-      averageWakeTime: wakeTimeMetrics.average,
-      wakeTimeConsistency: wakeTimeMetrics.consistency,
-      earliestWakeTime: wakeTimeMetrics.earliest,
-      latestWakeTime: wakeTimeMetrics.latest,
-      updatedAt: new Date(),
-    };
-
-    if (Number.isFinite(statsTimezoneOffsetMinutes)) {
-      statsUpdate.timezoneOffsetMinutes = statsTimezoneOffsetMinutes;
+    if (existingLogForDate) {
+      return res.status(409).json({
+        error: "Wake-up already logged for this date",
+      });
     }
-
-    stats = await SleepStats.findOneAndUpdate(
-      { userId: DEFAULT_USER_ID, date },
-      {
-        $set: statsUpdate,
-        $setOnInsert: { targetHours: DEFAULT_SLEEP_TARGET },
-      },
-      { upsert: true, new: true },
-    );
-
-    res.status(200).json({ log, stats });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// New endpoint to log complete sleep (both start and end times)
-export const logCompleteSleep = async (req, res, next) => {
-  try {
-    const { sleptAt, wokeUpAt, quality, notes } = req.body;
-    const timezoneOffsetMinutes = Number(req.body.timezoneOffsetMinutes);
-    const hasTimezoneOffset = Number.isFinite(timezoneOffsetMinutes);
-
-    if (!sleptAt || !wokeUpAt) {
-      return res
-        .status(400)
-        .json({ error: "Both sleep time and wake time are required" });
-    }
-
-    if (!["poor", "fair", "good", "excellent"].includes(quality)) {
-      return res
-        .status(400)
-        .json({ error: "Quality must be poor, fair, good, or excellent" });
-    }
-
-    const sleptAtDate = new Date(sleptAt);
-    const wokeUpAtDate = new Date(wokeUpAt);
-
-    if (wokeUpAtDate <= sleptAtDate) {
-      return res
-        .status(400)
-        .json({ error: "Wake time must be after sleep time" });
-    }
-
-    const duration = differenceInMinutes(wokeUpAtDate, sleptAtDate);
-    const date = getSleepDate(wokeUpAt, timezoneOffsetMinutes); // Use wake-up date
 
     // Create completed log directly
     const log = await SleepLog.create({
       userId: DEFAULT_USER_ID,
-      sleptAt: sleptAtDate,
+      sleptAt: wokeUpAtDate,
       wokeUpAt: wokeUpAtDate,
-      duration,
+      duration: 0,
       quality,
       notes: notes || "",
       date,
@@ -490,9 +295,9 @@ export const logCompleteSleep = async (req, res, next) => {
     else averageQuality = "poor";
 
     // Calculate time metrics
-    const bedTimes = completedLogs.map((l) =>
-      formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes),
-    );
+    const bedTimes = completedLogs
+      .filter((l) => l.duration > 0)
+      .map((l) => formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes));
     const wakeTimes = completedLogs.map((l) =>
       formatTime(new Date(l.wokeUpAt), l.timezoneOffsetMinutes),
     );
@@ -511,7 +316,8 @@ export const logCompleteSleep = async (req, res, next) => {
     // Update stats
     const statsTimezoneOffsetMinutes =
       completedLogs.find((l) => Number.isFinite(l.timezoneOffsetMinutes))
-        ?.timezoneOffsetMinutes ?? (hasTimezoneOffset ? timezoneOffsetMinutes : null);
+        ?.timezoneOffsetMinutes ??
+      (hasTimezoneOffset ? timezoneOffsetMinutes : null);
 
     const statsUpdate = {
       totalMinutes,
@@ -557,19 +363,12 @@ export const deleteSleepLog = async (req, res, next) => {
       return res.status(404).json({ error: "Sleep log not found" });
     }
 
-    // If log is not complete, just delete it (no stats to update)
-    if (!log.isComplete) {
-      await SleepLog.deleteOne({ _id: id });
-      return res.json({ message: "Incomplete sleep log deleted" });
-    }
-
     await SleepLog.deleteOne({ _id: id });
 
-    // Recalculate stats for completed logs only
+    // Recalculate stats for remaining logs on the same date.
     const remainingLogs = await SleepLog.find({
       userId: DEFAULT_USER_ID,
       date: log.date,
-      isComplete: true,
     });
 
     if (remainingLogs.length === 0) {
@@ -630,9 +429,9 @@ export const deleteSleepLog = async (req, res, next) => {
     const targetMet = totalMinutes / 60 >= targetHours;
 
     // Calculate time metrics from remaining logs
-    const bedTimes = remainingLogs.map((l) =>
-      formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes),
-    );
+    const bedTimes = remainingLogs
+      .filter((l) => l.duration > 0)
+      .map((l) => formatTime(new Date(l.sleptAt), l.timezoneOffsetMinutes));
     const wakeTimes = remainingLogs.map((l) =>
       formatTime(new Date(l.wokeUpAt), l.timezoneOffsetMinutes),
     );

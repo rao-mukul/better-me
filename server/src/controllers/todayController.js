@@ -1,6 +1,5 @@
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import DailyStats from "../models/DailyStats.js";
-import SleepLog from "../models/SleepLog.js";
 import SleepStats from "../models/SleepStats.js";
 import GymLog from "../models/GymLog.js";
 import GymStats from "../models/GymStats.js";
@@ -57,7 +56,6 @@ export const getTodayOverview = async (req, res, next) => {
     const [
       waterStats,
       sleepStats,
-      activeSleepLog,
       gymLog,
       gymStats,
       dietTotalsAgg,
@@ -65,12 +63,6 @@ export const getTodayOverview = async (req, res, next) => {
     ] = await Promise.all([
       DailyStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
       SleepStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
-      SleepLog.findOne({
-        userId: DEFAULT_USER_ID,
-        isComplete: false,
-      })
-        .sort({ sleptAt: -1 })
-        .lean(),
       GymLog.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
       GymStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
       DietLog.aggregate([
@@ -154,7 +146,6 @@ export const getTodayOverview = async (req, res, next) => {
       },
       sleep: {
         logs: [],
-        activeSleepLog: activeSleepLog || null,
         stats: normalizedSleepStats || {
           totalMinutes: 0,
           targetHours: DEFAULT_SLEEP_TARGET,

@@ -66,7 +66,7 @@ export default function SleepStatsPage() {
       {view === "timeline" ? (
         <Card className="p-3 sm:p-6">
           <h3 className="text-xs sm:text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4 sm:mb-6">
-            Sleep Timeline - Last 7 Days
+            Wake-up Timeline - Last 7 Days
           </h3>
           <SleepTimeline logs={logs} onDelete={handleDelete} />
         </Card>
