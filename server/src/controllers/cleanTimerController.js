@@ -2,9 +2,13 @@ import {
   differenceInDays,
   differenceInHours,
   differenceInMinutes,
+  subHours,
 } from "date-fns";
 import CleanTimer from "../models/CleanTimer.js";
 import { DEFAULT_USER_ID } from "../constants/defaults.js";
+import { DAY_START_HOUR } from "../utils/dayBoundary.js";
+
+const toLogicalClock = (date) => subHours(new Date(date), DAY_START_HOUR);
 
 export const getAllTimers = async (req, res, next) => {
   try {
@@ -61,7 +65,10 @@ export const resetTimer = async (req, res, next) => {
 
     // Calculate how many days clean
     const now = new Date();
-    const daysClean = differenceInDays(now, timer.startedAt);
+    const daysClean = differenceInDays(
+      toLogicalClock(now),
+      toLogicalClock(timer.startedAt),
+    );
 
     // Add to reset history if they were clean for at least a day
     if (daysClean >= 1) {
@@ -138,7 +145,10 @@ export const getTimerStats = async (req, res, next) => {
     }
 
     const now = new Date();
-    const totalDays = differenceInDays(now, timer.startedAt);
+    const totalDays = differenceInDays(
+      toLogicalClock(now),
+      toLogicalClock(timer.startedAt),
+    );
     const totalHours = differenceInHours(now, timer.startedAt);
     const totalMinutes = differenceInMinutes(now, timer.startedAt);
 

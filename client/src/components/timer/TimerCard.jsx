@@ -13,7 +13,9 @@ import {
   differenceInDays,
   differenceInHours,
   differenceInMinutes,
+  subHours,
 } from "date-fns";
+import { DAY_START_HOUR } from "../../utils/dayBoundary";
 
 const colorClasses = {
   blue: {
@@ -77,7 +79,9 @@ export default function TimerCard({
   }, []);
 
   const startedAt = new Date(timer.startedAt);
-  const days = differenceInDays(now, startedAt);
+  const logicalNow = subHours(now, DAY_START_HOUR);
+  const logicalStartedAt = subHours(startedAt, DAY_START_HOUR);
+  const days = differenceInDays(logicalNow, logicalStartedAt);
   const hours = differenceInHours(now, startedAt) % 24;
   const minutes = differenceInMinutes(now, startedAt) % 60;
   const seconds = Math.floor((now - startedAt) / 1000) % 60;

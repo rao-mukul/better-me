@@ -8,34 +8,34 @@ import {
   Search,
   Loader2,
   Check,
-  Edit2,
   ChevronRight,
   Sparkles,
   Clock,
-  Plus,
   RotateCcw,
   Edit3,
 } from "lucide-react";
 import {
   useSearchMeals,
   useAnalyzeMealImage,
-  useGetMealNutrition,
   useSaveMeal,
   useLogMeal,
 } from "../../hooks/useDietData";
 import { getMealImageUrl } from "../../utils/imageHelpers";
 import { dietApi } from "../../services/api";
 
-const mealCategories = [
-  { value: "breakfast", label: "Breakfast", emoji: "🌅" },
-  { value: "lunch", label: "Lunch", emoji: "☀️" },
-  { value: "dinner", label: "Dinner", emoji: "🌙" },
-  { value: "snack", label: "Snack", emoji: "🍎" },
-];
+const getCurrentDateTimeLocal = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 export default function NewDietLogForm({ onSuccess }) {
   // UI State
-  const [step, setStep] = useState("search"); // search, processing, analyze, approve, nutrition, done
+  const [step, setStep] = useState("search"); // search, processing, analyze, approve, done
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(true);
   const [processingStatus, setProcessingStatus] = useState("");
@@ -46,7 +46,6 @@ export default function NewDietLogForm({ onSuccess }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [imageData, setImageData] = useState(null);
-  const [nutritionData, setNutritionData] = useState(null);
 
   // Track if uploaded image needs cleanup (if meal is not saved)
   const [pendingImageId, setPendingImageId] = useState(null);
@@ -55,25 +54,14 @@ export default function NewDietLogForm({ onSuccess }) {
   // Form Data
   const [mealName, setMealName] = useState("");
   const [mealDescription, setMealDescription] = useState("");
-  const [category, setCategory] = useState("other");
-  const [calories, setCalories] = useState("");
-  const [protein, setProtein] = useState("");
-  const [carbs, setCarbs] = useState("");
-  const [fat, setFat] = useState("");
-  const [fiber, setFiber] = useState("");
+  const [eatenAtLocal, setEatenAtLocal] = useState(getCurrentDateTimeLocal());
   const [servingSize, setServingSize] = useState("");
-  const [ingredients, setIngredients] = useState([]);
-  const [newIngredient, setNewIngredient] = useState("");
-  const [showIngredientInput, setShowIngredientInput] = useState(false);
 
   // Track which fields were AI-filled for user control
   const [aiFilledFields, setAiFilledFields] = useState({
     name: false,
     description: false,
-    category: false,
     servingSize: false,
-    ingredients: false,
-    nutrition: false,
   });
 
   // Refs
@@ -85,7 +73,6 @@ export default function NewDietLogForm({ onSuccess }) {
     searchQuery.length >= 2 ? searchQuery : "",
   );
   const analyzeMeal = useAnalyzeMealImage();
-  const getNutrition = useGetMealNutrition();
   const saveMeal = useSaveMeal();
   const logMeal = useLogMeal();
 
@@ -116,26 +103,14 @@ export default function NewDietLogForm({ onSuccess }) {
     setImagePreview(null);
     setAiAnalysis(null);
     setImageData(null);
-    setNutritionData(null);
     setMealName("");
     setMealDescription("");
-    setCategory("other");
-    setCalories("");
-    setProtein("");
-    setCarbs("");
-    setFat("");
-    setFiber("");
+    setEatenAtLocal(getCurrentDateTimeLocal());
     setServingSize("");
-    setIngredients([]);
-    setNewIngredient("");
-    setShowIngredientInput(false);
     setAiFilledFields({
       name: false,
       description: false,
-      category: false,
       servingSize: false,
-      ingredients: false,
-      nutrition: false,
     });
   };
 
@@ -158,6 +133,7 @@ export default function NewDietLogForm({ onSuccess }) {
 
   // Handle manual entry (skip AI analysis)
   const handleManualEntry = () => {
+    setEatenAtLocal(getCurrentDateTimeLocal());
     setStep("approve");
   };
 
@@ -166,13 +142,7 @@ export default function NewDietLogForm({ onSuccess }) {
     setSelectedMeal(meal);
     setMealName(meal.name);
     setMealDescription(meal.description || "");
-    setCalories(meal.calories);
-    setProtein(meal.protein);
-    setCarbs(meal.carbs);
-    setFat(meal.fat);
-    setFiber(meal.fiber || "");
     setServingSize(meal.servingSize || "");
-    setCategory(meal.category || "other");
 
     // Use existing image from the meal library (no need to upload new one)
     if (meal.imageUrl) {
@@ -183,8 +153,9 @@ export default function NewDietLogForm({ onSuccess }) {
       });
     }
 
-    // Skip directly to nutrition step since we already have all data
-    setStep("nutrition");
+    // Skip directly to approval with detected/saved meal details
+    setEatenAtLocal(getCurrentDateTimeLocal());
+    setStep("approve");
   };
 
   // Helper function to resize and compress image
@@ -405,20 +376,16 @@ export default function NewDietLogForm({ onSuccess }) {
       // Pre-fill form with AI analysis
       setMealName(result.analysis.name || "");
       setMealDescription(result.analysis.description || "");
-      setCategory(result.analysis.category || "other");
       setServingSize(result.analysis.portionSize || "");
-      setIngredients(result.analysis.ingredients || []);
 
       // Mark fields as AI-filled
       setAiFilledFields({
         name: !!result.analysis.name,
         description: !!result.analysis.description,
-        category: !!result.analysis.category,
         servingSize: !!result.analysis.portionSize,
-        ingredients: result.analysis.ingredients?.length > 0,
-        nutrition: false,
       });
 
+      setEatenAtLocal(getCurrentDateTimeLocal());
       setStep("approve");
     } catch (error) {
       console.error("Analysis failed:", error);
@@ -453,67 +420,16 @@ export default function NewDietLogForm({ onSuccess }) {
     }
   };
 
-  // Get nutrition from AI
-  const handleGetNutrition = async () => {
-    if (!mealName) return;
-
-    try {
-      const result = await getNutrition.mutateAsync({
-        name: mealName,
-        description: mealDescription,
-        portionSize: servingSize || "1 serving",
-        ingredients: ingredients,
-      });
-
-      setCalories(result.calories);
-      setProtein(result.protein);
-      setCarbs(result.carbs);
-      setFat(result.fat);
-      setFiber(result.fiber || "");
-      if (result.servingSize) {
-        setServingSize(result.servingSize);
-      }
-
-      setNutritionData(result);
-
-      // Mark nutrition fields as AI-filled
-      setAiFilledFields((prev) => ({
-        ...prev,
-        nutrition: true,
-        servingSize: prev.servingSize || !!result.servingSize,
-      }));
-
-      setStep("nutrition");
-    } catch (error) {
-      console.error("Nutrition fetch failed:", error);
-      alert("Failed to get nutrition info. Please enter manually.");
-    }
-  };
-
-  // Ingredient management
-  const handleRemoveIngredient = (indexToRemove) => {
-    setIngredients(ingredients.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleAddIngredient = () => {
-    const trimmed = newIngredient.trim().toLowerCase();
-    if (trimmed && !ingredients.includes(trimmed)) {
-      setIngredients([...ingredients, trimmed]);
-      setNewIngredient("");
-    }
-  };
-
-  const handleIngredientKeyPress = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddIngredient();
-    }
-  };
-
   // Save and log meal
   const handleSaveAndLog = async () => {
-    if (!mealName || !calories || !protein || !carbs || !fat) {
-      alert("Please fill in all required fields");
+    if (!mealName || !eatenAtLocal) {
+      alert("Please enter meal name and meal time");
+      return;
+    }
+
+    const eatenAtDate = new Date(eatenAtLocal);
+    if (Number.isNaN(eatenAtDate.getTime())) {
+      alert("Please select a valid meal time");
       return;
     }
 
@@ -521,12 +437,7 @@ export default function NewDietLogForm({ onSuccess }) {
       console.log("=== Starting meal save and log ===");
       console.log("Current meal data:", {
         mealName,
-        calories,
-        protein,
-        carbs,
-        fat,
         servingSize,
-        category,
         selectedMeal: selectedMeal?._id,
         imageData,
       });
@@ -543,13 +454,7 @@ export default function NewDietLogForm({ onSuccess }) {
           imageUrl: imageData?.imageUrl || "",
           imageId: imageData?.imageId || "",
           thumbnailUrl: imageData?.thumbnailUrl || "",
-          calories: parseFloat(calories),
-          protein: parseFloat(protein),
-          carbs: parseFloat(carbs),
-          fat: parseFloat(fat),
-          fiber: parseFloat(fiber) || 0,
           servingSize,
-          category,
           tags: aiAnalysis?.tags || [],
           isAIAnalyzed: !!aiAnalysis,
         });
@@ -559,38 +464,14 @@ export default function NewDietLogForm({ onSuccess }) {
         // Image is now saved with the meal, no need to cleanup
         needsCleanup.current = false;
         console.log("Image saved with meal, cleanup flag cleared");
-      } else {
-        // Update library entry with any user-corrected nutrition values
-        await saveMeal.mutateAsync({
-          name: mealName,
-          description: mealDescription,
-          imageUrl: selectedMeal.imageUrl || "",
-          imageId: selectedMeal.imageId || "",
-          thumbnailUrl: selectedMeal.thumbnailUrl || "",
-          calories: parseFloat(calories),
-          protein: parseFloat(protein),
-          carbs: parseFloat(carbs),
-          fat: parseFloat(fat),
-          fiber: parseFloat(fiber) || 0,
-          servingSize,
-          category,
-          tags: selectedMeal.tags || [],
-          isAIAnalyzed: selectedMeal.isAIAnalyzed,
-        });
       }
 
       // Log the meal with current time in ISO format (includes timezone)
       const logData = {
         mealId,
         foodName: mealName,
-        calories: parseFloat(calories),
-        protein: parseFloat(protein),
-        carbs: parseFloat(carbs),
-        fat: parseFloat(fat),
-        fiber: parseFloat(fiber) || 0,
         servingSize,
-        category,
-        eatenAt: new Date().toISOString(),
+        eatenAt: eatenAtDate.toISOString(),
       };
       console.log("Logging meal with data:", logData);
 
@@ -621,25 +502,9 @@ export default function NewDietLogForm({ onSuccess }) {
         setMealDescription("");
         setAiFilledFields((prev) => ({ ...prev, description: false }));
         break;
-      case "category":
-        setCategory("other");
-        setAiFilledFields((prev) => ({ ...prev, category: false }));
-        break;
       case "servingSize":
         setServingSize("");
         setAiFilledFields((prev) => ({ ...prev, servingSize: false }));
-        break;
-      case "ingredients":
-        setIngredients([]);
-        setAiFilledFields((prev) => ({ ...prev, ingredients: false }));
-        break;
-      case "nutrition":
-        setCalories("");
-        setProtein("");
-        setCarbs("");
-        setFat("");
-        setFiber("");
-        setAiFilledFields((prev) => ({ ...prev, nutrition: false }));
         break;
     }
   };
@@ -929,377 +794,57 @@ export default function NewDietLogForm({ onSuccess }) {
               />
             </div>
 
-            {/* Category & Serving */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div>
-                <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                  Category
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base outline-none focus:border-green-500/50 transition-colors"
-                >
-                  <option value="other">Other</option>
-                  {mealCategories.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.emoji} {cat.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-                  <label className="text-[10px] sm:text-xs text-text-secondary">
-                    Serving Size
-                  </label>
-                  {aiFilledFields.servingSize && servingSize && (
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => clearField("servingSize")}
-                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] border border-amber-500/20 transition-colors"
-                      title="Clear AI suggestion"
-                    >
-                      <RotateCcw size={10} />
-                    </motion.button>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={servingSize}
-                  onChange={(e) => setServingSize(e.target.value)}
-                  placeholder="1 plate"
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Ingredients (Editable) */}
+            {/* Serving */}
             <div>
-              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <div className="flex items-center justify-between mb-1 sm:mb-1.5">
                 <label className="text-[10px] sm:text-xs text-text-secondary">
-                  Ingredients{" "}
-                  {ingredients.length > 0 && `(${ingredients.length})`}
+                  Serving Size
                 </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] sm:text-[10px] text-text-secondary/70">
-                    Used for nutrition calculation
-                  </span>
-                  {aiFilledFields.ingredients && ingredients.length > 0 && (
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => clearField("ingredients")}
-                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] border border-amber-500/20 transition-colors"
-                      title="Clear all AI-suggested ingredients"
-                    >
-                      <RotateCcw size={10} />
-                      Clear All
-                    </motion.button>
-                  )}
-                </div>
-              </div>
-
-              {/* Ingredient chips */}
-              {ingredients.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
-                  {ingredients.map((ingredient, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.8, opacity: 0 }}
-                      className="group flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-full bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-colors"
-                    >
-                      <span>{ingredient}</span>
-                      <button
-                        onClick={() => handleRemoveIngredient(i)}
-                        className="opacity-60 hover:opacity-100 transition-opacity"
-                        type="button"
-                      >
-                        <X size={12} className="sm:w-3.5 sm:h-3.5" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {/* Add ingredient input - show button or input field */}
-              {!showIngredientInput ? (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowIngredientInput(true)}
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition-colors text-xs sm:text-sm"
-                >
-                  <Plus size={14} className="sm:w-4 sm:h-4" />
-                  <span>Add Ingredient</span>
-                </motion.button>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newIngredient}
-                    onChange={(e) => setNewIngredient(e.target.value)}
-                    onKeyPress={handleIngredientKeyPress}
-                    placeholder="Add ingredient (e.g., paneer, rice)"
-                    autoFocus
-                    className="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                  />
+                {aiFilledFields.servingSize && servingSize && (
                   <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleAddIngredient}
-                    disabled={!newIngredient.trim()}
-                    type="button"
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => clearField("servingSize")}
+                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] border border-amber-500/20 transition-colors"
+                    title="Clear AI suggestion"
                   >
-                    <Plus size={16} className="sm:w-5 sm:h-5" />
+                    <RotateCcw size={10} />
                   </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      setShowIngredientInput(false);
-                      setNewIngredient("");
-                    }}
-                    type="button"
-                    className="px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 hover:bg-navy-700 text-text-secondary hover:text-text-primary transition-colors"
-                  >
-                    <X size={16} className="sm:w-5 sm:h-5" />
-                  </motion.button>
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 sm:gap-3 pt-1 sm:pt-2">
-              {calories && protein && carbs && fat ? (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setStep("nutrition")}
-                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white text-sm sm:text-base font-medium transition-all"
-                >
-                  Continue
-                  <ChevronRight size={16} className="sm:w-4.5 sm:h-4.5" />
-                </motion.button>
-              ) : (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleGetNutrition}
-                  disabled={!mealName || getNutrition.isPending}
-                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-linear-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white text-sm sm:text-base font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {getNutrition.isPending ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Getting Nutrition...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} className="sm:w-4.5 sm:h-4.5" />
-                      Get Nutrition
-                      <ChevronRight size={16} className="sm:w-4.5 sm:h-4.5" />
-                    </>
-                  )}
-                </motion.button>
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Step 4: Review Nutrition */}
-        {step === "nutrition" && (
-          <motion.div
-            key="nutrition"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-base sm:text-lg font-semibold text-text-primary flex items-center gap-1.5 sm:gap-2">
-                <Sparkles
-                  size={16}
-                  className="sm:w-4.5 sm:h-4.5 text-green-400"
-                />
-                Nutrition Info
-              </h3>
-              <button
-                onClick={() => setStep("approve")}
-                className="text-text-secondary hover:text-text-primary transition-colors text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1"
-              >
-                <Edit2 size={12} className="sm:w-3.5 sm:h-3.5" />
-                Edit Details
-              </button>
-            </div>
-
-            {/* Info hint when from library */}
-            {selectedMeal && (
-              <div className="text-[10px] sm:text-xs text-text-secondary bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 sm:p-3">
-                💡 Nutrition from your meal library. Edit values below if
-                needed.
-              </div>
-            )}
-
-            {/* Meal Summary */}
-            <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-navy-800/40 border border-navy-700/30">
-              <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
-                <div className="flex-1">
-                  <h4 className="font-semibold text-text-primary text-sm sm:text-base mb-0.5 sm:mb-1">
-                    {mealName}
-                  </h4>
-                  {mealDescription && (
-                    <p className="text-xs sm:text-sm text-text-secondary">
-                      {mealDescription}
-                    </p>
-                  )}
-                </div>
-                {/* Optional: Refresh nutrition button */}
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleGetNutrition}
-                  disabled={getNutrition.isPending}
-                  className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-navy-700/50 hover:bg-navy-700 text-[10px] sm:text-xs text-text-secondary hover:text-primary transition-all flex items-center gap-0.5 sm:gap-1 disabled:opacity-50"
-                  title="Refresh nutrition with AI"
-                >
-                  <Sparkles size={10} className="sm:w-3 sm:h-3" />
-                  {getNutrition.isPending ? "Updating..." : "Refresh"}
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Macros Grid */}
-            <div>
-              {aiFilledFields.nutrition &&
-                (calories || protein || carbs || fat) && (
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] sm:text-xs text-text-secondary">
-                      Nutrition values from AI
-                    </span>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => clearField("nutrition")}
-                      className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] sm:text-[10px] border border-amber-500/20 transition-colors"
-                      title="Clear all AI nutrition values"
-                    >
-                      <RotateCcw size={10} className="sm:w-3 sm:h-3" />
-                      Clear All
-                    </motion.button>
-                  </div>
                 )}
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div>
-                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                    Calories *
-                  </label>
-                  <input
-                    type="number"
-                    value={calories}
-                    onChange={(e) => setCalories(e.target.value)}
-                    placeholder="200"
-                    min="0"
-                    step="1"
-                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                    Protein (g) *
-                  </label>
-                  <input
-                    type="number"
-                    value={protein}
-                    onChange={(e) => setProtein(e.target.value)}
-                    placeholder="25"
-                    min="0"
-                    step="0.1"
-                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                    Carbs (g) *
-                  </label>
-                  <input
-                    type="number"
-                    value={carbs}
-                    onChange={(e) => setCarbs(e.target.value)}
-                    placeholder="30"
-                    min="0"
-                    step="0.1"
-                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                    Fat (g) *
-                  </label>
-                  <input
-                    type="number"
-                    value={fat}
-                    onChange={(e) => setFat(e.target.value)}
-                    placeholder="10"
-                    min="0"
-                    step="0.1"
-                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
-                    Fiber (g)
-                  </label>
-                  <input
-                    type="number"
-                    value={fiber}
-                    onChange={(e) => setFiber(e.target.value)}
-                    placeholder="3"
-                    min="0"
-                    step="0.1"
-                    className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
-                  />
-                </div>
               </div>
+              <input
+                type="text"
+                value={servingSize}
+                onChange={(e) => setServingSize(e.target.value)}
+                placeholder="1 plate"
+                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base placeholder:text-text-secondary/50 outline-none focus:border-green-500/50 transition-colors"
+              />
             </div>
 
-            {/* Total Breakdown */}
-            {calories && protein && carbs && fat && (
-              <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-green-500/10 border border-green-500/30">
-                <div className="flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-text-secondary">Total Calories:</span>
-                  <span className="font-bold text-green-400">
-                    {calories} kcal
-                  </span>
-                </div>
-                <div className="mt-1.5 sm:mt-2 flex gap-3 sm:gap-4 text-[10px] sm:text-xs text-text-secondary">
-                  <span>P: {protein}g</span>
-                  <span>C: {carbs}g</span>
-                  <span>F: {fat}g</span>
-                  {fiber && <span>Fiber: {fiber}g</span>}
-                </div>
-              </div>
-            )}
+            {/* Time */}
+            <div>
+              <label className="text-[10px] sm:text-xs text-text-secondary mb-1 sm:mb-1.5 block">
+                Meal time
+              </label>
+              <input
+                type="datetime-local"
+                value={eatenAtLocal}
+                onChange={(e) => setEatenAtLocal(e.target.value)}
+                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg bg-navy-700/50 border border-navy-600/50 text-text-primary text-sm sm:text-base outline-none focus:border-green-500/50 transition-colors"
+                required
+              />
+              <p className="mt-1 text-[10px] sm:text-xs text-text-secondary/70">
+                Prefilled with current time. Change it if needed.
+              </p>
+            </div>
 
             {/* Actions */}
             <div className="flex gap-2 sm:gap-3 pt-1 sm:pt-2">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setStep("approve")}
-                className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-navy-700/50 hover:bg-navy-700 text-text-secondary hover:text-text-primary text-sm sm:text-base font-medium transition-all"
-              >
-                Back
-              </motion.button>
-
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSaveAndLog}
                 disabled={
                   !mealName ||
-                  !calories ||
-                  !protein ||
-                  !carbs ||
-                  !fat ||
+                  !eatenAtLocal ||
                   logMeal.isPending ||
                   saveMeal.isPending
                 }
@@ -1378,15 +923,9 @@ function MealResultCard({ meal, onClick }) {
         <p className="font-medium text-text-primary text-sm sm:text-base truncate">
           {meal.name}
         </p>
-        <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-text-secondary mt-0.5 sm:mt-1">
-          <span>{meal.calories} cal</span>
-          <span>•</span>
-          <span>P: {meal.protein}g</span>
-          <span>•</span>
-          <span>C: {meal.carbs}g</span>
-          <span>•</span>
-          <span>F: {meal.fat}g</span>
-        </div>
+        <p className="text-[10px] sm:text-xs text-text-secondary mt-0.5 sm:mt-1">
+          Saved meal template
+        </p>
         {meal.timesLogged > 0 && (
           <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-green-400 mt-0.5 sm:mt-1">
             <Clock size={10} className="sm:w-3 sm:h-3" />

@@ -8,6 +8,9 @@ import {
   Trash2,
   UtensilsCrossed,
   Clock,
+  Timer,
+  Sunrise,
+  Moon,
 } from "lucide-react";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,17 +33,34 @@ export default function DietStatsPage() {
   const { data: popularMeals, isLoading: mealsLoading } = usePopularMeals();
   const deleteDietLog = useDeleteDietLog();
 
-  // Extract totals and logs from the API response
-  const totals = todayData?.totals || {
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    count: 0,
+  // Extract meal timing insights from the API response
+  const timing = todayData?.timing || {
+    mealCount: 0,
+    firstMealTime: null,
+    lastMealTime: null,
+    averageGapMinutes: null,
+    feedingWindowMinutes: null,
+    overnightGapMinutes: null,
   };
 
   const logs = todayData?.logs || [];
   const meals = popularMeals || [];
+
+  const formatTime12Hour = (timeStr) => {
+    if (!timeStr) return "-";
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return timeStr;
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHour = hours % 12 || 12;
+    return `${displayHour}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+
+  const formatMinutes = (minutes) => {
+    if (!Number.isFinite(minutes)) return "-";
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hrs}h ${mins}m`;
+  };
 
   const handleDelete = (id) => {
     deleteDietLog.mutate(id);
@@ -131,176 +151,88 @@ export default function DietStatsPage() {
       {/* Content */}
       {view === "today" ? (
         <>
-          {/* Compact Nutrition Summary */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-5"
-          >
-            <h3 className="text-sm font-semibold text-text-primary mb-4">
-              Today's Nutrition
-            </h3>
-
-            {totals.count > 0 ? (
-              <div className="flex items-center justify-around gap-2">
-                {/* Calories - Larger */}
-                <div className="flex flex-col items-center">
-                  <div className="relative w-16 h-16 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
-                        stroke="currentColor"
-                        strokeWidth="5"
-                        fill="none"
-                        className="text-navy-700/40"
-                      />
-                      <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
-                        stroke="currentColor"
-                        strokeWidth="5"
-                        fill="none"
-                        strokeDasharray={`${176} ${176}`}
-                        className="text-green-400"
-                      />
-                    </svg>
-                    <div className="text-center">
-                      <div className="text-base font-bold text-text-primary">
-                        {totals.calories}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-text-secondary mt-1">
-                    Calories
-                  </span>
-                </div>
-
-                {/* Protein */}
-                <div className="flex flex-col items-center">
-                  <div className="relative w-14 h-14 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        className="text-navy-700/40"
-                      />
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        strokeDasharray={`${151} ${151}`}
-                        className="text-blue-400"
-                      />
-                    </svg>
-                    <div className="text-center">
-                      <div className="text-sm font-bold text-text-primary">
-                        {totals.protein}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-text-secondary mt-1">
-                    Protein
-                  </span>
-                </div>
-
-                {/* Carbs */}
-                <div className="flex flex-col items-center">
-                  <div className="relative w-14 h-14 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        className="text-navy-700/40"
-                      />
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        strokeDasharray={`${151} ${151}`}
-                        className="text-orange-400"
-                      />
-                    </svg>
-                    <div className="text-center">
-                      <div className="text-sm font-bold text-text-primary">
-                        {totals.carbs}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-text-secondary mt-1">
-                    Carbs
-                  </span>
-                </div>
-
-                {/* Fat */}
-                <div className="flex flex-col items-center">
-                  <div className="relative w-14 h-14 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        className="text-navy-700/40"
-                      />
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        strokeDasharray={`${151} ${151}`}
-                        className="text-yellow-400"
-                      />
-                    </svg>
-                    <div className="text-center">
-                      <div className="text-sm font-bold text-text-primary">
-                        {totals.fat}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-text-secondary mt-1">Fat</span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-text-secondary text-sm">
-                  No meals logged today yet
-                </p>
-              </div>
-            )}
-          </motion.div>
-
           {/* Meal Timeline */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.05 }}
             className="bg-navy-800/40 border border-navy-700/30 rounded-2xl p-3 sm:p-6"
           >
             <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-4 sm:mb-6">
               Meal Timeline
             </h3>
             <DietTimeline logs={logs} onDelete={handleDelete} />
+          </motion.div>
+
+          {/* Meal Timing Summary */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-navy-800/40 border border-navy-700/30 rounded-xl p-5"
+          >
+            <h3 className="text-sm font-semibold text-text-primary mb-4">
+              Today's Meal Insights
+            </h3>
+
+            {timing.mealCount > 0 ? (
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="bg-navy-700/20 border border-navy-700/30 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary flex items-center gap-1">
+                    <ListOrdered size={12} /> Meals
+                  </p>
+                  <p className="text-lg font-semibold text-text-primary mt-1">
+                    {timing.mealCount}
+                  </p>
+                </div>
+                <div className="bg-navy-700/20 border border-navy-700/30 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary flex items-center gap-1">
+                    <Clock size={12} /> Avg gap
+                  </p>
+                  <p className="text-lg font-semibold text-text-primary mt-1">
+                    {formatMinutes(timing.averageGapMinutes)}
+                  </p>
+                </div>
+                <div className="bg-navy-700/20 border border-navy-700/30 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary flex items-center gap-1">
+                    <Timer size={12} /> Feeding window
+                  </p>
+                  <p className="text-lg font-semibold text-text-primary mt-1">
+                    {formatMinutes(timing.feedingWindowMinutes)}
+                  </p>
+                </div>
+                <div className="bg-navy-700/20 border border-navy-700/30 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary flex items-center gap-1">
+                    <Sunrise size={12} /> First meal
+                  </p>
+                  <p className="text-sm font-semibold text-text-primary mt-1">
+                    {formatTime12Hour(timing.firstMealTime)}
+                  </p>
+                </div>
+                <div className="bg-navy-700/20 border border-navy-700/30 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary flex items-center gap-1">
+                    <Moon size={12} /> Last meal
+                  </p>
+                  <p className="text-sm font-semibold text-text-primary mt-1">
+                    {formatTime12Hour(timing.lastMealTime)}
+                  </p>
+                </div>
+                <div className="bg-navy-700/20 border border-navy-700/30 rounded-lg p-3">
+                  <p className="text-xs text-text-secondary flex items-center gap-1">
+                    <Moon size={12} /> Night gap
+                  </p>
+                  <p className="text-lg font-semibold text-text-primary mt-1">
+                    {formatMinutes(timing.overnightGapMinutes)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-text-secondary text-sm">
+                  No meals logged today yet.
+                </p>
+              </div>
+            )}
           </motion.div>
         </>
       ) : view === "calendar" ? (
@@ -411,38 +343,6 @@ export default function DietStatsPage() {
                       {meal.name}
                     </h3>
 
-                    {/* Calories */}
-                    <div className="text-2xl font-bold text-green-400 mb-2">
-                      {meal.calories}
-                      <span className="text-sm font-normal text-text-secondary ml-1">
-                        cal
-                      </span>
-                    </div>
-
-                    {/* Macros */}
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      <div className="bg-navy-700/40 rounded-lg px-2 py-1.5">
-                        <div className="text-xs text-text-secondary">
-                          Protein
-                        </div>
-                        <div className="text-sm font-semibold text-text-primary">
-                          {meal.protein}g
-                        </div>
-                      </div>
-                      <div className="bg-navy-700/40 rounded-lg px-2 py-1.5">
-                        <div className="text-xs text-text-secondary">Carbs</div>
-                        <div className="text-sm font-semibold text-text-primary">
-                          {meal.carbs}g
-                        </div>
-                      </div>
-                      <div className="bg-navy-700/40 rounded-lg px-2 py-1.5">
-                        <div className="text-xs text-text-secondary">Fat</div>
-                        <div className="text-sm font-semibold text-text-primary">
-                          {meal.fat}g
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Times Logged */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-1.5 text-text-secondary">
@@ -452,11 +352,6 @@ export default function DietStatsPage() {
                           {meal.timesLogged !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      {meal.category && (
-                        <span className="text-xs bg-navy-700/40 px-2 py-1 rounded-full text-text-secondary capitalize">
-                          {meal.category}
-                        </span>
-                      )}
                     </div>
 
                     {/* Serving Size */}

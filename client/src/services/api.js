@@ -1,20 +1,23 @@
 import axios from "axios";
+import { getLogicalDateKey } from "../utils/dayBoundary";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
 });
 
-// Helper to get today's date in user's local timezone (yyyy-MM-dd format)
-// This fixes the midnight reset issue on deployment where server is in UTC
+// Helper to get today's date with a 4:00 AM day boundary.
 const getTodayDate = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getLogicalDateKey();
 };
 
 const getTimezoneOffsetMinutes = () => new Date().getTimezoneOffset();
+
+const resolveDateParam = (dateCandidate) => {
+  if (typeof dateCandidate === "string" && dateCandidate.trim()) {
+    return dateCandidate;
+  }
+  return getTodayDate();
+};
 
 export const waterApi = {
   getToday: () =>
@@ -32,7 +35,10 @@ export const waterApi = {
       .post("/water/log", data, { params: { date: getTodayDate() } })
       .then((r) => r.data),
   deleteLog: (id) => api.delete(`/water/log/${id}`).then((r) => r.data),
-  getWeek: () => api.get("/water/week").then((r) => r.data),
+  getWeek: () =>
+    api
+      .get("/water/week", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   getMonth: (year, month) =>
     api.get("/water/month", { params: { year, month } }).then((r) => r.data),
   updateGoal: (goal) =>
@@ -100,12 +106,24 @@ export const gymApi = {
     api.delete(`/gym/exercises/${id}`).then((r) => r.data),
   getProgram: () => api.get("/gym/program").then((r) => r.data),
   updateProgram: (data) => api.put("/gym/program", data).then((r) => r.data),
-  getWeekHistory: () => api.get("/gym/week-history").then((r) => r.data),
-  getWeek: () => api.get("/gym/week").then((r) => r.data),
+  getWeekHistory: () =>
+    api
+      .get("/gym/week-history", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
+  getWeek: () =>
+    api
+      .get("/gym/week", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   getMonth: (year, month) =>
     api.get("/gym/month", { params: { year, month } }).then((r) => r.data),
-  getStreak: () => api.get("/gym/streak").then((r) => r.data),
-  getInsights: () => api.get("/gym/insights").then((r) => r.data),
+  getStreak: () =>
+    api
+      .get("/gym/streak", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
+  getInsights: () =>
+    api
+      .get("/gym/insights", { params: { date: getTodayDate() } })
+      .then((r) => r.data),
   seedExercises: () => api.post("/gym/seed-exercises").then((r) => r.data),
 };
 
@@ -123,11 +141,15 @@ export const cleanTimerApi = {
 
 export const dietApi = {
   // Today's logs
-  getToday: (date = getTodayDate()) =>
-    api.get("/diet/today", { params: { date } }).then((r) => r.data),
-  getTodaySummary: (date = getTodayDate()) =>
+  getToday: (date) =>
     api
-      .get("/diet/today", { params: { date, summary: "1" } })
+      .get("/diet/today", { params: { date: resolveDateParam(date) } })
+      .then((r) => r.data),
+  getTodaySummary: (date) =>
+    api
+      .get("/diet/today", {
+        params: { date: resolveDateParam(date), summary: "1" },
+      })
       .then((r) => r.data),
 
   // Month data for calendar
@@ -147,8 +169,6 @@ export const dietApi = {
         headers: { "Content-Type": "multipart/form-data" },
       })
       .then((r) => r.data),
-  getMealNutrition: (data) =>
-    api.post("/diet/get-nutrition", data).then((r) => r.data),
 
   // Image cleanup
   cleanupImage: (imageId) =>

@@ -4,7 +4,6 @@ import {
   searchMeals,
   getPopularMeals,
   analyzeMealImage,
-  getMealNutrition,
   saveMealToLibrary,
   logMeal,
   deleteLog,
@@ -29,7 +28,6 @@ router.delete("/meals/:id", deleteMealFromLibrary);
 
 // AI-powered meal analysis
 router.post("/analyze-image", uploadMiddleware, analyzeMealImage);
-router.post("/get-nutrition", getMealNutrition);
 
 // Image cleanup
 router.post("/cleanup-image", cleanupImage);

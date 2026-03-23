@@ -13,6 +13,10 @@ import {
   useGymProgram,
   useGymWeekHistory,
 } from "../../hooks/useGymData";
+import {
+  getLogicalDateKey,
+  getLogicalDateParts,
+} from "../../utils/dayBoundary";
 
 // Workout type colors and labels
 const workoutConfig = {
@@ -37,8 +41,9 @@ const workoutConfig = {
 };
 
 export default function GymCalendar() {
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  const logicalToday = getLogicalDateParts();
+  const [currentYear, setCurrentYear] = useState(logicalToday.year);
+  const [currentMonth, setCurrentMonth] = useState(logicalToday.month);
   const [isDayModalOpen, setIsDayModalOpen] = useState(false);
 
   const { data, isLoading } = useGymMonth(currentYear, currentMonth);
@@ -49,8 +54,7 @@ export default function GymCalendar() {
   const addGymLog = useAddGymLog();
   const deleteWorkout = useDeleteWorkout();
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayStr = getLogicalDateKey();
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const { data: selectedDayData, isLoading: selectedDayLoading } =
@@ -87,9 +91,9 @@ export default function GymCalendar() {
   };
 
   const handleToday = () => {
-    const now = new Date();
-    setCurrentYear(now.getFullYear());
-    setCurrentMonth(now.getMonth() + 1);
+    const currentLogicalDate = getLogicalDateParts();
+    setCurrentYear(currentLogicalDate.year);
+    setCurrentMonth(currentLogicalDate.month);
   };
 
   if (isLoading || !data) {
@@ -104,10 +108,6 @@ export default function GymCalendar() {
   const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).getDay();
   // Convert to Monday = 0, Sunday = 6
   const firstDayOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-
-  const isCurrentMonth =
-    currentYear === today.getFullYear() &&
-    currentMonth === today.getMonth() + 1;
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -231,7 +231,7 @@ export default function GymCalendar() {
 
           {/* Actual days */}
           {data.data.map(({ day, date, workoutType, exerciseCount }) => {
-            const isTodayDate = isCurrentMonth && day === today.getDate();
+            const isTodayDate = date === todayStr;
             const hasWorkout = workoutType !== null;
             const config = hasWorkout ? workoutConfig[workoutType] : null;
             const isFuture = date > todayStr;

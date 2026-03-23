@@ -2,16 +2,86 @@ import { format } from "date-fns";
 import DietLog from "../models/DietLog.js";
 import MealLibrary from "../models/MealLibrary.js";
 import { DEFAULT_USER_ID } from "../constants/defaults.js";
-import { analyzeFoodImage, getNutritionalInfo } from "../config/gemini.js";
+import { analyzeFoodImage } from "../config/gemini.js";
 import { uploadMealImage, deleteMealImage } from "../config/imagekit.js";
 import multer from "multer";
+import { getRequestDayKey, getLogicalDayKey } from "../utils/dayBoundary.js";
 
 const getToday = (req) => {
-  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+  return getRequestDayKey(req);
 };
 
 const isSummaryRequest = (req) =>
   req?.query?.summary === "1" || req?.query?.summary === "true";
+
+const minutesToTime = (minutes) => {
+  const safeMinutes = ((minutes % 1440) + 1440) % 1440;
+  const hours = String(Math.floor(safeMinutes / 60)).padStart(2, "0");
+  const mins = String(safeMinutes % 60).padStart(2, "0");
+  return `${hours}:${mins}`;
+};
+
+const computeMealTimingInsights = (logs = []) => {
+  if (!logs.length) {
+    return {
+      mealCount: 0,
+      firstMealTime: null,
+      lastMealTime: null,
+      averageGapMinutes: null,
+      shortestGapMinutes: null,
+      longestGapMinutes: null,
+      feedingWindowMinutes: null,
+      overnightGapMinutes: null,
+    };
+  }
+
+  const sortedLogs = [...logs].sort(
+    (a, b) => new Date(a.eatenAt) - new Date(b.eatenAt),
+  );
+
+  const mealTimesMinutes = sortedLogs.map((log) => {
+    const eatenAt = new Date(log.eatenAt);
+    return eatenAt.getHours() * 60 + eatenAt.getMinutes();
+  });
+
+  const firstAfter4 = mealTimesMinutes.find((m) => m >= 4 * 60);
+  const firstMealMinutes = firstAfter4 ?? mealTimesMinutes[0];
+  const lastMealMinutes = mealTimesMinutes[mealTimesMinutes.length - 1];
+
+  const gaps = [];
+  for (let i = 1; i < sortedLogs.length; i++) {
+    const prev = new Date(sortedLogs[i - 1].eatenAt);
+    const curr = new Date(sortedLogs[i].eatenAt);
+    const gap = Math.max(0, Math.round((curr - prev) / 60000));
+    gaps.push(gap);
+  }
+
+  const averageGapMinutes =
+    gaps.length > 0
+      ? Math.round(gaps.reduce((sum, g) => sum + g, 0) / gaps.length)
+      : null;
+
+  const feedingWindowMinutes =
+    mealTimesMinutes.length > 1
+      ? Math.max(0, lastMealMinutes - firstMealMinutes)
+      : 0;
+
+  const overnightGapMinutes =
+    feedingWindowMinutes !== null
+      ? Math.max(0, 24 * 60 - feedingWindowMinutes)
+      : null;
+
+  return {
+    mealCount: sortedLogs.length,
+    firstMealTime: minutesToTime(firstMealMinutes),
+    lastMealTime: minutesToTime(lastMealMinutes),
+    averageGapMinutes,
+    shortestGapMinutes: gaps.length ? Math.min(...gaps) : null,
+    longestGapMinutes: gaps.length ? Math.max(...gaps) : null,
+    feedingWindowMinutes,
+    overnightGapMinutes,
+  };
+};
 
 // Multer config for memory storage
 const upload = multer({
@@ -36,35 +106,6 @@ export const getTodayData = async (req, res, next) => {
     const date = getToday(req);
     const summary = isSummaryRequest(req);
 
-    if (summary) {
-      const totalsAgg = await DietLog.aggregate([
-        { $match: { userId: DEFAULT_USER_ID, date } },
-        {
-          $group: {
-            _id: null,
-            calories: { $sum: "$calories" },
-            protein: { $sum: "$protein" },
-            carbs: { $sum: "$carbs" },
-            fat: { $sum: "$fat" },
-            fiber: { $sum: { $ifNull: ["$fiber", 0] } },
-            count: { $sum: 1 },
-          },
-        },
-      ]);
-
-      const totals = totalsAgg[0] || {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        fiber: 0,
-        count: 0,
-      };
-
-      res.json({ logs: [], totals });
-      return;
-    }
-
     const logs = await DietLog.find({
       userId: DEFAULT_USER_ID,
       date,
@@ -73,20 +114,18 @@ export const getTodayData = async (req, res, next) => {
       .sort({ eatenAt: -1 })
       .lean();
 
-    // Calculate daily totals
-    const totals = logs.reduce(
-      (acc, log) => ({
-        calories: acc.calories + log.calories,
-        protein: acc.protein + log.protein,
-        carbs: acc.carbs + log.carbs,
-        fat: acc.fat + log.fat,
-        fiber: acc.fiber + (log.fiber || 0),
-        count: acc.count + 1,
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, count: 0 },
-    );
+    const totals = {
+      count: logs.length,
+    };
 
-    res.json({ logs, totals });
+    const timing = computeMealTimingInsights(logs);
+
+    if (summary) {
+      res.json({ logs: [], totals, timing });
+      return;
+    }
+
+    res.json({ logs, totals, timing });
   } catch (err) {
     next(err);
   }
@@ -111,7 +150,7 @@ export const searchMeals = async (req, res, next) => {
       .sort({ timesLogged: -1, lastLoggedAt: -1 })
       .limit(10)
       .select(
-        "name description imageUrl thumbnailUrl calories protein carbs fat fiber servingSize category timesLogged",
+        "name description imageUrl thumbnailUrl calories protein carbs fat fiber servingSize timesLogged",
       );
 
     res.json(meals);
@@ -129,7 +168,7 @@ export const getPopularMeals = async (req, res, next) => {
       .sort({ timesLogged: -1, lastLoggedAt: -1 })
       .limit(20)
       .select(
-        "name description imageUrl thumbnailUrl calories protein carbs fat fiber servingSize category timesLogged lastLoggedAt",
+        "name description imageUrl thumbnailUrl calories protein carbs fat fiber servingSize timesLogged lastLoggedAt",
       );
 
     res.json(meals);
@@ -194,29 +233,6 @@ export const analyzeMealImage = async (req, res, next) => {
   }
 };
 
-// Get nutritional info for a meal (from Gemini)
-export const getMealNutrition = async (req, res, next) => {
-  try {
-    const { name, description, portionSize, ingredients } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: "Meal name is required" });
-    }
-
-    const nutrition = await getNutritionalInfo(
-      name,
-      description || "",
-      portionSize || "1 serving",
-      ingredients || [],
-    );
-
-    res.json(nutrition);
-  } catch (err) {
-    console.error("Nutrition fetch error:", err);
-    next(err);
-  }
-};
-
 // Save meal to library
 export const saveMealToLibrary = async (req, res, next) => {
   try {
@@ -234,36 +250,23 @@ export const saveMealToLibrary = async (req, res, next) => {
       fiber,
       servingSize,
       servingUnit,
-      category,
       tags,
       isAIAnalyzed,
     } = req.body;
 
-    if (
-      !name ||
-      calories === undefined ||
-      protein === undefined ||
-      carbs === undefined ||
-      fat === undefined
-    ) {
+    if (!name) {
       return res.status(400).json({
-        error: "Name and nutritional values are required",
+        error: "Meal name is required",
       });
     }
 
-    // Normalize category to valid enum values
-    const normalizeCategory = (cat) => {
-      if (!cat) return "other";
-      const normalized = cat.toLowerCase().trim();
-      // Extract first valid category if multiple (e.g., "breakfast/snack" -> "breakfast")
-      if (normalized.includes("breakfast")) return "breakfast";
-      if (normalized.includes("lunch")) return "lunch";
-      if (normalized.includes("dinner")) return "dinner";
-      if (normalized.includes("snack")) return "snack";
-      return "other";
-    };
-
-    const validCategory = normalizeCategory(category);
+    const safeCalories = Number.isFinite(Number(calories))
+      ? Number(calories)
+      : 0;
+    const safeProtein = Number.isFinite(Number(protein)) ? Number(protein) : 0;
+    const safeCarbs = Number.isFinite(Number(carbs)) ? Number(carbs) : 0;
+    const safeFat = Number.isFinite(Number(fat)) ? Number(fat) : 0;
+    const safeFiber = Number.isFinite(Number(fiber)) ? Number(fiber) : 0;
 
     // Check if meal already exists
     const existingMeal = await MealLibrary.findOne({
@@ -275,14 +278,13 @@ export const saveMealToLibrary = async (req, res, next) => {
       // Update existing meal
       existingMeal.description = description || existingMeal.description;
       existingMeal.aiDescription = aiDescription || existingMeal.aiDescription;
-      existingMeal.calories = calories;
-      existingMeal.protein = protein;
-      existingMeal.carbs = carbs;
-      existingMeal.fat = fat;
-      existingMeal.fiber = fiber ?? existingMeal.fiber;
+      existingMeal.calories = safeCalories;
+      existingMeal.protein = safeProtein;
+      existingMeal.carbs = safeCarbs;
+      existingMeal.fat = safeFat;
+      existingMeal.fiber = safeFiber;
       existingMeal.servingSize = servingSize || existingMeal.servingSize;
       existingMeal.servingUnit = servingUnit || existingMeal.servingUnit;
-      existingMeal.category = validCategory;
       existingMeal.tags = tags || existingMeal.tags;
       existingMeal.isAIAnalyzed = isAIAnalyzed || existingMeal.isAIAnalyzed;
 
@@ -323,14 +325,13 @@ export const saveMealToLibrary = async (req, res, next) => {
       imageUrl: imageUrl || "",
       imageId: imageId || "",
       thumbnailUrl: thumbnailUrl || "",
-      calories,
-      protein,
-      carbs,
-      fat,
-      fiber: fiber ?? 0,
+      calories: safeCalories,
+      protein: safeProtein,
+      carbs: safeCarbs,
+      fat: safeFat,
+      fiber: safeFiber,
       servingSize: servingSize || "",
       servingUnit: servingUnit || "",
-      category: validCategory,
       tags: tags || [],
       isAIAnalyzed: isAIAnalyzed || false,
     });
@@ -354,49 +355,38 @@ export const logMeal = async (req, res, next) => {
       fat,
       fiber,
       servingSize,
-      category,
       eatenAt,
       notes,
     } = req.body;
 
-    if (
-      !foodName ||
-      calories === undefined ||
-      protein === undefined ||
-      carbs === undefined ||
-      fat === undefined
-    ) {
+    if (!foodName) {
       return res.status(400).json({
-        error: "Meal name and nutritional values are required",
+        error: "Meal name is required",
       });
     }
 
-    // Normalize category to valid enum values
-    const normalizeCategory = (cat) => {
-      if (!cat) return "other";
-      const normalized = cat.toLowerCase().trim();
-      if (normalized.includes("breakfast")) return "breakfast";
-      if (normalized.includes("lunch")) return "lunch";
-      if (normalized.includes("dinner")) return "dinner";
-      if (normalized.includes("snack")) return "snack";
-      return "other";
-    };
+    const safeCalories = Number.isFinite(Number(calories))
+      ? Number(calories)
+      : 0;
+    const safeProtein = Number.isFinite(Number(protein)) ? Number(protein) : 0;
+    const safeCarbs = Number.isFinite(Number(carbs)) ? Number(carbs) : 0;
+    const safeFat = Number.isFinite(Number(fat)) ? Number(fat) : 0;
+    const safeFiber = Number.isFinite(Number(fiber)) ? Number(fiber) : 0;
 
     const eatenAtDate = eatenAt ? new Date(eatenAt) : new Date();
-    const date = format(eatenAtDate, "yyyy-MM-dd");
+    const date = getLogicalDayKey(eatenAtDate);
 
     // Create log entry
     const log = await DietLog.create({
       userId: DEFAULT_USER_ID,
       mealId: mealId || null,
       foodName,
-      calories,
-      protein,
-      carbs,
-      fat,
-      fiber: fiber ?? 0,
+      calories: safeCalories,
+      protein: safeProtein,
+      carbs: safeCarbs,
+      fat: safeFat,
+      fiber: safeFiber,
       servingSize: servingSize || "",
-      category: normalizeCategory(category),
       eatenAt: eatenAtDate,
       date,
       notes: notes || "",
@@ -540,30 +530,26 @@ export const getMonthData = async (req, res, next) => {
       const day = parseInt(log.date.split("-")[2]);
       if (!dayData[day]) {
         dayData[day] = {
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
           count: 0,
+          logs: [],
         };
       }
-      dayData[day].calories += log.calories;
-      dayData[day].protein += log.protein;
-      dayData[day].carbs += log.carbs;
-      dayData[day].fat += log.fat;
       dayData[day].count += 1;
+      dayData[day].logs.push(log);
     });
 
     // Create array for all days in month
     const data = Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
+      const timing = computeMealTimingInsights(dayData[day]?.logs || []);
       return {
         day,
-        calories: dayData[day]?.calories || 0,
-        protein: dayData[day]?.protein || 0,
-        carbs: dayData[day]?.carbs || 0,
-        fat: dayData[day]?.fat || 0,
         count: dayData[day]?.count || 0,
+        firstMealTime: timing.firstMealTime,
+        lastMealTime: timing.lastMealTime,
+        averageGapMinutes: timing.averageGapMinutes,
+        feedingWindowMinutes: timing.feedingWindowMinutes,
+        overnightGapMinutes: timing.overnightGapMinutes,
       };
     });
 
@@ -578,7 +564,6 @@ export default {
   searchMeals,
   getPopularMeals,
   analyzeMealImage,
-  getMealNutrition,
   saveMealToLibrary,
   logMeal,
   deleteLog,

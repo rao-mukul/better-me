@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Sunrise, Clock } from "lucide-react";
 import { useState } from "react";
 import { useSleepMonth } from "../../hooks/useSleepData";
+import { getLogicalDateParts } from "../../utils/dayBoundary";
 
 const wakeTimeColors = {
   after10: "bg-red-500/90 text-white",
@@ -38,9 +39,9 @@ const qualityLabel = {
 };
 
 export default function SleepCalendar() {
-  const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
+  const logicalToday = getLogicalDateParts();
+  const [currentYear, setCurrentYear] = useState(logicalToday.year);
+  const [currentMonth, setCurrentMonth] = useState(logicalToday.month);
 
   const { data: monthData, isLoading } = useSleepMonth(
     currentYear,
@@ -66,8 +67,9 @@ export default function SleepCalendar() {
   };
 
   const handleToday = () => {
-    setCurrentYear(today.getFullYear());
-    setCurrentMonth(today.getMonth() + 1);
+    const currentLogicalDate = getLogicalDateParts();
+    setCurrentYear(currentLogicalDate.year);
+    setCurrentMonth(currentLogicalDate.month);
   };
 
   if (isLoading) {
@@ -148,9 +150,9 @@ export default function SleepCalendar() {
 
   const isToday = (day) => {
     return (
-      day === today.getDate() &&
-      currentMonth === today.getMonth() + 1 &&
-      currentYear === today.getFullYear()
+      day === logicalToday.day &&
+      currentMonth === logicalToday.month &&
+      currentYear === logicalToday.year
     );
   };
 

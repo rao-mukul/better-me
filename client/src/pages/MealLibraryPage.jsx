@@ -174,36 +174,6 @@ export default function MealLibraryPage() {
                     {meal.name}
                   </h3>
 
-                  {/* Calories */}
-                  <div className="text-2xl font-bold text-green-400 mb-2">
-                    {meal.calories}
-                    <span className="text-sm font-normal text-text-secondary ml-1">
-                      cal
-                    </span>
-                  </div>
-
-                  {/* Macros */}
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div className="bg-navy-700/40 rounded-lg px-2 py-1.5">
-                      <div className="text-xs text-text-secondary">Protein</div>
-                      <div className="text-sm font-semibold text-text-primary">
-                        {meal.protein}g
-                      </div>
-                    </div>
-                    <div className="bg-navy-700/40 rounded-lg px-2 py-1.5">
-                      <div className="text-xs text-text-secondary">Carbs</div>
-                      <div className="text-sm font-semibold text-text-primary">
-                        {meal.carbs}g
-                      </div>
-                    </div>
-                    <div className="bg-navy-700/40 rounded-lg px-2 py-1.5">
-                      <div className="text-xs text-text-secondary">Fat</div>
-                      <div className="text-sm font-semibold text-text-primary">
-                        {meal.fat}g
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Times Logged */}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5 text-text-secondary">
@@ -213,11 +183,6 @@ export default function MealLibraryPage() {
                         {meal.timesLogged !== 1 ? "s" : ""}
                       </span>
                     </div>
-                    {meal.category && (
-                      <span className="text-xs bg-navy-700/40 px-2 py-1 rounded-full text-text-secondary capitalize">
-                        {meal.category}
-                      </span>
-                    )}
                   </div>
 
                   {/* Serving Size */}

@@ -6,17 +6,10 @@ import {
   DEFAULT_SLEEP_TARGET,
   SLEEP_QUALITY_SCORES,
 } from "../constants/defaults.js";
+import { DAY_START_HOUR, getRequestDayKey } from "../utils/dayBoundary.js";
 
 const getToday = (req) => {
-  // Accept date from client to handle timezone correctly
-  if (req?.query?.date) return req.query.date;
-
-  // Fallback: use UTC to avoid timezone issues
-  const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(now.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getRequestDayKey(req);
 };
 
 const isSummaryRequest = (req) =>
@@ -31,9 +24,10 @@ const applyTimezoneOffset = (date, timezoneOffsetMinutes) => {
 // Use timezone offset from client to keep dates aligned with user's local day
 const getSleepDate = (value, timezoneOffsetMinutes) => {
   const date = applyTimezoneOffset(new Date(value), timezoneOffsetMinutes);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
+  const logicalDate = new Date(date.getTime() - DAY_START_HOUR * 60 * 60000);
+  const year = logicalDate.getUTCFullYear();
+  const month = String(logicalDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(logicalDate.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -192,10 +186,8 @@ export const getTodayData = async (req, res, next) => {
 
 export const getWeekLogs = async (req, res, next) => {
   try {
-    // Use client's date if provided, otherwise use server's date
-    const clientDate = req.query.date;
-    // Parse client date explicitly as UTC to avoid timezone issues
-    const today = clientDate ? parseISO(`${clientDate}T00:00:00Z`) : new Date();
+    const todayKey = getToday(req);
+    const today = parseISO(`${todayKey}T04:00:00Z`);
 
     // Get the date 7 days ago
     const sevenDaysAgo = subDays(today, 6); // Including today makes it 7 days
@@ -479,11 +471,8 @@ export const deleteSleepLog = async (req, res, next) => {
 
 export const getWeekData = async (req, res, next) => {
   try {
-    // Use client's date if provided, otherwise use server's date
-    const clientDate = req.query.date;
     const requestTimezoneOffsetMinutes = Number(req.query.tzOffset);
-    // Parse client date explicitly as UTC to avoid timezone issues
-    const today = clientDate ? parseISO(`${clientDate}T00:00:00Z`) : new Date();
+    const today = parseISO(`${getToday(req)}T04:00:00Z`);
     const monday = startOfWeek(today, { weekStartsOn: 1 });
 
     // Use UTC to format dates to avoid timezone issues
@@ -622,7 +611,7 @@ export const getMonthData = async (req, res, next) => {
 export const getStreak = async (req, res, next) => {
   try {
     // Get last 90 days of stats to compute streaks
-    const today = new Date();
+    const today = parseISO(`${getToday(req)}T04:00:00Z`);
     const stats = await SleepStats.find({
       userId: DEFAULT_USER_ID,
       targetMet: true,

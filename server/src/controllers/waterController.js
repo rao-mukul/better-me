@@ -10,11 +10,14 @@ import {
 import IntakeLog from "../models/IntakeLog.js";
 import DailyStats from "../models/DailyStats.js";
 import { DEFAULT_USER_ID, DEFAULT_GOAL } from "../constants/defaults.js";
+import {
+  getRequestDayKey,
+  getLogicalDayKey,
+  parseDayKey,
+} from "../utils/dayBoundary.js";
 
 const getToday = (req) => {
-  // Accept date from client to handle timezone correctly
-  // Client sends date in their local timezone to avoid UTC midnight issues
-  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+  return getRequestDayKey(req);
 };
 
 const isSummaryRequest = (req) =>
@@ -153,7 +156,7 @@ export const deleteLog = async (req, res, next) => {
 
 export const getWeekData = async (req, res, next) => {
   try {
-    const today = new Date();
+    const today = parseDayKey(getToday(req));
     const monday = startOfWeek(today, { weekStartsOn: 1 });
     const dates = Array.from({ length: 7 }, (_, i) =>
       format(addDays(monday, i), "yyyy-MM-dd"),
@@ -248,7 +251,8 @@ export const getMonthData = async (req, res, next) => {
 export const getStreak = async (req, res, next) => {
   try {
     // Get last 90 days of stats to compute streaks
-    const today = new Date();
+    const today = parseDayKey(getRequestDayKey(req));
+    const todayKey = getLogicalDayKey(today);
     const stats = await DailyStats.find({
       userId: DEFAULT_USER_ID,
       goalMet: true,
@@ -266,7 +270,7 @@ export const getStreak = async (req, res, next) => {
     let current = 0;
     let checkDate = today;
     // If today hasn't been met yet, start from yesterday
-    if (!metDates.has(format(checkDate, "yyyy-MM-dd"))) {
+    if (!metDates.has(todayKey)) {
       checkDate = subDays(today, 1);
     }
     while (metDates.has(format(checkDate, "yyyy-MM-dd"))) {

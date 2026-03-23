@@ -44,10 +44,13 @@ export function getMealImageUrl(meal, variant = "thumbnail") {
 
   const dimensions = variants[variant] || variants.thumbnail;
 
-  // Don't use thumbnailUrl as it might have old transformations with padding
-  // Always generate fresh transformation from imageUrl
-  if (meal.imageUrl) {
-    return getThumbnailUrl(meal.imageUrl, dimensions.w, dimensions.h);
+  // Diet logs often have image nested under populated mealId reference.
+  const imageUrl = meal.imageUrl || meal.mealId?.imageUrl;
+
+  // Don't use thumbnailUrl as it might have old transformations with padding.
+  // Always generate fresh transformation from imageUrl.
+  if (imageUrl) {
+    return getThumbnailUrl(imageUrl, dimensions.w, dimensions.h);
   }
 
   return null;

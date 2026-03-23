@@ -55,11 +55,6 @@ const dietLogSchema = new mongoose.Schema({
     type: String, // yyyy-MM-dd format
     required: true,
   },
-  category: {
-    type: String,
-    enum: ["breakfast", "lunch", "dinner", "snack", "other"],
-    default: "other",
-  },
   notes: {
     type: String,
     default: "",

@@ -9,8 +9,9 @@ import {
   DEFAULT_GOAL,
   DEFAULT_SLEEP_TARGET,
 } from "../constants/defaults.js";
+import { getRequestDayKey, parseDayKey } from "../utils/dayBoundary.js";
 
-const getToday = (req) => req?.query?.date || format(new Date(), "yyyy-MM-dd");
+const getToday = (req) => getRequestDayKey(req);
 
 const timeToMinutes = (timeStr) => {
   const [hours, minutes] = timeStr.split(":").map(Number);
@@ -42,50 +43,97 @@ const normalizeTimeForClient = (
   return shiftTimeString(timeStr, requestTimezoneOffsetMinutes);
 };
 
+const minutesToClockTime = (minutes) => {
+  const safeMinutes = ((minutes % 1440) + 1440) % 1440;
+  const hours = String(Math.floor(safeMinutes / 60)).padStart(2, "0");
+  const mins = String(safeMinutes % 60).padStart(2, "0");
+  return `${hours}:${mins}`;
+};
+
+const computeMealTimingInsights = (logs = []) => {
+  if (!logs.length) {
+    return {
+      mealCount: 0,
+      firstMealTime: null,
+      lastMealTime: null,
+      averageGapMinutes: null,
+      shortestGapMinutes: null,
+      longestGapMinutes: null,
+      feedingWindowMinutes: null,
+      overnightGapMinutes: null,
+    };
+  }
+
+  const sortedLogs = [...logs].sort(
+    (a, b) => new Date(a.eatenAt) - new Date(b.eatenAt),
+  );
+
+  const mealTimesMinutes = sortedLogs.map((log) => {
+    const eatenAt = new Date(log.eatenAt);
+    return eatenAt.getHours() * 60 + eatenAt.getMinutes();
+  });
+
+  const firstAfter4 = mealTimesMinutes.find((m) => m >= 4 * 60);
+  const firstMealMinutes = firstAfter4 ?? mealTimesMinutes[0];
+  const lastMealMinutes = mealTimesMinutes[mealTimesMinutes.length - 1];
+
+  const gaps = [];
+  for (let i = 1; i < sortedLogs.length; i++) {
+    const prev = new Date(sortedLogs[i - 1].eatenAt);
+    const curr = new Date(sortedLogs[i].eatenAt);
+    const gap = Math.max(0, Math.round((curr - prev) / 60000));
+    gaps.push(gap);
+  }
+
+  const averageGapMinutes =
+    gaps.length > 0
+      ? Math.round(gaps.reduce((sum, g) => sum + g, 0) / gaps.length)
+      : null;
+
+  const feedingWindowMinutes =
+    mealTimesMinutes.length > 1
+      ? Math.max(0, lastMealMinutes - firstMealMinutes)
+      : 0;
+
+  return {
+    mealCount: sortedLogs.length,
+    firstMealTime: minutesToClockTime(firstMealMinutes),
+    lastMealTime: minutesToClockTime(lastMealMinutes),
+    averageGapMinutes,
+    shortestGapMinutes: gaps.length ? Math.min(...gaps) : null,
+    longestGapMinutes: gaps.length ? Math.max(...gaps) : null,
+    feedingWindowMinutes,
+    overnightGapMinutes: Math.max(0, 24 * 60 - feedingWindowMinutes),
+  };
+};
+
 export const getTodayOverview = async (req, res, next) => {
   try {
     const date = getToday(req);
     const requestTimezoneOffsetMinutes = Number(req?.query?.tzOffset);
 
-    const baseDate = parseISO(`${date}T00:00:00`);
+    const baseDate = parseDayKey(date);
     const monday = startOfWeek(baseDate, { weekStartsOn: 1 });
     const weekDates = Array.from({ length: 7 }, (_, i) =>
       format(addDays(monday, i), "yyyy-MM-dd"),
     );
 
-    const [
-      waterStats,
-      sleepStats,
-      gymLog,
-      gymStats,
-      dietTotalsAgg,
-      gymWeekHistory,
-    ] = await Promise.all([
-      DailyStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
-      SleepStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
-      GymLog.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
-      GymStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
-      DietLog.aggregate([
-        { $match: { userId: DEFAULT_USER_ID, date } },
-        {
-          $group: {
-            _id: null,
-            calories: { $sum: "$calories" },
-            protein: { $sum: "$protein" },
-            carbs: { $sum: "$carbs" },
-            fat: { $sum: "$fat" },
-            fiber: { $sum: { $ifNull: ["$fiber", 0] } },
-            count: { $sum: 1 },
-          },
-        },
-      ]),
-      GymLog.find({
-        userId: DEFAULT_USER_ID,
-        date: { $in: weekDates },
-      })
-        .sort({ date: 1 })
-        .lean(),
-    ]);
+    const [waterStats, sleepStats, gymLog, gymStats, dietLogs, gymWeekHistory] =
+      await Promise.all([
+        DailyStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
+        SleepStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
+        GymLog.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
+        GymStats.findOne({ userId: DEFAULT_USER_ID, date }).lean(),
+        DietLog.find({ userId: DEFAULT_USER_ID, date })
+          .sort({ eatenAt: -1 })
+          .lean(),
+        GymLog.find({
+          userId: DEFAULT_USER_ID,
+          date: { $in: weekDates },
+        })
+          .sort({ date: 1 })
+          .lean(),
+      ]);
 
     const sleepStatsObj = sleepStats || null;
     const normalizedSleepStats = sleepStatsObj
@@ -124,14 +172,11 @@ export const getTodayOverview = async (req, res, next) => {
         }
       : null;
 
-    const dietTotals = dietTotalsAgg[0] || {
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-      fiber: 0,
-      count: 0,
+    const dietTotals = {
+      count: (dietLogs || []).length,
     };
+
+    const dietTiming = computeMealTimingInsights(dietLogs || []);
 
     res.json({
       date,
@@ -168,6 +213,7 @@ export const getTodayOverview = async (req, res, next) => {
       diet: {
         logs: [],
         totals: dietTotals,
+        timing: dietTiming,
       },
     });
   } catch (err) {

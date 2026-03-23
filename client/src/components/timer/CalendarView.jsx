@@ -4,26 +4,24 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isSameDay,
-  isToday,
   isBefore,
-  isAfter,
   startOfWeek,
   endOfWeek,
   eachMonthOfInterval,
   isSameMonth,
   subDays,
-  startOfDay,
 } from "date-fns";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getLogicalDateKey } from "../../utils/dayBoundary";
 
 export default function CalendarView({ timer, stats }) {
   if (!timer) return null;
 
   const now = new Date();
-  const today = startOfDay(now);
-  const currentStreakStart = startOfDay(new Date(timer.startedAt));
+  const todayKey = getLogicalDateKey(now);
+  const currentStreakStartKey = getLogicalDateKey(new Date(timer.startedAt));
 
   const sortedResets = [...(timer.resetHistory || [])].sort(
     (a, b) => new Date(a.resetAt) - new Date(b.resetAt),
@@ -32,20 +30,26 @@ export default function CalendarView({ timer, stats }) {
   // Reconstruct the earliest streak start from reset history so previous months stay visible.
   const firstRecordedStart =
     sortedResets.length > 0
-      ? startOfDay(
+      ? getLogicalDateKey(
           subDays(
             new Date(sortedResets[0].resetAt),
             Number(sortedResets[0].daysClean || 0),
           ),
         )
-      : currentStreakStart;
+      : currentStreakStartKey;
 
-  const historyStart = isBefore(firstRecordedStart, currentStreakStart)
-    ? firstRecordedStart
-    : currentStreakStart;
+  const historyStart =
+    firstRecordedStart < currentStreakStartKey
+      ? firstRecordedStart
+      : currentStreakStartKey;
+
+  const parseDayKey = (dayKey) => new Date(`${dayKey}T12:00:00`);
 
   // Get all months from start to now
-  const allMonths = eachMonthOfInterval({ start: historyStart, end: now });
+  const allMonths = eachMonthOfInterval({
+    start: parseDayKey(historyStart),
+    end: now,
+  });
   const [currentMonthIndex, setCurrentMonthIndex] = useState(
     allMonths.length - 1,
   );
@@ -63,22 +67,21 @@ export default function CalendarView({ timer, stats }) {
   const resetDates = new Map();
   if (timer.resetHistory) {
     timer.resetHistory.forEach((reset) => {
-      const resetDate = format(new Date(reset.resetAt), "yyyy-MM-dd");
+      const resetDate = getLogicalDateKey(new Date(reset.resetAt));
       resetDates.set(resetDate, reset);
     });
   }
 
   const getDayStatus = (day) => {
-    const dayStart = startOfDay(day);
     const dayStr = format(day, "yyyy-MM-dd");
 
     // Future date
-    if (isAfter(dayStart, today)) {
+    if (dayStr > todayKey) {
       return { type: "future" };
     }
 
     // Before first known streak started
-    if (isBefore(dayStart, historyStart)) {
+    if (dayStr < historyStart) {
       return { type: "before" };
     }
 
@@ -95,12 +98,8 @@ export default function CalendarView({ timer, stats }) {
       let streakStart = historyStart;
 
       for (const reset of sortedResets) {
-        const resetDate = startOfDay(new Date(reset.resetAt));
-        if (
-          (isAfter(dayStart, streakStart) ||
-            isSameDay(dayStart, streakStart)) &&
-          isBefore(dayStart, resetDate)
-        ) {
+        const resetDate = getLogicalDateKey(new Date(reset.resetAt));
+        if (dayStr >= streakStart && dayStr < resetDate) {
           isClean = true;
           break;
         }
@@ -109,17 +108,13 @@ export default function CalendarView({ timer, stats }) {
     }
 
     // Current streak window: [startedAt, today]
-    if (
-      !isClean &&
-      (isAfter(dayStart, currentStreakStart) ||
-        isSameDay(dayStart, currentStreakStart))
-    ) {
+    if (!isClean && dayStr >= currentStreakStartKey) {
       isClean = true;
     }
 
     if (isClean) {
       // Don't mark today as clean until the day is over
-      if (isToday(dayStart)) {
+      if (dayStr === todayKey) {
         return { type: "today" };
       }
       return { type: "clean" };
@@ -194,7 +189,7 @@ export default function CalendarView({ timer, stats }) {
         {days.map((day, idx) => {
           const status = getDayStatus(day);
           const isInViewMonth = isSameMonth(day, currentViewMonth);
-          const isTodayDate = isToday(day);
+          const isTodayDate = format(day, "yyyy-MM-dd") === todayKey;
 
           return (
             <motion.div

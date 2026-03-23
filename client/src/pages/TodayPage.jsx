@@ -138,12 +138,13 @@ export default function TodayPage() {
 
   // Diet tracking
   const dietData = overview?.diet || null;
-  const dietTotals = dietData?.totals || {
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    count: 0,
+  const dietTiming = dietData?.timing || {
+    mealCount: 0,
+    firstMealTime: null,
+    lastMealTime: null,
+    averageGapMinutes: null,
+    feedingWindowMinutes: null,
+    overnightGapMinutes: null,
   };
 
   // Show celebration when water goal is first achieved
@@ -285,10 +286,10 @@ export default function TodayPage() {
               ) : (
                 <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
                   <span className="text-sm font-bold text-green-400">
-                    {dietTotals.calories}
+                    {dietTiming.mealCount || dietData?.totals?.count || 0}
                   </span>
                   <span className="text-xs text-text-secondary ml-0.5">
-                    cal
+                    meals
                   </span>
                 </div>
               )}
@@ -315,7 +316,7 @@ export default function TodayPage() {
               >
                 {!hasDietData && overviewLoading ? (
                   <div className="py-6 text-sm text-text-secondary">
-                    Loading nutrition data...
+                    Loading meal insights...
                   </div>
                 ) : (
                   <NewDietLogForm onSuccess={handleDietSuccess} />

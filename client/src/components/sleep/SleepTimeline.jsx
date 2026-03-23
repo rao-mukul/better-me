@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Moon, Sunrise, Calendar } from "lucide-react";
-import { format, parseISO, isToday, isYesterday } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
+import { getLogicalDateKey } from "../../utils/dayBoundary";
 
 const qualityColors = {
   poor: "text-red-400 bg-red-500/10 border-red-500/20",
@@ -25,10 +26,14 @@ const qualityLabels = {
 
 // Helper to format date label
 const getDateLabel = (dateString) => {
-  const date = parseISO(dateString);
-  if (isToday(date)) return "Today";
-  if (isYesterday(date)) return "Yesterday";
-  return format(date, "EEEE, MMM d");
+  const todayKey = getLogicalDateKey();
+  if (dateString === todayKey) return "Today";
+
+  const yesterdayDate = subDays(parseISO(`${todayKey}T12:00:00`), 1);
+  const yesterdayKey = format(yesterdayDate, "yyyy-MM-dd");
+  if (dateString === yesterdayKey) return "Yesterday";
+
+  return format(parseISO(`${dateString}T12:00:00`), "EEEE, MMM d");
 };
 
 // Group logs by date

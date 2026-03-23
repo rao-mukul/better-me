@@ -2,11 +2,12 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Droplets } from "lucide-react";
 import { useState } from "react";
 import { useWaterMonth } from "../../hooks/useWaterData";
+import { getLogicalDateParts } from "../../utils/dayBoundary";
 
 export default function WaterCalendar() {
-  const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
+  const logicalToday = getLogicalDateParts();
+  const [currentYear, setCurrentYear] = useState(logicalToday.year);
+  const [currentMonth, setCurrentMonth] = useState(logicalToday.month);
 
   const { data: monthData, isLoading } = useWaterMonth(
     currentYear,
@@ -32,8 +33,9 @@ export default function WaterCalendar() {
   };
 
   const handleToday = () => {
-    setCurrentYear(today.getFullYear());
-    setCurrentMonth(today.getMonth() + 1);
+    const currentLogicalDate = getLogicalDateParts();
+    setCurrentYear(currentLogicalDate.year);
+    setCurrentMonth(currentLogicalDate.month);
   };
 
   if (isLoading) {
@@ -74,9 +76,9 @@ export default function WaterCalendar() {
 
   const isToday = (day) => {
     return (
-      day === today.getDate() &&
-      currentMonth === today.getMonth() + 1 &&
-      currentYear === today.getFullYear()
+      day === logicalToday.day &&
+      currentMonth === logicalToday.month &&
+      currentYear === logicalToday.year
     );
   };
 

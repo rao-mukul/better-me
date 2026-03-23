@@ -4,10 +4,10 @@ import GymExercise from "../models/GymExercise.js";
 import GymProgram from "../models/GymProgram.js";
 import GymStats from "../models/GymStats.js";
 import { DEFAULT_USER_ID } from "../constants/defaults.js";
+import { getRequestDayKey, parseDayKey } from "../utils/dayBoundary.js";
 
 const getToday = (req) => {
-  // Accept date from client to handle timezone correctly
-  return req?.query?.date || format(new Date(), "yyyy-MM-dd");
+  return getRequestDayKey(req);
 };
 
 // Get all exercises for a user (including defaults and custom)
@@ -115,7 +115,7 @@ export const updateProgram = async (req, res, next) => {
 // Get this week's workout history (for smart defaults)
 export const getWeekHistory = async (req, res, next) => {
   try {
-    const today = new Date();
+    const today = parseDayKey(getToday(req));
     const monday = startOfWeek(today, { weekStartsOn: 1 });
     const dates = Array.from({ length: 7 }, (_, i) =>
       format(addDays(monday, i), "yyyy-MM-dd"),
@@ -135,7 +135,7 @@ export const getWeekHistory = async (req, res, next) => {
 // Get week data for stats page
 export const getWeekData = async (req, res, next) => {
   try {
-    const today = new Date();
+    const today = parseDayKey(getToday(req));
     const monday = startOfWeek(today, { weekStartsOn: 1 });
     const dates = Array.from({ length: 7 }, (_, i) => {
       const date = addDays(monday, i);
@@ -171,7 +171,7 @@ export const getWeekData = async (req, res, next) => {
 // Get streak data
 export const getStreak = async (req, res, next) => {
   try {
-    const today = new Date();
+    const today = parseDayKey(getToday(req));
     const monday = startOfWeek(today, { weekStartsOn: 1 });
 
     // Get this week's workouts
@@ -242,7 +242,7 @@ export const getStreak = async (req, res, next) => {
 // Get comprehensive insights for growth tracking
 export const getInsights = async (req, res, next) => {
   try {
-    const today = new Date();
+    const today = parseDayKey(getToday(req));
     const thisMonday = startOfWeek(today, { weekStartsOn: 1 });
     const lastMonday = addDays(thisMonday, -7);
 

@@ -96,12 +96,6 @@ const mealLibrarySchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
-  // Meal category (breakfast, lunch, dinner, snack)
-  category: {
-    type: String,
-    enum: ["breakfast", "lunch", "dinner", "snack", "other"],
-    default: "other",
-  },
   // Whether this meal was AI-analyzed
   isAIAnalyzed: {
     type: Boolean,

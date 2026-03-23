@@ -4,7 +4,7 @@ import { dietApi } from "../services/api";
 export function useDietToday() {
   return useQuery({
     queryKey: ["diet", "today"],
-    queryFn: dietApi.getToday,
+    queryFn: () => dietApi.getToday(),
     staleTime: 30000, // Consider data fresh for 30s
     refetchOnWindowFocus: true,
   });
@@ -13,7 +13,7 @@ export function useDietToday() {
 export function useDietTodaySummary() {
   return useQuery({
     queryKey: ["diet", "today", "summary"],
-    queryFn: dietApi.getTodaySummary,
+    queryFn: () => dietApi.getTodaySummary(),
     staleTime: 30000, // Consider data fresh for 30s
     refetchOnWindowFocus: true,
   });
@@ -55,12 +55,6 @@ export function usePopularMeals() {
 export function useAnalyzeMealImage() {
   return useMutation({
     mutationFn: dietApi.analyzeMealImage,
-  });
-}
-
-export function useGetMealNutrition() {
-  return useMutation({
-    mutationFn: dietApi.getMealNutrition,
   });
 }
 
