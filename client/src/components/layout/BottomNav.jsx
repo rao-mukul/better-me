@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Droplets, Moon, Dumbbell, Utensils, Timer } from "lucide-react";
+import { Home, Droplets, Moon, Dumbbell, Utensils, Timer, Bot } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Today", icon: Home },
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/water-stats", label: "Water", icon: Droplets },
   { to: "/sleep-stats", label: "Sleep", icon: Moon },
   { to: "/clean-timer", label: "Timer", icon: Timer },
+  { to: "/assistant", label: "AI", icon: Bot },
 ];
 
 export default function BottomNav() {

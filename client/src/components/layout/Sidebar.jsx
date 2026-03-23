@@ -8,6 +8,7 @@ import {
   Timer,
   Activity,
   Calendar,
+  Bot,
 } from "lucide-react";
 
 const navItems = [
@@ -18,6 +19,7 @@ const navItems = [
   { to: "/gym-program", label: "Gym Program", icon: Calendar },
   { to: "/diet-stats", label: "Diet Stats", icon: Utensils },
   { to: "/clean-timer", label: "Clean Since", icon: Timer },
+  { to: "/assistant", label: "AI Assistant", icon: Bot },
 ];
 
 export default function Sidebar() {

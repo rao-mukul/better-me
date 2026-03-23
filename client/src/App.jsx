@@ -11,6 +11,7 @@ import DietStatsPage from "./pages/DietStatsPage";
 import MealLibraryPage from "./pages/MealLibraryPage";
 import CleanTimerPage from "./pages/CleanTimerPage";
 import CleanTimerStatsPage from "./pages/CleanTimerStatsPage";
+import AssistantPage from "./pages/AssistantPage";
 import ProtectedTimerRoute from "./components/timer/ProtectedTimerRoute";
 
 const queryClient = new QueryClient({
@@ -62,6 +63,7 @@ export default function App() {
                 </ProtectedTimerRoute>
               }
             />
+            <Route path="/assistant" element={<AssistantPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
