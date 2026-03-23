@@ -48,6 +48,21 @@ const workoutTypes = [
   },
 ];
 
+const configMapping = {
+  chestTriceps: {
+    first: "chestTriceps",
+    second: "tricepsChest",
+  },
+  backBiceps: {
+    first: "backBiceps",
+    second: "bicepsBack",
+  },
+  legsShoulders: {
+    first: "legsShoulders",
+    second: "shouldersLegs",
+  },
+};
+
 export default function NewGymLogForm({
   onSubmit,
   disabled,
@@ -87,23 +102,11 @@ export default function NewGymLogForm({
 
     // Smart exercise pre-selection: map to correct workout configuration
     if (userProgram) {
-      // Mapping: 3 workout types to 6 configurations
-      const configMapping = {
-        chestTriceps: {
-          first: "chestTriceps",
-          second: "tricepsChest",
-        },
-        backBiceps: {
-          first: "backBiceps",
-          second: "bicepsBack",
-        },
-        legsShoulders: {
-          first: "legsShoulders",
-          second: "shouldersLegs",
-        },
-      };
-
       const mapping = configMapping[workout.id];
+      if (!mapping) {
+        setStep(2);
+        return;
+      }
       const configKey = timesThisWeek === 0 ? mapping.first : mapping.second;
       const exerciseSet = userProgram[configKey]?.primary || [];
 
@@ -199,79 +202,74 @@ export default function NewGymLogForm({
       (ex) => ex.muscleGroup === muscleGroup,
     );
 
-    // Sort exercises: selected exercises first in their saved order, then unselected in custom order
+    if (!selectedWorkout) return filtered;
+
+    const isPrimaryMuscle = muscleGroup === selectedWorkout.primaryMuscle;
+    const currentSelections = isPrimaryMuscle
+      ? primaryExercises
+      : secondaryExercises;
+
+    // Keep currently selected exercises at the top in the exact order user picked.
+    const currentSelectionOrder = new Map();
+    currentSelections.forEach((name, index) => {
+      currentSelectionOrder.set(name, index);
+    });
+
+    let preselectedOrder = new Map();
+    let customOrder = new Map();
+
     if (userProgram && selectedWorkout) {
       const timesThisWeek = weekHistory.filter(
         (log) => log.workoutType === selectedWorkout.id,
       ).length;
 
-      const configMapping = {
-        chestTriceps: {
-          first: "chestTriceps",
-          second: "tricepsChest",
-        },
-        backBiceps: {
-          first: "backBiceps",
-          second: "bicepsBack",
-        },
-        legsShoulders: {
-          first: "legsShoulders",
-          second: "shouldersLegs",
-        },
-      };
-
       const mapping = configMapping[selectedWorkout.id];
+      if (!mapping) {
+        return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+      }
       const configKey = timesThisWeek === 0 ? mapping.first : mapping.second;
       const programConfig = userProgram[configKey] || {};
       const selectedExercises = programConfig.primary || [];
       const exerciseOrder = programConfig.exerciseOrder?.[muscleGroup] || [];
 
-      // Create set for selected exercises
-      const selectedSet = new Set(selectedExercises);
-
-      // Separate exercises into selected and unselected
-      const selected = [];
-      const unselected = [];
-
-      filtered.forEach((ex) => {
-        if (selectedSet.has(ex.name)) {
-          selected.push(ex);
-        } else {
-          unselected.push(ex);
-        }
-      });
-
-      // Sort selected exercises by their order in programConfig.primary
-      const selectedOrderMap = new Map();
       selectedExercises.forEach((name, index) => {
-        selectedOrderMap.set(name, index);
-      });
-      selected.sort((a, b) => {
-        const orderA = selectedOrderMap.get(a.name) ?? 999;
-        const orderB = selectedOrderMap.get(b.name) ?? 999;
-        return orderA - orderB;
+        preselectedOrder.set(name, index);
       });
 
-      // Sort unselected by exerciseOrder if available
-      if (exerciseOrder.length > 0) {
-        const unselectedOrderMap = new Map();
-        exerciseOrder.forEach((name, index) => {
-          if (!selectedSet.has(name)) {
-            unselectedOrderMap.set(name, index);
-          }
-        });
-        unselected.sort((a, b) => {
-          const orderA = unselectedOrderMap.get(a.name) ?? 999;
-          const orderB = unselectedOrderMap.get(b.name) ?? 999;
-          return orderA - orderB;
-        });
-      }
-
-      // Return selected exercises first, then unselected
-      return [...selected, ...unselected];
+      exerciseOrder.forEach((name, index) => {
+        customOrder.set(name, index);
+      });
     }
 
-    return filtered;
+    return [...filtered].sort((a, b) => {
+      const aIsCurrentSelected = currentSelectionOrder.has(a.name);
+      const bIsCurrentSelected = currentSelectionOrder.has(b.name);
+      if (aIsCurrentSelected !== bIsCurrentSelected) {
+        return aIsCurrentSelected ? -1 : 1;
+      }
+      if (aIsCurrentSelected && bIsCurrentSelected) {
+        return (
+          currentSelectionOrder.get(a.name) - currentSelectionOrder.get(b.name)
+        );
+      }
+
+      const aIsPreselected = preselectedOrder.has(a.name);
+      const bIsPreselected = preselectedOrder.has(b.name);
+      if (aIsPreselected !== bIsPreselected) {
+        return aIsPreselected ? -1 : 1;
+      }
+      if (aIsPreselected && bIsPreselected) {
+        return preselectedOrder.get(a.name) - preselectedOrder.get(b.name);
+      }
+
+      const aOrder = customOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER;
+      const bOrder = customOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER;
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
   };
 
   return (
