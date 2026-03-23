@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { Droplets, Moon, Dumbbell, Utensils, ChevronDown } from "lucide-react";
+import {
+  Droplets,
+  Moon,
+  Dumbbell,
+  Utensils,
+  ChevronDown,
+  Loader2,
+} from "lucide-react";
 import Card from "../components/ui/Card";
 import ServerWakeupAnimation from "../components/ui/ServerWakeupAnimation";
 import WaterRing from "../components/water/WaterRing";
@@ -36,6 +43,9 @@ export default function TodayPage() {
 
   // Track which section is expanded (only one at a time) - all collapsed by default
   const [expandedSection, setExpandedSection] = useState(null);
+  const [waterActionPending, setWaterActionPending] = useState(false);
+  const [sleepActionPending, setSleepActionPending] = useState(false);
+  const [gymActionPending, setGymActionPending] = useState(false);
 
   const toggleSection = (section) => {
     // If clicking the currently expanded section, collapse it
@@ -111,13 +121,11 @@ export default function TodayPage() {
   const deleteWorkout = useDeleteWorkout();
   const hasGymData = !!gymData;
   const hasGymLog = !!gymData?.log;
-  const needsGymForm = expandedSection === "gym" && hasGymData && !hasGymLog;
+  // Prefetch gym form dependencies during page bootstrap so the section opens instantly.
   const { data: gymExercises, isLoading: gymExercisesLoading } =
-    useGymExercises({ enabled: needsGymForm });
+    useGymExercises();
   const addExercise = useAddExercise();
-  const { data: gymProgram, isLoading: gymProgramLoading } = useGymProgram({
-    enabled: needsGymForm,
-  });
+  const { data: gymProgram, isLoading: gymProgramLoading } = useGymProgram();
   const gymWeekHistory = gymData?.weekHistory || [];
 
   const todayLog = gymData?.log || null;
@@ -129,12 +137,23 @@ export default function TodayPage() {
     averageIntensity: "none",
   };
 
+  const isWaterBusy =
+    addLog.isPending ||
+    deleteLog.isPending ||
+    updateGoal.isPending ||
+    waterActionPending;
+  const isSleepBusy = logWakeUp.isPending || sleepActionPending;
+  const isGymBusy =
+    addGymLog.isPending ||
+    deleteWorkout.isPending ||
+    addExercise.isPending ||
+    gymActionPending;
+
   // Calculate number of unique days with workouts this week
   const weekWorkoutDays = gymWeekHistory
     ? new Set(gymWeekHistory.map((log) => log.date)).size
     : 0;
-  const gymFormLoading =
-    needsGymForm && (gymExercisesLoading || gymProgramLoading);
+  const gymBootstrapLoading = gymExercisesLoading || gymProgramLoading;
 
   // Diet tracking
   const dietData = overview?.diet || null;
@@ -163,45 +182,86 @@ export default function TodayPage() {
   }, [waterStats.goalMet, waterStats.totalMl]);
 
   const handleWaterAdd = (intake) => {
-    addLog.mutate(intake);
+    if (isWaterBusy) return;
+    setWaterActionPending(true);
+    addLog.mutate(intake, {
+      onSettled: () => {
+        setWaterActionPending(false);
+      },
+    });
     setShowAnimation(true);
     setTimeout(() => setShowAnimation(false), 1000);
   };
 
   const handleWaterDelete = (id) => {
-    deleteLog.mutate(id);
+    if (isWaterBusy) return;
+    setWaterActionPending(true);
+    deleteLog.mutate(id, {
+      onSettled: () => {
+        setWaterActionPending(false);
+      },
+    });
   };
 
   const handleGoalUpdate = (goal) => {
-    updateGoal.mutate(goal);
+    if (isWaterBusy) return;
+    setWaterActionPending(true);
+    updateGoal.mutate(goal, {
+      onSettled: () => {
+        setWaterActionPending(false);
+      },
+    });
   };
 
   const handleWakeLog = (payload) => {
+    if (isSleepBusy) return;
+    setSleepActionPending(true);
     logWakeUp.mutate(payload, {
       onSuccess: () => {
         toast.success("Wake-up logged. Keep the morning streak going ☀️", {
           duration: 2000,
         });
       },
+      onSettled: () => {
+        setSleepActionPending(false);
+      },
     });
   };
 
   const handleGymLogSubmit = (data) => {
+    if (isGymBusy) return;
+    setGymActionPending(true);
     addGymLog.mutate(data, {
       onSuccess: () => {
         toast.success("Workout logged! Great job 🔥", {
           duration: 2000,
         });
       },
+      onSettled: () => {
+        setGymActionPending(false);
+      },
     });
   };
 
   const handleAddExercise = (data) => {
-    return addExercise.mutateAsync(data);
+    if (isGymBusy) {
+      return Promise.resolve(null);
+    }
+
+    setGymActionPending(true);
+    return addExercise.mutateAsync(data).finally(() => {
+      setGymActionPending(false);
+    });
   };
 
   const handleWorkoutDelete = (id) => {
-    deleteWorkout.mutate(id);
+    if (isGymBusy) return;
+    setGymActionPending(true);
+    deleteWorkout.mutate(id, {
+      onSettled: () => {
+        setGymActionPending(false);
+      },
+    });
   };
 
   const handleDietSuccess = () => {
@@ -224,7 +284,7 @@ export default function TodayPage() {
   };
 
   // Loading states
-  const isAnyLoading = overviewLoading;
+  const isAnyLoading = overviewLoading || gymBootstrapLoading;
   const isInitialLoading =
     isAnyLoading &&
     !hasWaterData &&
@@ -240,12 +300,9 @@ export default function TodayPage() {
       return;
     }
 
-    const delayId = setTimeout(() => setShowWakeup(true), 250);
-    const maxId = setTimeout(() => setShowWakeup(false), 1200);
-
+    const delayId = setTimeout(() => setShowWakeup(true), 180);
     return () => {
       clearTimeout(delayId);
-      clearTimeout(maxId);
     };
   }, [isInitialLoading]);
 
@@ -391,13 +448,20 @@ export default function TodayPage() {
                     <GoalSetter
                       goal={waterStats.goal}
                       onUpdate={handleGoalUpdate}
-                      disabled={updateGoal.isPending}
+                      disabled={isWaterBusy}
                     />
+
+                    {isWaterBusy && (
+                      <div className="mt-2 mb-4 flex items-center justify-center gap-2 text-xs text-primary">
+                        <Loader2 size={14} className="animate-spin" />
+                        Updating water data...
+                      </div>
+                    )}
 
                     <div className="mt-6">
                       <QuickAddBar
                         onAdd={handleWaterAdd}
-                        disabled={addLog.isPending}
+                        disabled={isWaterBusy}
                       />
                     </div>
                   </>
@@ -461,20 +525,26 @@ export default function TodayPage() {
                   <div className="py-6 text-sm text-text-secondary">
                     Loading workout data...
                   </div>
-                ) : gymFormLoading ? (
+                ) : gymBootstrapLoading ? (
                   <div className="py-6 text-sm text-text-secondary">
-                    Loading workout data...
+                    Preparing workout tools...
                   </div>
                 ) : !todayLog ? (
                   <div className="mb-6">
                     <NewGymLogForm
                       onSubmit={handleGymLogSubmit}
-                      disabled={addGymLog.isPending}
+                      disabled={isGymBusy}
                       allExercises={gymExercises || []}
                       userProgram={gymProgram?.workoutTypes || {}}
                       weekHistory={gymWeekHistory || []}
                       onAddExercise={handleAddExercise}
                     />
+                    {isGymBusy && (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-orange-300">
+                        <Loader2 size={14} className="animate-spin" />
+                        Saving workout changes...
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -510,10 +580,17 @@ export default function TodayPage() {
                         </div>
                         <button
                           onClick={() => handleWorkoutDelete(todayLog._id)}
-                          disabled={deleteWorkout.isPending}
+                          disabled={isGymBusy}
                           className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50"
                         >
-                          Delete
+                          {isGymBusy ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Loader2 size={14} className="animate-spin" />
+                              Deleting...
+                            </span>
+                          ) : (
+                            "Delete"
+                          )}
                         </button>
                       </div>
 
@@ -630,8 +707,14 @@ export default function TodayPage() {
                 ) : (
                   <SleepLogForm
                     onLogWake={handleWakeLog}
-                    disabled={logWakeUp.isPending}
+                    disabled={isSleepBusy}
                   />
+                )}
+                {isSleepBusy && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-purple-300">
+                    <Loader2 size={14} className="animate-spin" />
+                    Logging sleep data...
+                  </div>
                 )}
               </motion.div>
             )}

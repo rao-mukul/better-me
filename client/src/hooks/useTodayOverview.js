@@ -5,7 +5,9 @@ export function useTodayOverview() {
   return useQuery({
     queryKey: ["today", "overview"],
     queryFn: todayApi.getOverview,
-    staleTime: 30000,
-    refetchOnWindowFocus: true,
+    staleTime: 120000,
+    gcTime: 300000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }

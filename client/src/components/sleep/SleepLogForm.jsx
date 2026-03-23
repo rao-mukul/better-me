@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sunrise } from "lucide-react";
+import { Sunrise, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 const qualityOptions = [
@@ -73,11 +73,12 @@ export default function SleepLogForm({ onLogWake, disabled }) {
               type="button"
               whileTap={{ scale: 0.95 }}
               onClick={() => setQuality(option.value)}
+              disabled={disabled}
               className={`px-2 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 quality === option.value
                   ? "bg-purple-500/30 border-2 border-purple-400/50 text-purple-300"
                   : "bg-navy-700/40 border border-navy-600/30 text-text-secondary hover:bg-navy-700/60"
-              }`}
+              } disabled:opacity-60 disabled:cursor-not-allowed`}
             >
               <div className="text-base mb-0.5">{option.emoji}</div>
               {option.label}
@@ -92,7 +93,14 @@ export default function SleepLogForm({ onLogWake, disabled }) {
         disabled={disabled}
         className="w-full px-4 py-2.5 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Log Wake-up
+        {disabled ? (
+          <span className="inline-flex items-center gap-2">
+            <Loader2 size={16} className="animate-spin" />
+            Logging Wake-up...
+          </span>
+        ) : (
+          "Log Wake-up"
+        )}
       </motion.button>
     </motion.form>
   );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { GlassWater, CupSoda, Plus } from "lucide-react";
+import { GlassWater, CupSoda, Plus, Loader2 } from "lucide-react";
 import CustomAmountModal from "./CustomAmountModal";
 
 const presets = [
@@ -39,6 +39,13 @@ export default function QuickAddBar({ onAdd, disabled }) {
 
   return (
     <>
+      {disabled && (
+        <div className="mb-3 flex items-center justify-center gap-2 text-xs text-primary">
+          <Loader2 size={14} className="animate-spin" />
+          Logging water intake...
+        </div>
+      )}
+
       <div className="flex gap-3 justify-center">
         {presets.map((preset) => (
           <motion.button

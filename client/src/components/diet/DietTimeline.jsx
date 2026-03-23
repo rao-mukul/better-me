@@ -11,7 +11,7 @@ export default function DietTimeline({ logs = [], onDelete }) {
   };
 
   const orderedLogs = [...logs].sort(
-    (a, b) => new Date(a.eatenAt) - new Date(b.eatenAt),
+    (a, b) => new Date(b.eatenAt) - new Date(a.eatenAt),
   );
 
   const sortedMealTimes = orderedLogs.map((log) => new Date(log.eatenAt));
@@ -26,7 +26,7 @@ export default function DietTimeline({ logs = [], onDelete }) {
                 sum +
                 Math.max(
                   0,
-                  Math.round((time - sortedMealTimes[index]) / 60000),
+                  Math.round((sortedMealTimes[index] - time) / 60000),
                 ),
               0,
             ) /
@@ -70,8 +70,8 @@ export default function DietTimeline({ logs = [], onDelete }) {
             ? Math.max(
                 0,
                 Math.round(
-                  (new Date(orderedLogs[index + 1].eatenAt) -
-                    new Date(log.eatenAt)) /
+                  (new Date(log.eatenAt) -
+                    new Date(orderedLogs[index + 1].eatenAt)) /
                     60000,
                 ),
               )

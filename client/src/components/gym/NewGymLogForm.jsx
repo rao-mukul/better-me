@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   X,
   Plus,
+  Loader2,
 } from "lucide-react";
 
 const workoutTypes = [
@@ -594,8 +595,20 @@ export default function NewGymLogForm({
                 disabled={disabled}
                 className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-success text-white rounded-lg text-sm sm:text-base font-medium hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
               >
-                <Check size={16} className="sm:w-4.5 sm:h-4.5" />
-                Complete Workout
+                {disabled ? (
+                  <>
+                    <Loader2
+                      size={16}
+                      className="sm:w-4.5 sm:h-4.5 animate-spin"
+                    />
+                    Saving Workout...
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} className="sm:w-4.5 sm:h-4.5" />
+                    Complete Workout
+                  </>
+                )}
               </button>
             </div>
           </motion.div>
