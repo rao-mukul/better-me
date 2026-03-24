@@ -724,27 +724,27 @@ export default function TodayPage() {
           </AnimatePresence>
         </Card>
 
-        {/* AI Assistant Trigger */}
+        {/* Maruti AI Assistant Trigger */}
         <motion.button
           onClick={() => setIsVoiceModalOpen(true)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="w-full bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 rounded-2xl p-6 flex items-center justify-between group hover:from-primary/30 hover:to-purple-500/30 transition-all"
+          className="w-full bg-gradient-to-r from-orange-500/10 to-orange-600/5 border border-orange-500/20 rounded-2xl p-6 flex items-center justify-between group hover:from-orange-500/15 hover:to-orange-600/10 hover:border-orange-500/30 transition-all"
         >
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-primary/20 group-hover:bg-primary/30 transition-colors">
-              <Sparkles size={24} className="text-primary" />
+            <div className="p-3 rounded-xl bg-orange-500/15 group-hover:bg-orange-500/20 transition-colors">
+              <Sparkles size={24} className="text-orange-400" />
             </div>
             <div className="text-left">
-              <h3 className="text-lg font-bold text-text-primary">Ask AI Assistant</h3>
-              <p className="text-sm text-text-secondary">Voice conversation about your health data</p>
+              <h3 className="text-lg font-bold text-text-primary">Speak with Maruti</h3>
+              <p className="text-sm text-text-secondary">Your devoted wellness companion</p>
             </div>
           </div>
           <motion.div
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            <ChevronDown size={20} className="text-primary rotate-[-90deg]" />
+            <ChevronDown size={20} className="text-orange-400 rotate-[-90deg]" />
           </motion.div>
         </motion.button>
       </motion.div>

@@ -19,7 +19,7 @@ const navItems = [
   { to: "/gym-program", label: "Gym Program", icon: Calendar },
   { to: "/diet-stats", label: "Diet Stats", icon: Utensils },
   { to: "/clean-timer", label: "Clean Since", icon: Timer },
-  { to: "/assistant", label: "AI Assistant", icon: Bot },
+  { to: "/assistant", label: "Maruti", icon: Bot },
 ];
 
 export default function Sidebar() {

@@ -6,7 +6,8 @@ import { useAudioPlayback } from "./useAudioPlayback";
 import { useAssistantSession } from "./useAssistantSession";
 
 /**
- * VoiceCallModal — full-screen voice conversation UI
+ * VoiceCallModal — Maruti AI Assistant
+ * Full-screen voice conversation UI with saffron-inspired theme
  * Mobile-first, minimal design with real-time visual feedback
  */
 export default function VoiceCallModal({ isOpen, onClose }) {
@@ -80,19 +81,19 @@ export default function VoiceCallModal({ isOpen, onClose }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-navy-900 flex flex-col"
+          className="fixed inset-0 z-50 bg-gradient-to-b from-navy-900 via-navy-900 to-navy-800 flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-4 border-b border-navy-700/50">
+          <div className="flex items-center justify-between px-4 py-4 border-b border-navy-700/50 bg-gradient-to-r from-orange-500/5 to-transparent">
             <div className="flex items-center gap-2">
-              <Sparkles size={20} className="text-primary" />
+              <Sparkles size={20} className="text-orange-400" />
               <span className="text-sm font-semibold text-text-primary">
-                AI Assistant
+                Maruti
               </span>
               {isActive && (
-                <span className="flex items-center gap-1 text-xs text-success">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                  Live
+                <span className="flex items-center gap-1 text-xs text-orange-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                  Connected
                 </span>
               )}
             </div>
@@ -113,8 +114,8 @@ export default function VoiceCallModal({ isOpen, onClose }) {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center mb-8"
               >
-                <Loader2 size={32} className="animate-spin text-primary mx-auto mb-3" />
-                <p className="text-sm text-text-secondary">Connecting to AI...</p>
+                <Loader2 size={32} className="animate-spin text-orange-400 mx-auto mb-3" />
+                <p className="text-sm text-text-secondary">Awakening Maruti...</p>
               </motion.div>
             )}
 
@@ -127,12 +128,12 @@ export default function VoiceCallModal({ isOpen, onClose }) {
                 <div className="w-16 h-16 rounded-full bg-danger/20 flex items-center justify-center mx-auto mb-3">
                   <X size={32} className="text-danger" />
                 </div>
-                <p className="text-sm text-danger">Connection failed</p>
+                <p className="text-sm text-danger">Unable to connect</p>
                 <button
                   onClick={() => session.startSession()}
-                  className="mt-4 px-4 py-2 bg-primary/20 text-primary rounded-lg text-sm"
+                  className="mt-4 px-4 py-2 bg-orange-500/20 text-orange-400 rounded-lg text-sm hover:bg-orange-500/30 transition-colors"
                 >
-                  Retry
+                  Try Again
                 </button>
               </motion.div>
             )}
@@ -151,14 +152,14 @@ export default function VoiceCallModal({ isOpen, onClose }) {
                     <motion.div
                       animate={{
                         scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.1, 0.3],
+                        opacity: [0.25, 0.08, 0.25],
                       }}
                       transition={{
                         duration: 1.5,
                         repeat: Infinity,
                         ease: "easeInOut",
                       }}
-                      className="absolute inset-0 rounded-full bg-primary/20"
+                      className="absolute inset-0 rounded-full bg-orange-500/30"
                     />
                   )}
 
@@ -167,30 +168,30 @@ export default function VoiceCallModal({ isOpen, onClose }) {
                     <motion.div
                       animate={{
                         scale: [1, 1.1, 1],
-                        opacity: [0.4, 0.2, 0.4],
+                        opacity: [0.3, 0.15, 0.3],
                       }}
                       transition={{
                         duration: 1,
                         repeat: Infinity,
                         ease: "easeInOut",
                       }}
-                      className="absolute inset-4 rounded-full bg-success/20"
+                      className="absolute inset-4 rounded-full bg-orange-400/25"
                     />
                   )}
 
                   {/* Center circle */}
-                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/40 to-purple-500/40 backdrop-blur-sm flex items-center justify-center">
+                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-orange-500/30 to-orange-600/20 backdrop-blur-sm flex items-center justify-center border border-orange-500/20">
                     {audioPlayback.isSpeaking ? (
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                       >
-                        <Sparkles size={48} className="text-primary" />
+                        <Sparkles size={48} className="text-orange-400" />
                       </motion.div>
                     ) : (
                       <Mic
                         size={48}
-                        className={audioCapture.isCapturing ? "text-success" : "text-text-secondary"}
+                        className={audioCapture.isCapturing ? "text-orange-400" : "text-text-secondary"}
                       />
                     )}
                   </div>
@@ -205,7 +206,7 @@ export default function VoiceCallModal({ isOpen, onClose }) {
                             height: `${Math.max(20, audioLevel * 100 * (0.5 + Math.random()))}%`,
                           }}
                           transition={{ duration: 0.1 }}
-                          className="w-1 bg-success rounded-full"
+                          className="w-1 bg-orange-400 rounded-full"
                         />
                       ))}
                     </div>
@@ -218,23 +219,23 @@ export default function VoiceCallModal({ isOpen, onClose }) {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="flex items-center gap-2 justify-center text-xs text-primary"
+                      className="flex items-center gap-2 justify-center text-xs text-orange-400"
                     >
                       <Loader2 size={14} className="animate-spin" />
-                      <span>Fetching your data...</span>
+                      <span>Gathering your insights...</span>
                     </motion.div>
                   )}
 
                   {audioPlayback.isSpeaking && !isToolCallActive && (
-                    <p className="text-sm text-primary font-medium">AI is speaking...</p>
+                    <p className="text-sm text-orange-400 font-medium">Maruti is guiding you...</p>
                   )}
 
                   {audioCapture.isCapturing && !audioPlayback.isSpeaking && (
-                    <p className="text-sm text-success font-medium">Listening...</p>
+                    <p className="text-sm text-orange-400 font-medium">Listening with care...</p>
                   )}
 
                   {!audioCapture.isCapturing && !audioPlayback.isSpeaking && !isToolCallActive && (
-                    <p className="text-sm text-text-secondary">Starting mic...</p>
+                    <p className="text-sm text-text-secondary">Preparing to listen...</p>
                   )}
 
                   {/* Last message preview */}
@@ -261,8 +262,8 @@ export default function VoiceCallModal({ isOpen, onClose }) {
 
           {/* Footer Hint */}
           {isActive && (
-            <div className="px-6 py-4 text-center text-xs text-text-secondary border-t border-navy-700/50">
-              Speak naturally — I'll respond when you pause
+            <div className="px-6 py-4 text-center text-xs text-text-secondary border-t border-navy-700/50 bg-gradient-to-r from-orange-500/5 to-transparent">
+              Share your thoughts freely — Maruti is here to serve you with devotion
             </div>
           )}
         </motion.div>
