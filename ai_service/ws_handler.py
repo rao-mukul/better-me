@@ -313,6 +313,11 @@ async def ws_ai(ws: WebSocket) -> None:
                 tools=TOOL_DEFINITIONS,
                 response_modalities=["AUDIO"],
                 output_audio_transcription=types.AudioTranscriptionConfig(),
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Alnilam")
+                    )
+                ),
             ),
         ) as gemini_session:
             logger.info("ws_ai: Gemini session established")

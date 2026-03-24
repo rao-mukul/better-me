@@ -4,8 +4,6 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from google.genai.types import LiveConnectConfig
-
 from tools_schema import TOOL_DEFINITIONS  # noqa: F401 — used in Task 4
 
 
@@ -41,19 +39,6 @@ def build_system_prompt() -> str:
         "If the user asks about anything unrelated to these topics, politely decline and "
         "redirect them to supported health and fitness topics with gentle encouragement."
     )
-
-
-async def create_session(client) -> SessionState:
-    """Create a new Gemini Live session and return a SessionState."""
-    session = await client.aio.live.connect(
-        model="gemini-2.5-flash-native-audio-preview-12-2025",
-        config=LiveConnectConfig(
-            system_instruction=build_system_prompt(),
-            tools=TOOL_DEFINITIONS,
-            response_modalities=["AUDIO"],
-        ),
-    )
-    return SessionState(gemini_session=session)
 
 
 def truncate_history(state: SessionState) -> None:
