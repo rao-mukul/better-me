@@ -92,6 +92,11 @@ export default function DietCalendar() {
 
   const formatTime12Hour = (timeStr) => {
     if (!timeStr) return "-";
+    if (timeStr.includes("T") || timeStr.includes("Z")) {
+      const date = new Date(timeStr);
+      if (isNaN(date.getTime())) return "-";
+      return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    }
     const [hours, minutes] = timeStr.split(":").map(Number);
     if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return timeStr;
     const period = hours >= 12 ? "PM" : "AM";

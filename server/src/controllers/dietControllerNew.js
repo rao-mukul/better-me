@@ -80,8 +80,8 @@ const computeMealTimingInsights = (logs = [], previousMealLog = null) => {
 
   return {
     mealCount: sortedLogs.length,
-    firstMealTime: minutesToTime(firstMealMinutes),
-    lastMealTime: minutesToTime(lastMealMinutes),
+    firstMealTime: trueFirstMealEatenAt.toISOString(),
+    lastMealTime: lastMealEatenAt.toISOString(),
     averageGapMinutes,
     shortestGapMinutes: gaps.length ? Math.min(...gaps) : null,
     longestGapMinutes: gaps.length ? Math.max(...gaps) : null,
