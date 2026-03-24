@@ -10,6 +10,7 @@ const initialState = {
   isMuted: false,
   turnCount: 0,
   turnLimitWarning: false,
+  isToolCallActive: false,
 };
 
 function sessionReducer(state, action) {
@@ -74,6 +75,9 @@ function sessionReducer(state, action) {
           },
         ],
       };
+
+    case "SET_TOOL_CALL_ACTIVE":
+      return { ...state, isToolCallActive: action.value };
 
     case "RESET":
       return {
@@ -166,6 +170,11 @@ export function useAssistantSession(audioPlayback) {
 
         case "text_done":
           dispatch({ type: "FINALIZE_ASSISTANT_TURN", turn_id: msg.turn_id });
+          dispatch({ type: "SET_TOOL_CALL_ACTIVE", value: false });
+          break;
+
+        case "tool_call_start":
+          dispatch({ type: "SET_TOOL_CALL_ACTIVE", value: true });
           break;
 
         case "interrupted":
@@ -298,6 +307,7 @@ export function useAssistantSession(audioPlayback) {
     isMuted: state.isMuted,
     turnCount: state.turnCount,
     turnLimitWarning: state.turnLimitWarning,
+    isToolCallActive: state.isToolCallActive,
     startSession,
     endSession,
     sendText,

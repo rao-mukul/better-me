@@ -8,6 +8,7 @@ import {
   Utensils,
   ChevronDown,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import Card from "../components/ui/Card";
 import ServerWakeupAnimation from "../components/ui/ServerWakeupAnimation";
@@ -19,6 +20,7 @@ import SleepLogForm from "../components/sleep/SleepLogForm";
 import NewGymLogForm from "../components/gym/NewGymLogForm";
 import GymCard from "../components/gym/GymCard";
 import NewDietLogForm from "../components/diet/NewDietLogForm";
+import VoiceCallModal from "../components/assistant/VoiceCallModal";
 import {
   useAddWaterLog,
   useDeleteWaterLog,
@@ -46,6 +48,7 @@ export default function TodayPage() {
   const [waterActionPending, setWaterActionPending] = useState(false);
   const [sleepActionPending, setSleepActionPending] = useState(false);
   const [gymActionPending, setGymActionPending] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
   const toggleSection = (section) => {
     // If clicking the currently expanded section, collapse it
@@ -720,7 +723,37 @@ export default function TodayPage() {
             )}
           </AnimatePresence>
         </Card>
+
+        {/* AI Assistant Trigger */}
+        <motion.button
+          onClick={() => setIsVoiceModalOpen(true)}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 rounded-2xl p-6 flex items-center justify-between group hover:from-primary/30 hover:to-purple-500/30 transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-primary/20 group-hover:bg-primary/30 transition-colors">
+              <Sparkles size={24} className="text-primary" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-lg font-bold text-text-primary">Ask AI Assistant</h3>
+              <p className="text-sm text-text-secondary">Voice conversation about your health data</p>
+            </div>
+          </div>
+          <motion.div
+            animate={{ x: [0, 4, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <ChevronDown size={20} className="text-primary rotate-[-90deg]" />
+          </motion.div>
+        </motion.button>
       </motion.div>
+
+      {/* Voice Call Modal */}
+      <VoiceCallModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+      />
     </>
   );
 }
