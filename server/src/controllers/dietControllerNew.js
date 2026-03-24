@@ -21,7 +21,7 @@ const minutesToTime = (minutes) => {
   return `${hours}:${mins}`;
 };
 
-const computeMealTimingInsights = (logs = []) => {
+const computeMealTimingInsights = (logs = [], previousMealLog = null) => {
   if (!logs.length) {
     return {
       mealCount: 0,
@@ -39,13 +39,15 @@ const computeMealTimingInsights = (logs = []) => {
     (a, b) => new Date(a.eatenAt) - new Date(b.eatenAt),
   );
 
-  const mealTimesMinutes = sortedLogs.map((log) => {
-    const eatenAt = new Date(log.eatenAt);
-    return eatenAt.getHours() * 60 + eatenAt.getMinutes();
-  });
+  const getMinutesOfDay = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.getHours() * 60 + d.getMinutes();
+  };
 
-  const firstAfter4 = mealTimesMinutes.find((m) => m >= 4 * 60);
-  const firstMealMinutes = firstAfter4 ?? mealTimesMinutes[0];
+  const mealTimesMinutes = sortedLogs.map((log) => getMinutesOfDay(log.eatenAt));
+
+  const firstAfter4 = sortedLogs.find((l) => getMinutesOfDay(l.eatenAt) >= 4 * 60);
+  const firstMealMinutes = firstAfter4 ? getMinutesOfDay(firstAfter4.eatenAt) : mealTimesMinutes[0];
   const lastMealMinutes = mealTimesMinutes[mealTimesMinutes.length - 1];
 
   const gaps = [];
@@ -61,15 +63,20 @@ const computeMealTimingInsights = (logs = []) => {
       ? Math.round(gaps.reduce((sum, g) => sum + g, 0) / gaps.length)
       : null;
 
+  const firstMealEatenAt = new Date(sortedLogs[0].eatenAt);
+  const lastMealEatenAt = new Date(sortedLogs[sortedLogs.length - 1].eatenAt);
   const feedingWindowMinutes =
-    mealTimesMinutes.length > 1
-      ? Math.max(0, lastMealMinutes - firstMealMinutes)
+    sortedLogs.length > 1
+      ? Math.max(0, Math.round((lastMealEatenAt - firstMealEatenAt) / 60000))
       : 0;
 
-  const overnightGapMinutes =
-    feedingWindowMinutes !== null
-      ? Math.max(0, 24 * 60 - feedingWindowMinutes)
-      : null;
+  const trueFirstMealEatenAt = firstAfter4 ? new Date(firstAfter4.eatenAt) : firstMealEatenAt;
+  
+  let overnightGapMinutes = null;
+  if (previousMealLog?.eatenAt) {
+    const prevEatenAt = new Date(previousMealLog.eatenAt);
+    overnightGapMinutes = Math.max(0, Math.round((trueFirstMealEatenAt - prevEatenAt) / 60000));
+  }
 
   return {
     mealCount: sortedLogs.length,
@@ -114,11 +121,20 @@ export const getTodayData = async (req, res, next) => {
       .sort({ eatenAt: -1 })
       .lean();
 
+    let previousMealLog = null;
+    if (logs && logs.length > 0) {
+      const earliestLog = logs[logs.length - 1]; // sorted by eatenAt: -1
+      previousMealLog = await DietLog.findOne({
+        userId: DEFAULT_USER_ID,
+        eatenAt: { $lt: earliestLog.eatenAt }
+      }).sort({ eatenAt: -1 }).lean();
+    }
+
     const totals = {
       count: logs.length,
     };
 
-    const timing = computeMealTimingInsights(logs);
+    const timing = computeMealTimingInsights(logs, previousMealLog);
 
     if (summary) {
       res.json({ logs: [], totals, timing });
@@ -522,26 +538,43 @@ export const getMonthData = async (req, res, next) => {
         $gte: format(startDate, "yyyy-MM-dd"),
         $lte: format(endDate, "yyyy-MM-dd"),
       },
-    });
+    }).sort({ eatenAt: 1 }).lean();
+
+    let previousMonthLastLog = null;
+    if (logs.length > 0) {
+      previousMonthLastLog = await DietLog.findOne({
+        userId,
+        eatenAt: { $lt: logs[0].eatenAt }
+      }).sort({ eatenAt: -1 }).lean();
+    }
 
     // Group by day
     const dayData = {};
-    logs.forEach((log) => {
+    for (const log of logs) {
       const day = parseInt(log.date.split("-")[2]);
       if (!dayData[day]) {
-        dayData[day] = {
-          count: 0,
-          logs: [],
-        };
+        dayData[day] = { count: 0, logs: [], previousMealLog: null };
       }
       dayData[day].count += 1;
       dayData[day].logs.push(log);
-    });
+    }
+
+    let lastSeenLog = previousMonthLastLog;
+    const sortedDays = Object.keys(dayData).map(Number).sort((a, b) => a - b);
+    for (const day of sortedDays) {
+      dayData[day].previousMealLog = lastSeenLog;
+      if (dayData[day].logs.length > 0) {
+        lastSeenLog = dayData[day].logs[dayData[day].logs.length - 1];
+      }
+    }
 
     // Create array for all days in month
     const data = Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
-      const timing = computeMealTimingInsights(dayData[day]?.logs || []);
+      const timing = computeMealTimingInsights(
+        dayData[day]?.logs || [], 
+        dayData[day]?.previousMealLog || null
+      );
       return {
         day,
         count: dayData[day]?.count || 0,

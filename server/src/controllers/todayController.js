@@ -50,7 +50,7 @@ const minutesToClockTime = (minutes) => {
   return `${hours}:${mins}`;
 };
 
-const computeMealTimingInsights = (logs = []) => {
+const computeMealTimingInsights = (logs = [], previousMealLog = null) => {
   if (!logs.length) {
     return {
       mealCount: 0,
@@ -68,13 +68,15 @@ const computeMealTimingInsights = (logs = []) => {
     (a, b) => new Date(a.eatenAt) - new Date(b.eatenAt),
   );
 
-  const mealTimesMinutes = sortedLogs.map((log) => {
-    const eatenAt = new Date(log.eatenAt);
-    return eatenAt.getHours() * 60 + eatenAt.getMinutes();
-  });
+  const getMinutesOfDay = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.getHours() * 60 + d.getMinutes();
+  };
 
-  const firstAfter4 = mealTimesMinutes.find((m) => m >= 4 * 60);
-  const firstMealMinutes = firstAfter4 ?? mealTimesMinutes[0];
+  const mealTimesMinutes = sortedLogs.map((log) => getMinutesOfDay(log.eatenAt));
+
+  const firstAfter4 = sortedLogs.find((l) => getMinutesOfDay(l.eatenAt) >= 4 * 60);
+  const firstMealMinutes = firstAfter4 ? getMinutesOfDay(firstAfter4.eatenAt) : mealTimesMinutes[0];
   const lastMealMinutes = mealTimesMinutes[mealTimesMinutes.length - 1];
 
   const gaps = [];
@@ -90,10 +92,20 @@ const computeMealTimingInsights = (logs = []) => {
       ? Math.round(gaps.reduce((sum, g) => sum + g, 0) / gaps.length)
       : null;
 
+  const firstMealEatenAt = new Date(sortedLogs[0].eatenAt);
+  const lastMealEatenAt = new Date(sortedLogs[sortedLogs.length - 1].eatenAt);
   const feedingWindowMinutes =
-    mealTimesMinutes.length > 1
-      ? Math.max(0, lastMealMinutes - firstMealMinutes)
+    sortedLogs.length > 1
+      ? Math.max(0, Math.round((lastMealEatenAt - firstMealEatenAt) / 60000))
       : 0;
+
+  const trueFirstMealEatenAt = firstAfter4 ? new Date(firstAfter4.eatenAt) : firstMealEatenAt;
+  
+  let overnightGapMinutes = null;
+  if (previousMealLog?.eatenAt) {
+    const prevEatenAt = new Date(previousMealLog.eatenAt);
+    overnightGapMinutes = Math.max(0, Math.round((trueFirstMealEatenAt - prevEatenAt) / 60000));
+  }
 
   return {
     mealCount: sortedLogs.length,
@@ -103,7 +115,7 @@ const computeMealTimingInsights = (logs = []) => {
     shortestGapMinutes: gaps.length ? Math.min(...gaps) : null,
     longestGapMinutes: gaps.length ? Math.max(...gaps) : null,
     feedingWindowMinutes,
-    overnightGapMinutes: Math.max(0, 24 * 60 - feedingWindowMinutes),
+    overnightGapMinutes,
   };
 };
 
@@ -176,7 +188,16 @@ export const getTodayOverview = async (req, res, next) => {
       count: (dietLogs || []).length,
     };
 
-    const dietTiming = computeMealTimingInsights(dietLogs || []);
+    let previousMealLog = null;
+    if (dietLogs && dietLogs.length > 0) {
+      const earliestLog = dietLogs[dietLogs.length - 1]; // sorted by eatenAt: -1
+      previousMealLog = await DietLog.findOne({
+        userId: DEFAULT_USER_ID,
+        eatenAt: { $lt: earliestLog.eatenAt }
+      }).sort({ eatenAt: -1 }).lean();
+    }
+
+    const dietTiming = computeMealTimingInsights(dietLogs || [], previousMealLog);
 
     res.json({
       date,
